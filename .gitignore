@@ -1,0 +1,7 @@
+# .gitignore
+rosWS/log/*
+rosWS/build/*
+rosWS/install/*
+TM_V2/build/*
+
+

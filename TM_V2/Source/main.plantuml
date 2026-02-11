@@ -1,0 +1,21 @@
+@startuml HelloWorld
+skinparam Style strictuml
+skinparam ArrowColor #gray
+
+class "Idle" as IdelState{
+    name : string
+}
+
+class "Run" as TestRun{
+}
+
+class "End" as EndState{
+    value : int
+}
+
+IdelState "K" *--* "A" TestRun: IS-Play>
+TestRun "R" --"R" TestRun: Loop of Test Steps
+TestRun "E" *--* "E" EndState: End
+
+
+@enduml
