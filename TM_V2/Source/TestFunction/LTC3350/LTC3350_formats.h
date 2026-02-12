@@ -88,6 +88,7 @@ Generated on: 2016-01-08
 #define ICA_NT_USV_2315 2
 #define ICA_2308 3
 #define ICA_2407 4
+#define ICA_2506 5
 
 //#define ICA_NT_USV_CapType_0 0
 //#define ICA_NT_USV_CapType_1 1

@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
 project(tm_node_pkg)
 
-set(CMAKE_INSTALL_RPATH "/home/ica/ica_usv_testdevice-gui/TM_V2")
+set(TM_V2_DIR "$ENV{HOME}/git_sasan/ICA_TM_V2/TM_V2")
+set(CMAKE_BUILD_RPATH "${TM_V2_DIR}")
+set(CMAKE_INSTALL_RPATH "${TM_V2_DIR}")
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -13,19 +15,15 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(my_msgs_pkg REQUIRED)
-include_directories(
-  /home/ica/ica_usv_testdevice-gui/TM_V2/Source  # Or wherever your .hpp files are
-)
-
-link_directories(
-  /home/ica/ica_usv_testdevice-gui/TM_V2    # Where your .a file lives
-)
 
 add_executable(tm_node src/tm_node.cpp)
 
+target_include_directories(tm_node PRIVATE
+  "${TM_V2_DIR}/Source"
+)
 target_link_libraries(tm_node
   #ICA_USV_Test  # Drops the 'lib' and '.a' automatically
-  /home/ica/ica_usv_testdevice-gui/TM_V2/libICA_USV_Test.so
+  "${TM_V2_DIR}/libICA_USV_Test.so"
   qrencode       # 🧠 Add this line
   gd             # 🧠 And this one
 )

@@ -81,8 +81,8 @@ void USV_TEST_UTIL_V2::getArg(int argc, char* argv[]){
 		}
         __process=false;  
               
-        if (strcmp(cArg, "-2315") == 0) {myArg.manual_Dongle=0x12;__process=true;}
-        if (strcmp(cArg, "-2405") == 0) {myArg.manual_Dongle=0x08;__process=true;}
+        //if (strcmp(cArg, "-2315") == 0) {myArg.manual_Dongle=0x12;__process=true;}
+        //if (strcmp(cArg, "-2405") == 0) {myArg.manual_Dongle=0x08;__process=true;}
 
         if (strcmp(cArg, "-ERRORLIST") == 0) {myArg.showErrorList=true;__process=true;}
         if (strcmp(cArg, "-NORMAL") == 0) {myArg.normalTest=true;myArg.manualTest=false;__process=true;}
@@ -189,6 +189,33 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         myBoard.boardType=ICA_2407;
         myBoard.boardVer=0;        
     break;
+    case 5: //ICA2506
+        myBoard.boardName=2506;
+        sprintf(myBoard.boardKind_str,"NT-CLX USV Pro");
+        sprintf(myBoard.boardName_str,"2506");        
+        myBoard.boardType=ICA_2506;//ICA_NT_USV_2405
+        myBoard.boardVer=0;
+    
+        myBoard.myBoardInfo.LTC3350_RSNSI1=0.016;
+        myBoard.myBoardInfo.LTC3350_RSNSI2=0.016;
+        myBoard.myBoardInfo.LTC3350_RSNSC=0.003;
+        myBoard.myBoardInfo.LTC3350_RTST=121;
+        myBoard.myBoardInfo.LTC3350_RT=107000;        
+        
+        myBoard.myBoardInfo.Board_SupperCapVoltage = 3.0;//3.0V
+        myBoard.myBoardInfo.Board_SupperCapSingleCap = 50;//50.0F
+        myBoard.myBoardInfo.Board_SupperCapNum = 4;//3.0V
+        myBoard.myBoardInfo.Board_SupperCapType=255;//XXXX
+        myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V
+        switch ((uint16_t)_version*100)
+        {
+            case 100:
+            myBoard.boardVer=0x10;
+            myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
+            myBoard.myBoardInfo.Board_MaxTemp85V=26;    
+            break;
+        }
+        break;
     default:
         myBoard.boardName=0;
         myBoard.boardVer=0;
@@ -1605,4 +1632,48 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
     SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
         
+}
+
+void USV_TEST_UTIL_V2::runICA2506(void){
+    uint8_t _mState = 0, LMState=0xFF;
+    uint16_t _dcnt100ms=0;
+
+    showLog("******************************");
+    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);            
+    DongleCheck();  
+    ShowMyDongle();
+    while((_mState<0xF0) && (xrunning==true)){        
+        usleep(100000);
+        myTempVal.VIn= myTestDevice.getDUT_VIN();
+        myTempVal.InCurrent = myTestDevice.getDUT_VINAmp();        
+        switch (_mState){ 
+            case 0://clear registers & reset Relays *********************************************
+                myInterActReg.TR.DataClear();
+                removeJPG_PFiles_Jobs();
+                myTempVal.clear();
+                myBoard.myEEPROM.clear_EEPROM_Buffer();
+                myBoard.myEEPROM.myData.clear();
+                testr.clear();
+                testrReset();                
+                showLog("ICA2506 ReadEUI");
+                showLog("Start: Reset Relays and Test start.");
+                myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);                
+            _mState++;
+            break;           
+            default: 
+                showLog("\n!!! END !!!\n");
+                _mState=0xFE;
+                break;
+        
+        }        
+        myTempVal.result=_mState;        
+        myInterActReg.TR.InCurrent=myTempVal.InCurrent;
+        myInterActReg.TR.Vin=myTempVal.VIn;
+        myInterActReg.TR.Vvcc=myTempVal.VCC;                
+    }
+    
+    showLog("SAVE DATA...");
+    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,true);
+    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+
 }

@@ -115,7 +115,7 @@ void App_TM_V2::stop() {
 void App_TM_V2::pre_Check() {
     //myUSVTestV2.myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);   
     //printf("DongleID=%d version=%.1f\n",myInterActReg.DongleID,myInterActReg.board_version);  
-    switch (myInterActReg.DongleID){
+    /*switch (myInterActReg.DongleID){
         case 1: myUSVTestV2.myArg.manual_Dongle=0x8; break;
         case 2: myUSVTestV2.myArg.manual_Dongle=0x9; break;
         case 3: myUSVTestV2.myArg.manual_Dongle=0x12; break;
@@ -123,7 +123,8 @@ void App_TM_V2::pre_Check() {
         case 5: myUSVTestV2.myArg.manual_Dongle=0x18; break;
         case 6: myUSVTestV2.myArg.manual_Dongle=0x20; break;        
         default: myUSVTestV2.myArg.manual_Dongle=0; break;        
-    }               
+    } 
+    */              
     myUSVTestV2.DongleCheck();
 }
 void App_TM_V2::run() {
@@ -156,19 +157,21 @@ void App_TM_V2::taskLoop() {
         switch(myInterActReg.gui_CMD){
             case 1: 
             case 2:
-            case 3:
-            case 4:
                 myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin!!! (" << myInterActReg.gui_CMD << ")").str());
                 myUSVTestV2.checkLabDevice();sleep(.5);                    
                 myUSVTestV2.run_TestMachine();
             break;            
-            case 5:            
+            case 3:            
                 myUSVTestV2.showLog("ICA2308 Test Function");                   
                 myUSVTestV2.runICA2308_simple_test(myInterActReg.board_version);       
                 break;
-            case 6:
+            case 4:
                 myUSVTestV2.showLog("ICA2407 Test Function");                     
                 myUSVTestV2.runICA2407_simple_test();
+                break;
+            case 5: 
+                myUSVTestV2.showLog("ICA506 Test Function under Construction");
+                myUSVTestV2.runICA2506();
                 break;
             default:
                 myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());

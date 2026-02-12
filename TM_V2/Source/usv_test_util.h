@@ -56,7 +56,7 @@ class USV_TEST_UTIL_V2{
     public:
         bool xrunning;
         struct MYAruments{
-            uint8_t manual_Dongle=false;               
+            //uint8_t manual_Dongle=false;               
             bool showErrorList=false;
             bool normalTest=false;
             bool manualTest=false; 
@@ -172,6 +172,7 @@ class USV_TEST_UTIL_V2{
         void run_TestMachine(void);
         void runICA2308_simple_test(float _version=1.0);
         void runICA2407_simple_test(void);
+        void runICA2506(void);
         void forceStop(void);
         void run_ManualTest(void);
         uint8_t showError(uint8_t _errorNo);

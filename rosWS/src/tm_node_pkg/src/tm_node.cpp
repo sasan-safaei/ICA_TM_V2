@@ -3,7 +3,9 @@
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/int32.hpp"
-#include "../../../../TM_V2/Source/main_pi.h"
+
+#include "main_pi.h" //from TM_V2/Source/main_pi.h
+
 
 #include "my_msgs_pkg/msg/my_msg_tm_rsu_pub.hpp"
 #include "my_msgs_pkg/msg/my_msg_tm_sts_pub.hpp"
