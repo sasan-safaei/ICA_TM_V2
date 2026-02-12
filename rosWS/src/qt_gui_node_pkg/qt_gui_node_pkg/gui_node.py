@@ -1,7 +1,7 @@
 import os
+tm_workspace = os.environ.get("TM_WORKSPACE")
+CONFIG_CFG_PATH = os.path.join(tm_workspace, "config.cfg")
 
-workspace = "/home/ica/ica_usv_test_result/"
-CONFIG_CFG_PATH = "/home/ica/ica_usv_test_result/config.cfg"
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QTimer
 from PyQt5 import QtCore
@@ -273,7 +273,7 @@ class GuiManager(Node):
         dialog.code_input.setFocus()
         dialog.exec_()        
     def show_prinEUI(self):
-        dlg = CsvViewerDialog(workspace)#("./TestMachine001")
+        dlg = CsvViewerDialog(tm_workspace)#("./TestMachine001")
         dlg.exec_()
     @pyqtSlot()
     def scroll_to_bottom(self):

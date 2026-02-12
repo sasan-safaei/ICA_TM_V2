@@ -7,8 +7,8 @@ import os
 import re
 import subprocess
 from datetime import datetime
-
-CONFIG_CFG_PATH = "/home/ica/ica_usv_test_result/config.cfg"
+tm_workspace = os.environ.get("TM_WORKSPACE")
+CONFIG_CFG_PATH = os.path.join(tm_workspace, "config.cfg")
 
 def get_ip_address(interface='eth0'):
     """
@@ -138,7 +138,7 @@ def get_store_folder_path(config_path=CONFIG_CFG_PATH):
                     folder_value = folder_value.replace("\\", "/").rstrip("/")
                     if folder_value.startswith("./"):
                         folder_value = folder_value[2:]
-                    return os.path.join("/home/ica/ica_usv_test_result/", folder_value)
+                    return os.path.join(CONFIG_CFG_PATH, folder_value)
     except OSError:
         return None
 

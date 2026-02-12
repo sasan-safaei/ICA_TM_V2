@@ -1,5 +1,6 @@
 #!/bin/bash
-cd ~/ica_usv_testdevice-gui/rosWS
+cd ~/git_sasan/ICA_TM_V2/rosWS
+export TM_WORKSPACE=~/git_sasan/TM_WorkSpace/
 export RCUTILS_CONSOLE_OUTPUT_FORMAT="[{severity}] [{name}]: {message}"
 source install/setup.bash
 export ROS_DOMAIN_ID=1

@@ -17,8 +17,9 @@ from qt_gui_node_pkg.csvToPDF import csv_to_pdf_with_qr
 from qt_gui_node_pkg.sendEmail import send_email
 # Example usage:
 # csv_to_pdf_with_qr("/path/to/your.csv", "/home/ica/PDF/with_qr.pdf")
-
-CONFIG_CFG_PATH = "/home/ica/ica_usv_test_result/config.cfg"
+import os
+tm_workspace = os.environ.get("TM_WORKSPACE")
+CONFIG_CFG_PATH = os.path.join(tm_workspace, "config.cfg")
 
 class CsvViewerDialog(QDialog):
     def __init__(self, folder_path=os.path.expanduser("~"), parent=None):

@@ -11,6 +11,8 @@
 #include "my_msgs_pkg/msg/my_msg_qt_pub.hpp"
 
 #include <vector>
+#include <cstdlib>
+#include <string>
 
 class TMNode : public rclcpp::Node {
 public:
@@ -23,11 +25,13 @@ public:
         //for (int i = 0; i < argc; ++i) {
         //argv[i] = const_cast<char*>(args[i]);}
         //myApp.initialize(argc,argv);
+        const char* ws = std::getenv("TM_WORKSPACE");
+        std::string tm_workspace = ws ? ws : ""; // empty if not set
         
         const char* args[] = {
             "programName",
             "-workspace",
-            "/home/ica/ica_usv_test_result/"
+             tm_workspace.c_str()           
         };
 
         int argc = sizeof(args) / sizeof(args[0]);
