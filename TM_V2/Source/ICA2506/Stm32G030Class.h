@@ -47,10 +47,9 @@ enum class FlashCompareResult {
 };
 
 class STM32G030F6_Class {
-		
 public:
 	int Flash_Func(int argc, char* argv[]);
-
+	int Flash_Func(std::initializer_list<const char*> args);
 	// Constructor with default configuration
 	STM32G030F6_Class();
 	

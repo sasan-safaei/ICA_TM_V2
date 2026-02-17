@@ -18,301 +18,7 @@
 
 
 
-namespace {
-void PrintUsage(const char* prog) {
-    std::cerr << "Usage: " << prog << " <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --ob [interface.cfg] [target.cfg] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --write-ob <OPTR_hex> [interface.cfg] [target.cfg] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --cmp <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --erase [interface.cfg] [target.cfg] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --reset [interface.cfg] [target.cfg] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --uart \"HEX BYTES\" [port] [baud] [idle_ms]\n";
-    std::cerr << "Example: " << prog << " firmware.bin interface/stlink.cfg target/stm32g0x.cfg 0x08000000 1000\n";
-    std::cerr << "Example: " << prog << " --ob interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
-    std::cerr << "Example: " << prog << " --write-ob 0x1FFEF8AA\n";
-    std::cerr << "Example: " << prog << " --cmp firmware.bin interface/raspberrypi2-native.cfg target/stm32g0x.cfg 0x08000000 200\n";
-    std::cerr << "Example: " << prog << " --erase interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
-    std::cerr << "Example: " << prog << " --reset interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
-    std::cerr << "Example: " << prog << " --uart \"49 50 A8\" /dev/ttyAMA1 9600 200\n";
-}
 
-bool ParseHex(const std::string& text, uint32_t& value) {
-    char* end = nullptr;
-    const unsigned long parsed = std::strtoul(text.c_str(), &end, 0);
-    if (end == text.c_str() || *end != '\0') {
-        return false;
-    }
-    value = static_cast<uint32_t>(parsed);
-    return true;
-}
-
-std::string HexToAscii(const std::string& hexStr) {
-    std::string ascii;
-    std::string hex;
-    
-    for (char ch : hexStr) {
-        if (ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r') {
-            hex += ch;
-        }
-        
-        if (hex.length() == 2) {
-            unsigned int byte;
-            if (sscanf(hex.c_str(), "%2x", &byte) == 1) {
-                if (byte >= 32 && byte <= 126) {
-                    ascii += static_cast<char>(byte);
-                } else {
-                    ascii += '.';
-                }
-            }
-            hex.clear();
-        }
-    }
-    
-    return ascii;
-}
-} // namespace
-
-int Flash_Func(int argc, char* argv[]){
-	if (argc < 2) {
-        PrintUsage(argv[0]);
-        return 2;
-    }
-
-    if (std::string(argv[1]) == "--ob") {
-        if (argc == 2) {
-            STM32G030F6_Class stm32;
-            const bool ok = stm32.BootMode();
-            return ok ? 0 : 1;
-        }
-        if (argc < 5) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-        const std::string interfaceCfg = argv[2];
-        const std::string targetCfg = argv[3];
-        const int adapterKhz = std::atoi(argv[4]);
-        if (adapterKhz <= 0) {
-            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
-            return 2;
-        }
-        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
-        const bool ok = stm32.BootMode();
-        return ok ? 0 : 1;
-    }
-
-    if (std::string(argv[1]) == "--write-ob") {
-        if (argc < 3) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-        
-        uint32_t optrValue = 0;
-        if (!ParseHex(argv[2], optrValue)) {
-            std::cerr << "Invalid OPTR value: " << argv[2] << "\n";
-            return 2;
-        }
-
-        if (argc == 3) {
-            STM32G030F6_Class stm32;
-            const bool ok = stm32.WriteOptionBytes(optrValue);
-            return ok ? 0 : 1;
-        }
-        
-        if (argc < 6) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-        
-        const std::string interfaceCfg = argv[3];
-        const std::string targetCfg = argv[4];
-        const int adapterKhz = std::atoi(argv[5]);
-        if (adapterKhz <= 0) {
-            std::cerr << "Invalid adapter_khz: " << argv[5] << "\n";
-            return 2;
-        }
-        
-        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
-        const bool ok = stm32.WriteOptionBytes(optrValue);
-        return ok ? 0 : 1;
-    }
-
-    if (std::string(argv[1]) == "--cmp") {
-        if (argc == 3) {
-            STM32G030F6_Class stm32;
-            const FlashCompareResult res = stm32.Verify(argv[2]);
-            if (res == FlashCompareResult::Empty) {
-                std::cout << "Flash is empty" << std::endl;
-                return 0;
-            }
-            if (res == FlashCompareResult::Same) {
-                std::cout << "Flash matches firmware" << std::endl;
-                return 0;
-            }
-            if (res == FlashCompareResult::Different) {
-                std::cout << "Flash programmed with different firmware" << std::endl;
-                return 0;
-            }
-            std::cerr << "Flash compare failed" << std::endl;
-            return 1;
-        }
-        if (argc < 7) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-
-        const std::string binPath = argv[2];
-        const std::string interfaceCfg = argv[3];
-        const std::string targetCfg = argv[4];
-
-        uint32_t address = 0;
-        if (!ParseHex(argv[5], address)) {
-            std::cerr << "Invalid address: " << argv[5] << "\n";
-            return 2;
-        }
-
-        const int adapterKhz = std::atoi(argv[6]);
-        if (adapterKhz <= 0) {
-            std::cerr << "Invalid adapter_khz: " << argv[6] << "\n";
-            return 2;
-        }
-
-        STM32G030F6_Class stm32(interfaceCfg, targetCfg, address, adapterKhz, "/dev/ttyAMA1", 9600);
-        const FlashCompareResult res = stm32.Verify(binPath);
-        if (res == FlashCompareResult::Empty) {
-            std::cout << "Flash is empty" << std::endl;
-            return 0;
-        }
-        if (res == FlashCompareResult::Same) {
-            std::cout << "Flash matches firmware" << std::endl;
-            return 0;
-        }
-        if (res == FlashCompareResult::Different) {
-            std::cout << "Flash programmed with different firmware" << std::endl;
-            return 0;
-        }
-        std::cerr << "Flash compare failed" << std::endl;
-        return 1;
-    }
-
-    if (std::string(argv[1]) == "--erase") {
-        if (argc == 2) {
-            STM32G030F6_Class stm32;
-            const bool ok = stm32.Clear();
-            return ok ? 0 : 1;
-        }
-        if (argc < 5) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-
-        const std::string interfaceCfg = argv[2];
-        const std::string targetCfg = argv[3];
-        const int adapterKhz = std::atoi(argv[4]);
-        if (adapterKhz <= 0) {
-            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
-            return 2;
-        }
-
-        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
-        const bool ok = stm32.Clear();
-        return ok ? 0 : 1;
-    }
-
-    if (std::string(argv[1]) == "--reset") {
-        if (argc == 2) {
-            STM32G030F6_Class stm32;
-            const bool ok = stm32.Reset();
-            return ok ? 0 : 1;
-        }
-        if (argc < 5) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-
-        const std::string interfaceCfg = argv[2];
-        const std::string targetCfg = argv[3];
-        const int adapterKhz = std::atoi(argv[4]);
-        if (adapterKhz <= 0) {
-            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
-            return 2;
-        }
-
-        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
-        const bool ok = stm32.Reset();
-        return ok ? 0 : 1;
-    }
-
-    if (std::string(argv[1]) == "--uart") {
-        if (argc < 3) {
-            PrintUsage(argv[0]);
-            return 2;
-        }
-        const std::string hexStream = argv[2];
-        std::string port = "/dev/ttyAMA1";
-        int baud = 9600;
-        int idleMs = 200;
-
-        if (argc >= 4) {
-            port = argv[3];
-        }
-        if (argc >= 5) {
-            baud = std::atoi(argv[4]);
-            if (baud <= 0) {
-                std::cerr << "Invalid baud: " << argv[4] << "\n";
-                return 2;
-            }
-        }
-        if (argc >= 6) {
-            idleMs = std::atoi(argv[5]);
-            if (idleMs <= 0) {
-                std::cerr << "Invalid idle_ms: " << argv[5] << "\n";
-                return 2;
-            }
-        }
-
-        STM32G030F6_Class stm32("interface/raspberrypi2-native.cfg", "target/stm32g0x.cfg", 
-                                0x08000000, 200, port, baud);
-        std::string responseHex;
-        const bool ok = stm32.FrameProcess(hexStream, responseHex, idleMs);
-        if (!ok) {
-            return 1;
-        }
-        std::cout << responseHex << std::endl;
-        std::cout << HexToAscii(responseHex) << std::endl;
-        return 0;
-    }
-
-    const std::string binPath = argv[1];
-    if (argc == 2) {
-        STM32G030F6_Class stm32;
-        const bool ok = stm32.Flash(binPath);
-        return ok ? 0 : 1;
-    }
-
-    if (argc < 6) {
-        PrintUsage(argv[0]);
-        return 2;
-    }
-
-    const std::string interfaceCfg = argv[2];
-    const std::string targetCfg = argv[3];
-
-    uint32_t address = 0;
-    if (!ParseHex(argv[4], address)) {
-        std::cerr << "Invalid address: " << argv[4] << "\n";
-        return 2;
-    }
-
-    const int adapterKhz = std::atoi(argv[5]);
-    if (adapterKhz <= 0) {
-        std::cerr << "Invalid adapter_khz: " << argv[5] << "\n";
-        return 2;
-    }
-
-    STM32G030F6_Class stm32(interfaceCfg, targetCfg, address, adapterKhz, "/dev/ttyAMA1", 9600);
-    const bool ok = stm32.Flash(binPath);
-    return ok ? 0 : 1;
-}
 // Constructor with default configuration
 STM32G030F6_Class::STM32G030F6_Class()
 	: interfaceCfg_("interface/raspberrypi2-native.cfg"),
@@ -1181,4 +887,322 @@ oss << std::uppercase << std::hex << std::setw(2) << std::setfill('0')
 << static_cast<int>(bytes[i]);
 }
 return oss.str();
+}
+
+
+
+
+namespace {
+void PrintUsage(const char* prog) {
+    std::cerr << "Usage: " << prog << " <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --ob [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --write-ob <OPTR_hex> [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --cmp <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --erase [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --reset [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --uart \"HEX BYTES\" [port] [baud] [idle_ms]\n";
+    std::cerr << "Example: " << prog << " firmware.bin interface/stlink.cfg target/stm32g0x.cfg 0x08000000 1000\n";
+    std::cerr << "Example: " << prog << " --ob interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --write-ob 0x1FFEF8AA\n";
+    std::cerr << "Example: " << prog << " --cmp firmware.bin interface/raspberrypi2-native.cfg target/stm32g0x.cfg 0x08000000 200\n";
+    std::cerr << "Example: " << prog << " --erase interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --reset interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --uart \"49 50 A8\" /dev/ttyAMA1 9600 200\n";
+}
+
+bool ParseHex(const std::string& text, uint32_t& value) {
+    char* end = nullptr;
+    const unsigned long parsed = std::strtoul(text.c_str(), &end, 0);
+    if (end == text.c_str() || *end != '\0') {
+        return false;
+    }
+    value = static_cast<uint32_t>(parsed);
+    return true;
+}
+
+std::string HexToAscii(const std::string& hexStr) {
+    std::string ascii;
+    std::string hex;
+    
+    for (char ch : hexStr) {
+        if (ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r') {
+            hex += ch;
+        }
+        
+        if (hex.length() == 2) {
+            unsigned int byte;
+            if (sscanf(hex.c_str(), "%2x", &byte) == 1) {
+                if (byte >= 32 && byte <= 126) {
+                    ascii += static_cast<char>(byte);
+                } else {
+                    ascii += '.';
+                }
+            }
+            hex.clear();
+        }
+    }
+    
+    return ascii;
+}
+} // namespace
+
+int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
+	if (argc < 2) {
+        PrintUsage(argv[0]);
+        return 2;
+    }
+
+    if (std::string(argv[1]) == "--ob") {
+        if (argc == 2) {
+            //STM32G030F6_Class stm32;
+            const bool ok = BootMode();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+        interfaceCfg_ = interfaceCfg;
+        targetCfg_ = targetCfg;
+        adapterKhz_ = adapterKhz;
+        const bool ok = BootMode();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--write-ob") {
+        if (argc < 3) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        
+        uint32_t optrValue = 0;
+        if (!ParseHex(argv[2], optrValue)) {
+            std::cerr << "Invalid OPTR value: " << argv[2] << "\n";
+            return 2;
+        }
+
+        if (argc == 3) {
+            //STM32G030F6_Class stm32;
+            const bool ok = WriteOptionBytes(optrValue);
+            return ok ? 0 : 1;
+        }
+        
+        if (argc < 6) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        
+        const std::string interfaceCfg = argv[3];
+        const std::string targetCfg = argv[4];
+        const int adapterKhz = std::atoi(argv[5]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[5] << "\n";
+            return 2;
+        }
+        
+        interfaceCfg_ = interfaceCfg;
+        targetCfg_ = targetCfg;
+        adapterKhz_ = adapterKhz;
+        const bool ok = WriteOptionBytes(optrValue);
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--cmp") {
+        if (argc == 3) {
+            //STM32G030F6_Class stm32;
+            const FlashCompareResult res = Verify(argv[2]);
+            if (res == FlashCompareResult::Empty) {
+                std::cout << "Flash is empty" << std::endl;
+                return 0;
+            }
+            if (res == FlashCompareResult::Same) {
+                std::cout << "Flash matches firmware" << std::endl;
+                return 0;
+            }
+            if (res == FlashCompareResult::Different) {
+                std::cout << "Flash programmed with different firmware" << std::endl;
+                return 0;
+            }
+            std::cerr << "Flash compare failed" << std::endl;
+            return 1;
+        }
+        if (argc < 7) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string binPath = argv[2];
+        const std::string interfaceCfg = argv[3];
+        const std::string targetCfg = argv[4];
+
+        uint32_t address = 0;
+        if (!ParseHex(argv[5], address)) {
+            std::cerr << "Invalid address: " << argv[5] << "\n";
+            return 2;
+        }
+
+        const int adapterKhz = std::atoi(argv[6]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[6] << "\n";
+            return 2;
+        }
+        interfaceCfg_ = interfaceCfg;
+        targetCfg_ = targetCfg;
+        flashAddress_ = address;
+        adapterKhz_ = adapterKhz;
+        const FlashCompareResult res = Verify(binPath);
+        if (res == FlashCompareResult::Empty) {
+            std::cout << "Flash is empty" << std::endl;
+            return 0;
+        }
+        if (res == FlashCompareResult::Same) {
+            std::cout << "Flash matches firmware" << std::endl;
+            return 0;
+        }
+        if (res == FlashCompareResult::Different) {
+            std::cout << "Flash programmed with different firmware" << std::endl;
+            return 0;
+        }
+        std::cerr << "Flash compare failed" << std::endl;
+        return 1;
+    }
+
+    if (std::string(argv[1]) == "--erase") {
+        if (argc == 2) {
+            //STM32G030F6_Class stm32;
+            const bool ok = Clear();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+        interfaceCfg_ = interfaceCfg;
+        targetCfg_ = targetCfg;
+        adapterKhz_ = adapterKhz;
+        const bool ok = Clear();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--reset") {
+        if (argc == 2) {
+            //STM32G030F6_Class stm32;
+            const bool ok = Reset();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+
+        interfaceCfg_ = interfaceCfg;
+        targetCfg_ = targetCfg;
+        adapterKhz_ = adapterKhz;
+        const bool ok = Reset();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--uart") {
+        if (argc < 3) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        const std::string hexStream = argv[2];
+        std::string port = "/dev/ttyAMA1";
+        int baud = 9600;
+        int idleMs = 200;
+
+        if (argc >= 4) {
+            port = argv[3];
+        }
+        if (argc >= 5) {
+            baud = std::atoi(argv[4]);
+            if (baud <= 0) {
+                std::cerr << "Invalid baud: " << argv[4] << "\n";
+                return 2;
+            }
+        }
+        if (argc >= 6) {
+            idleMs = std::atoi(argv[5]);
+            if (idleMs <= 0) {
+                std::cerr << "Invalid idle_ms: " << argv[5] << "\n";
+                return 2;
+            }
+        }
+
+        //STM32G030F6_Class stm32("interface/raspberrypi2-native.cfg", "target/stm32g0x.cfg", 0x08000000, 200, port, baud);
+		uartPort_ = port;
+		uartBaud_ = baud;
+        std::string responseHex;
+        const bool ok = FrameProcess(hexStream, responseHex, idleMs);
+        if (!ok) {
+            return 1;
+        }
+        std::cout << responseHex << std::endl;
+        std::cout << HexToAscii(responseHex) << std::endl;
+        return 0;
+    }
+
+    const std::string binPath = argv[1];
+    if (argc == 2) {
+        //STM32G030F6_Class stm32;
+        const bool ok = Flash(binPath);
+        return ok ? 0 : 1;
+    }
+
+    if (argc < 6) {
+        PrintUsage(argv[0]);
+        return 2;
+    }
+
+    const std::string interfaceCfg = argv[2];
+    const std::string targetCfg = argv[3];
+
+    uint32_t address = 0;
+    if (!ParseHex(argv[4], address)) {
+        std::cerr << "Invalid address: " << argv[4] << "\n";
+        return 2;
+    }
+
+    const int adapterKhz = std::atoi(argv[5]);
+    if (adapterKhz <= 0) {
+        std::cerr << "Invalid adapter_khz: " << argv[5] << "\n";
+        return 2;
+    }
+    interfaceCfg_ = interfaceCfg;
+    targetCfg_ = targetCfg;
+    flashAddress_ = address;
+    adapterKhz_ = adapterKhz;
+    const bool ok = Flash(binPath);
+    return ok ? 0 : 1;
+}
+int STM32G030F6_Class::Flash_Func(std::initializer_list<const char*> args) {
+    std::vector<const char*> argv_vec;
+    argv_vec.push_back("ica2506_flash");  // Program name as argv[0]
+    argv_vec.insert(argv_vec.end(), args.begin(), args.end());
+    return Flash_Func(static_cast<int>(argv_vec.size()), 
+                      const_cast<char**>(argv_vec.data()));
 }
