@@ -47,7 +47,10 @@ enum class FlashCompareResult {
 };
 
 class STM32G030F6_Class {
+		
 public:
+	int Flash_Func(int argc, char* argv[]);
+
 	// Constructor with default configuration
 	STM32G030F6_Class();
 	
@@ -58,7 +61,7 @@ public:
 					  int adapterKhz,
 					  const std::string& uartPort,
 					  int uartBaud);
-
+private:
 	// Flash programming
 	bool Flash(const std::string& binPath);
 	

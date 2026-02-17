@@ -4,6 +4,8 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
+#include <string>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -13,10 +15,310 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+
+
+
+namespace {
+void PrintUsage(const char* prog) {
+    std::cerr << "Usage: " << prog << " <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --ob [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --write-ob <OPTR_hex> [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --cmp <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --erase [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --reset [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --uart \"HEX BYTES\" [port] [baud] [idle_ms]\n";
+    std::cerr << "Example: " << prog << " firmware.bin interface/stlink.cfg target/stm32g0x.cfg 0x08000000 1000\n";
+    std::cerr << "Example: " << prog << " --ob interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --write-ob 0x1FFEF8AA\n";
+    std::cerr << "Example: " << prog << " --cmp firmware.bin interface/raspberrypi2-native.cfg target/stm32g0x.cfg 0x08000000 200\n";
+    std::cerr << "Example: " << prog << " --erase interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --reset interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --uart \"49 50 A8\" /dev/ttyAMA1 9600 200\n";
+}
+
+bool ParseHex(const std::string& text, uint32_t& value) {
+    char* end = nullptr;
+    const unsigned long parsed = std::strtoul(text.c_str(), &end, 0);
+    if (end == text.c_str() || *end != '\0') {
+        return false;
+    }
+    value = static_cast<uint32_t>(parsed);
+    return true;
+}
+
+std::string HexToAscii(const std::string& hexStr) {
+    std::string ascii;
+    std::string hex;
+    
+    for (char ch : hexStr) {
+        if (ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r') {
+            hex += ch;
+        }
+        
+        if (hex.length() == 2) {
+            unsigned int byte;
+            if (sscanf(hex.c_str(), "%2x", &byte) == 1) {
+                if (byte >= 32 && byte <= 126) {
+                    ascii += static_cast<char>(byte);
+                } else {
+                    ascii += '.';
+                }
+            }
+            hex.clear();
+        }
+    }
+    
+    return ascii;
+}
+} // namespace
+
+int Flash_Func(int argc, char* argv[]){
+	if (argc < 2) {
+        PrintUsage(argv[0]);
+        return 2;
+    }
+
+    if (std::string(argv[1]) == "--ob") {
+        if (argc == 2) {
+            STM32G030F6_Class stm32;
+            const bool ok = stm32.BootMode();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
+        const bool ok = stm32.BootMode();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--write-ob") {
+        if (argc < 3) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        
+        uint32_t optrValue = 0;
+        if (!ParseHex(argv[2], optrValue)) {
+            std::cerr << "Invalid OPTR value: " << argv[2] << "\n";
+            return 2;
+        }
+
+        if (argc == 3) {
+            STM32G030F6_Class stm32;
+            const bool ok = stm32.WriteOptionBytes(optrValue);
+            return ok ? 0 : 1;
+        }
+        
+        if (argc < 6) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        
+        const std::string interfaceCfg = argv[3];
+        const std::string targetCfg = argv[4];
+        const int adapterKhz = std::atoi(argv[5]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[5] << "\n";
+            return 2;
+        }
+        
+        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
+        const bool ok = stm32.WriteOptionBytes(optrValue);
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--cmp") {
+        if (argc == 3) {
+            STM32G030F6_Class stm32;
+            const FlashCompareResult res = stm32.Verify(argv[2]);
+            if (res == FlashCompareResult::Empty) {
+                std::cout << "Flash is empty" << std::endl;
+                return 0;
+            }
+            if (res == FlashCompareResult::Same) {
+                std::cout << "Flash matches firmware" << std::endl;
+                return 0;
+            }
+            if (res == FlashCompareResult::Different) {
+                std::cout << "Flash programmed with different firmware" << std::endl;
+                return 0;
+            }
+            std::cerr << "Flash compare failed" << std::endl;
+            return 1;
+        }
+        if (argc < 7) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string binPath = argv[2];
+        const std::string interfaceCfg = argv[3];
+        const std::string targetCfg = argv[4];
+
+        uint32_t address = 0;
+        if (!ParseHex(argv[5], address)) {
+            std::cerr << "Invalid address: " << argv[5] << "\n";
+            return 2;
+        }
+
+        const int adapterKhz = std::atoi(argv[6]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[6] << "\n";
+            return 2;
+        }
+
+        STM32G030F6_Class stm32(interfaceCfg, targetCfg, address, adapterKhz, "/dev/ttyAMA1", 9600);
+        const FlashCompareResult res = stm32.Verify(binPath);
+        if (res == FlashCompareResult::Empty) {
+            std::cout << "Flash is empty" << std::endl;
+            return 0;
+        }
+        if (res == FlashCompareResult::Same) {
+            std::cout << "Flash matches firmware" << std::endl;
+            return 0;
+        }
+        if (res == FlashCompareResult::Different) {
+            std::cout << "Flash programmed with different firmware" << std::endl;
+            return 0;
+        }
+        std::cerr << "Flash compare failed" << std::endl;
+        return 1;
+    }
+
+    if (std::string(argv[1]) == "--erase") {
+        if (argc == 2) {
+            STM32G030F6_Class stm32;
+            const bool ok = stm32.Clear();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+
+        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
+        const bool ok = stm32.Clear();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--reset") {
+        if (argc == 2) {
+            STM32G030F6_Class stm32;
+            const bool ok = stm32.Reset();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+
+        STM32G030F6_Class stm32(interfaceCfg, targetCfg, 0x08000000, adapterKhz, "/dev/ttyAMA1", 9600);
+        const bool ok = stm32.Reset();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--uart") {
+        if (argc < 3) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+        const std::string hexStream = argv[2];
+        std::string port = "/dev/ttyAMA1";
+        int baud = 9600;
+        int idleMs = 200;
+
+        if (argc >= 4) {
+            port = argv[3];
+        }
+        if (argc >= 5) {
+            baud = std::atoi(argv[4]);
+            if (baud <= 0) {
+                std::cerr << "Invalid baud: " << argv[4] << "\n";
+                return 2;
+            }
+        }
+        if (argc >= 6) {
+            idleMs = std::atoi(argv[5]);
+            if (idleMs <= 0) {
+                std::cerr << "Invalid idle_ms: " << argv[5] << "\n";
+                return 2;
+            }
+        }
+
+        STM32G030F6_Class stm32("interface/raspberrypi2-native.cfg", "target/stm32g0x.cfg", 
+                                0x08000000, 200, port, baud);
+        std::string responseHex;
+        const bool ok = stm32.FrameProcess(hexStream, responseHex, idleMs);
+        if (!ok) {
+            return 1;
+        }
+        std::cout << responseHex << std::endl;
+        std::cout << HexToAscii(responseHex) << std::endl;
+        return 0;
+    }
+
+    const std::string binPath = argv[1];
+    if (argc == 2) {
+        STM32G030F6_Class stm32;
+        const bool ok = stm32.Flash(binPath);
+        return ok ? 0 : 1;
+    }
+
+    if (argc < 6) {
+        PrintUsage(argv[0]);
+        return 2;
+    }
+
+    const std::string interfaceCfg = argv[2];
+    const std::string targetCfg = argv[3];
+
+    uint32_t address = 0;
+    if (!ParseHex(argv[4], address)) {
+        std::cerr << "Invalid address: " << argv[4] << "\n";
+        return 2;
+    }
+
+    const int adapterKhz = std::atoi(argv[5]);
+    if (adapterKhz <= 0) {
+        std::cerr << "Invalid adapter_khz: " << argv[5] << "\n";
+        return 2;
+    }
+
+    STM32G030F6_Class stm32(interfaceCfg, targetCfg, address, adapterKhz, "/dev/ttyAMA1", 9600);
+    const bool ok = stm32.Flash(binPath);
+    return ok ? 0 : 1;
+}
 // Constructor with default configuration
 STM32G030F6_Class::STM32G030F6_Class()
 	: interfaceCfg_("interface/raspberrypi2-native.cfg"),
 	  targetCfg_("target/stm32g0x.cfg"),
+	  //interfaceCfg_("./OpenOCD_CFG/raspberrypi2-native.cfg"),//("interface/raspberrypi2-native.cfg"),
+	  //targetCfg_("./OpenOCD_CFG/stm32g0x.cfg"),//("target/stm32g0x.cfg"),	   
 	  flashAddress_(0x08000000),
 	  adapterKhz_(200),
 	  uartPort_("/dev/ttyAMA1"),
@@ -272,8 +574,7 @@ bool STM32G030F6_Class::WriteOptionBytes(uint32_t optrValue) {
 		printf("WARNING: RDP level changing from 0x%02X to 0x%02X\n", currentRdp, newRdp);
 	}
 
-	// Write new option bytes to FLASH_OPTR register (0x40022020)
-	// FLASH_CR at 0x40022010 controls programming (OPTPG bit = bit 4 for STM32G0)
+	// Program option bytes using OpenOCD stm32g0x option_write command
 	std::ostringstream cmd;
 	cmd << "openocd";
 	AppendInterfaceConfig(cmd, interfaceCfg_);
@@ -283,24 +584,18 @@ bool STM32G030F6_Class::WriteOptionBytes(uint32_t optrValue) {
 		<< " -c \"init\""
 		<< " -c \"reset halt\""
 		<< " -c \"sleep 50\""
-		// Unlock option bytes via OPTKEYR
-		<< " -c \"mww 0x4002200C 0x08192A3B\""
-		<< " -c \"mww 0x4002200C 0x4C5D6E7F\""
-		<< " -c \"sleep 10\""
-		// Read current CR value
-		<< " -c \"mdw 0x40022010\""
-		// Set OPTPG bit (0x0010 for option programming on STM32G0)
-		<< " -c \"mww 0x40022010 0x0010\""
-		<< " -c \"sleep 10\""
-		// Write to FLASH_OPTR register at 0x40022020
-		<< " -c \"mww 0x40022020 0x" << std::hex << optrValue << "\""
-		<< " -c \"sleep 100\""
-		// Clear OPTPG bit
-		<< " -c \"mww 0x40022010 0x0000\""
-		<< " -c \"sleep 10\""
-		// Verify by reading OPTR back
+		// Use OpenOCD's built-in command to write option bytes
+		// Format: stm32g0x option_write bank_id offset value
+		<< " -c \"stm32g0x option_write 0 0x20 0x" << std::hex << optrValue << "\""
+		<< " -c \"sleep 200\""
+		// Reload option bytes
+		<< " -c \"stm32g0x option_load 0\""
+		<< " -c \"sleep 200\""
+		// Reset and verify
+		<< " -c \"reset halt\""
+		<< " -c \"sleep 50\""
 		<< " -c \"mdw 0x40022020\""
-		<< " -c \"reset\""
+		<< " -c \"reset run\""
 		<< " -c \"shutdown\"";
 
 	printf("Programming option bytes...\n");
@@ -309,6 +604,9 @@ bool STM32G030F6_Class::WriteOptionBytes(uint32_t optrValue) {
 		fprintf(stderr, "WriteOptionBytes: openocd failed (%d)\n", result);
 		return false;
 	}
+
+	// Give the chip time to reset and reload option bytes
+	sleep(1);
 
 	// Verify the write
 	uint32_t verifyOptr = 0;
