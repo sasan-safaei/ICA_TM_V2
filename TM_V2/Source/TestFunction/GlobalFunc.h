@@ -125,27 +125,55 @@ struct testResult{
 	float Limit_MAX_VCap_ShutdownVoltage=0;
 	float Limit_MIN_VCap_ShutdownVoltage=0;
 	int Board_MaxTemp85V=0;
-    void clear(){
-        ErrorNo=0;
-	    EEPROM_Status=0;
-	    Logstr='0';
-	    repaired_NoCap=0;repaired_Cap=0;
-	    time_charge=0;time_DisCharge=0;time_OutSwOff=0;time_WaitToOutSwOff=0;
-	    Vcap_Max=0;
-	    VCap_SWOff=0;
-	    Load_Current=0;
-	    VOut1=0;VOut2=0;
-	    tempIC=0;tempBatBank=0;
-	    Limit_MIN_ChargeCurrent=0;
-	    Limit_MIN_FullChargeCurrent=0;
-	    Limit_MAX_Charge_time=0;
+    void clear(int _boardName){
+		ErrorNo=0;
+		EEPROM_Status=0;
+		Logstr='0';
+		repaired_NoCap=0;repaired_Cap=0;
+		time_charge=0;time_DisCharge=0;time_OutSwOff=0;
+		time_WaitToOutSwOff=0;//was Not in testrReset()
+		Vcap_Max=0;
+		VCap_SWOff=0;//was Not in testrReset()
+		Load_Current=0;
+		VOut1=0;VOut2=0;
+		tempIC=0;
+		tempBatBank=0;//was Not in testrReset()
+		Limit_MIN_ChargeCurrent=0;
+		Limit_MIN_FullChargeCurrent=0;
+		Limit_MAX_Charge_time=0;
 		Limit_MIN_WaitToOutSwOff=0;
 		Limit_MAX_WaitToOutSwOff=0;		
 		Limit_MIN_OutSwOff=0;
 		Limit_MAX_OutSwOff=0;
 		Limit_MAX_VCap_ShutdownVoltage=0;
 		Limit_MIN_VCap_ShutdownVoltage=0;
-	    Board_MaxTemp85V=0;
+		Board_MaxTemp85V=0;//was Not in testrReset()
+		Load_Current=__const_LoadCurrent;
+		switch (_boardName){
+			case 2315:
+				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2315;
+				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2315;
+				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2315;
+				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2315;
+				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2315;
+				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2315;
+				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2315;
+				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2315;
+				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2315;
+				break;
+			case 2506:
+			case 2405:
+				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2405;
+				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2405;
+				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2405;
+				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2405;
+				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2405;
+				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2405;
+				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2405;
+				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2405;
+				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2405;
+				break;
+		}
     }
 };
 extern testResult testr;

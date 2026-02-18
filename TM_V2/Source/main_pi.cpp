@@ -11,7 +11,7 @@ char ttyName[25];
 ICA2315 myBoard;
 LabDevice MyLabDevice;
 durationTimerClass myDurationTimer;
-testResult testr;
+testResult myTestResult;
 myNet myTcpUdpNet;
 std::string lastModifiedTime="2025.03.18";
 //ConsoleKeyClass myCKey;

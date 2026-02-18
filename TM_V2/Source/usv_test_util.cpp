@@ -2,49 +2,13 @@
 #include "./TestFunction/ICA_justEUI.h"
 extern LabDevice MyLabDevice;
 extern durationTimerClass myDurationTimer;
-extern testResult testr;
+extern testResult myTestResult;
 extern _interact_registers myInterActReg;
 ConsoleKeyClass myCKey;
 void USV_TEST_UTIL_V2::showLog(std::string _str){
             printf("%s\n",_str.c_str());
             myInterActReg.csLogWrite(_str);
         }
-void testrReset(){
-	testr.ErrorNo=0;
-    testr.Logstr='0';
-    testr.Load_Current=__const_LoadCurrent;
-    testr.VOut1=0;
-    testr.VOut2=0;
-    testr.time_charge=0;
-    testr.time_DisCharge=0;
-    testr.time_OutSwOff=0;
-    
-    testr.repaired_Cap=0;
-    testr.repaired_NoCap=0;
-    testr.EEPROM_Status=0;
-    testr.Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2405;
-    testr.Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2405;
-    testr.Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2405;
-    testr.Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2405;
-    testr.Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2405;
-    testr.Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2405;
-    testr.Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2405;
-    testr.Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2405;
-    testr.Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2405;
-    testr.tempIC=0;
-    testr.Vcap_Max=0;
-    if(myBoard.boardName==2315){
-        testr.Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2315;
-        testr.Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2315;
-        testr.Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2315;
-        testr.Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2315;
-        testr.Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2315;
-        testr.Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2315;
-        testr.Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2315;
-        testr.Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2315;
-        testr.Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2315;
-    }
-}
 void USV_TEST_UTIL_V2::checkLabDevice(){
     myArg.LabDevice_PS=false;
     myArg.LabDevice_Load=false;
@@ -231,7 +195,7 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo){
     std::string _strError1="", _strError2="",_strError3="";
     std::string _strDesc="--";
 
-    testr.ErrorNo=_errorNo;
+    myTestResult.ErrorNo=_errorNo;
     _strError1="Error : "+std::to_string(_errorNo);
     switch (_errorNo)
     {
@@ -252,8 +216,8 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo){
     case ERROR::EEPROMWrite:        _strError2="*EEPROMWrite";_strDesc="EEPROM ERROR";break;
     case ERROR::VCapsNotSame:        _strError2="VCaps not Same";_strDesc="Caps Vol Error";break;    
     case ERROR::VCapShutDownOutOfRange: _strError2="VCap Shutdown Err";_strDesc="VCap at Shutdown is out of range";break;
-    case ERROR::TempSensor_IC:      _strError2=("*TempSensor "+std::to_string((int16_t)testr.tempIC)+"°c");_strDesc="High IC-Temperature";break;
-    case ERROR::TempSensor_CapBank: _strError2=("*TempSensor "+std::to_string((int16_t)testr.tempBatBank)+"°c");_strDesc="High CapBank-Temperature";break;
+    case ERROR::TempSensor_IC:      _strError2=("*TempSensor "+std::to_string((int16_t)myTestResult.tempIC)+"°c");_strDesc="High IC-Temperature";break;
+    case ERROR::TempSensor_CapBank: _strError2=("*TempSensor "+std::to_string((int16_t)myTestResult.tempBatBank)+"°c");_strDesc="High CapBank-Temperature";break;
     case ERROR::LabelPrintError:    _strError2="*LabelPrintError";_strDesc="Label Print not found! \n\t Check that the printer is installed correctly.";break;
     case ERROR::LabPSNoAnswer:      _strError2="*Lab.PS No Answer";_strDesc="Lab.PS No Answer \n\t*check USB Connection";break;
     case ERROR::LabLoadNoAnswer:    _strError2="*Lab.Load No Answer";_strDesc="Lab.Load No Answer \n\t*check USB Connection";break;
@@ -309,7 +273,7 @@ void USV_TEST_UTIL_V2::showOnRun(uint8_t _StepNo){
             myTestDevice.showOnLCD(2,_str);
     break;
     case runStepList::testP5_ChargeTime:
-        sprintf(_str,"T:%ds Cap:%.1fV",myTempVal.chargeTime,testr.Vcap_Max);myTestDevice.showOnLCD(1,_str);
+        sprintf(_str,"T:%ds Cap:%.1fV",myTempVal.chargeTime,myTestResult.Vcap_Max);myTestDevice.showOnLCD(1,_str);
         sprintf(_str,"In-Amp: %.3f A",myTempVal.InCurrent);myTestDevice.showOnLCD(2,_str);        
     break;
     case runStepList::testP6_DisChargeTime:
@@ -598,8 +562,8 @@ void USV_TEST_UTIL_V2::runICA2308_simple_test(float __version){
                 myTempVal.clear();
                 myBoard.myEEPROM.clear_EEPROM_Buffer();
                 myBoard.myEEPROM.myData.clear();
-                testr.clear();
-                testrReset();                
+                //myTestResult.clear();
+                //testrReset(myBoard.boardName);
     //system("clear");
     //printf("ICA2308 READ EUI ...\n");            
     //sprintf(_str1,"ICA2308"); sprintf(_str2,"Read EUI ...");                
@@ -610,7 +574,7 @@ void USV_TEST_UTIL_V2::runICA2308_simple_test(float __version){
             _mState++;
             break;           
             case 1:                 
-                testrReset();
+                myTestResult.clear(myBoard.boardName);
                 showLog(" Ok.");
     //printf(" Ok.\n");
                 _mState++;
@@ -774,15 +738,15 @@ void USV_TEST_UTIL_V2::runICA2407_simple_test(){
                 myTempVal.clear();
                 myBoard.myEEPROM.clear_EEPROM_Buffer();
                 myBoard.myEEPROM.myData.clear();
-                testr.clear();
-                testrReset();                
+                //myTestResult.clear();
+                //testrReset(myBoard.boardName);
                 showLog("ICA2407 ReadEUI");
                 showLog("Start: Reset Relays and Test start.");
                 myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);                
             _mState++;
             break;           
             case 1:                 
-                testrReset();
+                myTestResult.clear(myBoard.boardName);
                 showLog(" Ok.");
                 _mState++;
             break;
@@ -924,7 +888,7 @@ uint8_t USV_TEST_UTIL_V2::run_GPIO_Test(void){
             break;
         case 2: //wait to Power Current More then 500mA
             printf("S2 INAmp:%.3fA\n",myTempVal.InCurrent); 
-            testr.VOut1=myTempVal.VOut;
+            myTestResult.VOut1=myTempVal.VOut;
             if(myTempVal.InCurrent> 0.5 ) _mState++;
             break;
         case 3: //Set FlayBack Off.
@@ -938,7 +902,7 @@ uint8_t USV_TEST_UTIL_V2::run_GPIO_Test(void){
         case 4:  // check FlyBack Dis...
             sprintf(_str,"S6  INAmp:%.3fA ",myTempVal.InCurrent);
             printf("\rTest6: FlyBack-Dis... %.3fA   ",myTempVal.InCurrent);
-            testr.VOut2=myTempVal.VOut;
+            myTestResult.VOut2=myTempVal.VOut;
             myBoard.FlyBack_Off();
             if(myTempVal.InCurrent!=-1 && myTempVal.InCurrent< 0.5) _mState++;
             break;
@@ -1003,17 +967,17 @@ uint8_t USV_TEST_UTIL_V2::run_GPIO_Test(void){
             myBoard.OutPUT_Off();
             if(myTempVal.LoadCurrent!=-1 && myTempVal.LoadCurrent< 0.2 ){
                 showLog(_str);
-                if(myTempVal.WaitToOutSWOffTime>=testr.Limit_MIN_WaitToOutSwOff && myTempVal.WaitToOutSWOffTime<=testr.Limit_MAX_WaitToOutSwOff){
+                if(myTempVal.WaitToOutSWOffTime>=myTestResult.Limit_MIN_WaitToOutSwOff && myTempVal.WaitToOutSWOffTime<=myTestResult.Limit_MAX_WaitToOutSwOff){
                     myDurationTimer.testTimeStartSec();
                     _mState++; 
                 }
                 else{
                     showLog("   wait to Output off time is not in range \n");
-                    testr.ErrorNo=ERROR::waitToOutSwOff;
-                    sprintf(_str,"Err.%d",testr.ErrorNo);myTestDevice.showOnLCD(2,_str);
-                    printf("\nGPIO Test Error (%d) on step %d\n",testr.ErrorNo,_mState);
-                    showError(testr.ErrorNo);
-                    return testr.ErrorNo;                    
+                    myTestResult.ErrorNo=ERROR::waitToOutSwOff;
+                    sprintf(_str,"Err.%d",myTestResult.ErrorNo);myTestDevice.showOnLCD(2,_str);
+                    printf("\nGPIO Test Error (%d) on step %d\n",myTestResult.ErrorNo,_mState);
+                    showError(myTestResult.ErrorNo);
+                    return myTestResult.ErrorNo;                    
                 }
                 
             } 
@@ -1032,23 +996,23 @@ uint8_t USV_TEST_UTIL_V2::run_GPIO_Test(void){
             myBoard.GPIOResetAll();
             if(myTempVal.LoadCurrent> 0.2 ){
                 showLog(_str);
-                if(myTempVal.OutSWOffTime>testr.Limit_MIN_OutSwOff && myTempVal.OutSWOffTime<testr.Limit_MAX_OutSwOff){
+                if(myTempVal.OutSWOffTime>myTestResult.Limit_MIN_OutSwOff && myTempVal.OutSWOffTime<myTestResult.Limit_MAX_OutSwOff){
                     _mState++; 
                 }else{
                     showLog("   Output off time is not in range \n");
-                    testr.ErrorNo=ERROR::OutSwOff;
-                    sprintf(_str,"Err.%d",testr.ErrorNo);myTestDevice.showOnLCD(2,_str);
-                    printf("\nGPIO Test Error (%d) on step %d\n",testr.ErrorNo,_mState);
-                    showError(testr.ErrorNo);
-                    return testr.ErrorNo;                    
+                    myTestResult.ErrorNo=ERROR::OutSwOff;
+                    sprintf(_str,"Err.%d",myTestResult.ErrorNo);myTestDevice.showOnLCD(2,_str);
+                    printf("\nGPIO Test Error (%d) on step %d\n",myTestResult.ErrorNo,_mState);
+                    showError(myTestResult.ErrorNo);
+                    return myTestResult.ErrorNo;                    
                 }
                                 
             } 
             break;
         case 17:
             //sprintf(_str,"S17");
-            testr.time_WaitToOutSwOff=myTempVal.WaitToOutSWOffTime;
-            testr.time_OutSwOff=myTempVal.OutSWOffTime;
+            myTestResult.time_WaitToOutSwOff=myTempVal.WaitToOutSWOffTime;
+            myTestResult.time_OutSwOff=myTempVal.OutSWOffTime;
             //showLog("\n");
             _mState++;
             break;
@@ -1062,16 +1026,16 @@ uint8_t USV_TEST_UTIL_V2::run_GPIO_Test(void){
         }
         if(--wait_dCnt<=0)
         { 
-            testr.ErrorNo=100+_mState;// ERROR::GPIO;
-            if(_mState==2) testr.ErrorNo=ERROR::FlyBackdis;
-            if(_mState==8) testr.ErrorNo=ERROR::FlyBackEn;
-            if(_mState==12) testr.ErrorNo=ERROR::OutSwOff;
-    sprintf(_str,"Err.%d",testr.ErrorNo);myTestDevice.showOnLCD(2,_str);
-    printf("\nGPIO Test Error (%d) on step %d\n",testr.ErrorNo,_mState);
-            showError(testr.ErrorNo);
+            myTestResult.ErrorNo=100+_mState;// ERROR::GPIO;
+            if(_mState==2) myTestResult.ErrorNo=ERROR::FlyBackdis;
+            if(_mState==8) myTestResult.ErrorNo=ERROR::FlyBackEn;
+            if(_mState==12) myTestResult.ErrorNo=ERROR::OutSwOff;
+    sprintf(_str,"Err.%d",myTestResult.ErrorNo);myTestDevice.showOnLCD(2,_str);
+    printf("\nGPIO Test Error (%d) on step %d\n",myTestResult.ErrorNo,_mState);
+            showError(myTestResult.ErrorNo);
 
             //waitToPressKey();
-            return testr.ErrorNo;
+            return myTestResult.ErrorNo;
         }	
         myInterActReg.TR.InCurrent=myTempVal.InCurrent;
         myInterActReg.TR.LoadCurrent=myTempVal.LoadCurrent;
@@ -1118,17 +1082,13 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
         
         
         switch (_mState){ 
-            case 0://clear registers & reset Relays *********************************************
+            case 0://clear registers & reset Relays & Check for Lab-Device ******************************
                 myInterActReg.TR.DataClear();
-                //myTestDevice.cleanLCD();
                 removeJPG_PFiles_Jobs();
                 myTempVal.clear();
                 myBoard.myEEPROM.clear_EEPROM_Buffer();
                 myBoard.myEEPROM.myData.clear();
-                testr.clear();
-                testrReset();                
-                //system("clear");
-                showLog("ICA2315/ICA2405 Testing Routine...\n");
+                showLog("ICA2315/ICA2405/2506 Testing Routine...\n");
                 showLog("Start: Reset Relays and Test start.");
                 myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
                 if(myArg.LabDevice_PS || myArg.LabDevice_Load){
@@ -1137,9 +1097,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                     if(myArg.LabDevice_Load) 
                         if(MyLabDevice.ReadLoadVoltage()==-1){ _mState=showError(ERROR::LabLoadNoAnswer);break; }                    
                     if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
-                    //if(myArg.LabDevice_Load) myTestDevice.setRelay(USV_Test_Interface::Relays::LabLoadSel,true);        
-                    // Set Power Supply to 24V 500mA & Turn Off Load
-		            MyLabDevice.SetPSEnable(true);
+                    MyLabDevice.SetPSEnable(true);
 		            MyLabDevice.SetPSVoltage(__const_PSVoltage);
 		            MyLabDevice.SetPSCurrent(__const_PSCurrent_NoCap_NoLoad);
 		            MyLabDevice.SetLoadCurrent(0);	
@@ -1147,7 +1105,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                 _mState++;
             break;           
             case 1:                 
-                testrReset();
+                myTestResult.clear(myBoard.boardName);
                 showLog(" Ok.\n");
                 _mState++;
             break;
@@ -1257,7 +1215,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                         myInterActReg.TR.UID_str=myBoard.myEEPROM.myData.getEUI_Str();
                         showLog(myInterActReg.TR.UID_str+"\n");
                         if(myBoard.readDataBuff(myBoard.myEEPROM.EEPROMDataBuffer))
-                            testr.EEPROM_Status=myBoard.myEEPROM.CheckDataVersionProcess(false);                            
+                            myTestResult.EEPROM_Status=myBoard.myEEPROM.CheckDataVersionProcess(false);                            
                             myInterActReg.TR.EEPROMBuff_str=myBoard.myEEPROM.myData.getAll_Str(); 
     myBoard.myEEPROM.EEPROMDataBuffShow();                           
     myBoard.myEEPROM.myData.show(); 
@@ -1311,7 +1269,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                         __lastTimeValue=myTempVal.chargeTime;
                         showLog((std::ostringstream{} <<"Test5: wait to charge SCap  [Time:"<< myTempVal.chargeTime << "Sec Current: "<< std::fixed << std::setprecision(3)<< myTempVal.InCurrent << "A > (limit)"<< static_cast<int32_t>(testr.Limit_MIN_FullChargeCurrent * 1000)<< "mA]").str());
                     }*/
-                    myBoard.CheckCapsVoltage(&testr.Vcap_Max);
+                    myBoard.CheckCapsVoltage(&myTestResult.Vcap_Max);
                     __error_cnt=0;
                 }
                 else{
@@ -1320,22 +1278,22 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                     showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
                     if (__error_cnt++>3) _mState=showError(ERROR::ChargeDuration);
                 }                
-                if ((myTempVal.chargeTime > testr.Limit_MAX_Charge_time) & (myTempVal.InCurrent> testr.Limit_MIN_ChargeCurrent)) {
+                if ((myTempVal.chargeTime > myTestResult.Limit_MAX_Charge_time) & (myTempVal.InCurrent> myTestResult.Limit_MIN_ChargeCurrent)) {
                     showLog((std::ostringstream{} << "\nTEST5.Error!!!  Time (" 
-                        << myTempVal.chargeTime << " > " << testr.Limit_MAX_Charge_time 
+                        << myTempVal.chargeTime << " > " << myTestResult.Limit_MAX_Charge_time 
                         << ") Current (" 
-                        << myTempVal.InCurrent << " > " << testr.Limit_MIN_ChargeCurrent 
+                        << myTempVal.InCurrent << " > " << myTestResult.Limit_MIN_ChargeCurrent 
                         << ")\n").str());
                 }
-                if (myTempVal.chargeTime > testr.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
+                if (myTempVal.chargeTime > myTestResult.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
                     showLog((std::ostringstream{}<< "\nTEST5.Error!!!  Time ("
                         << myTempVal.chargeTime << " > "
-                        << (testr.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
+                        << (myTestResult.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
                         << ")\n" ).str());
                     _mState=showError(ERROR::ChargeDuration);
                 }
-                if(_mState<0xF0 && myTempVal.InCurrent < testr.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
-                    testr.time_charge=myTempVal.chargeTime;
+                if(_mState<0xF0 && myTempVal.InCurrent < myTestResult.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
+                    myTestResult.time_charge=myTempVal.chargeTime;
                     _mState++;
                 }				    
             break;
@@ -1393,24 +1351,24 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                     if(__tempIC__error__cnt++>5)
                         _mState=showError(ERROR::TempSensor_IC);//testr.ErrorNo=ERROR::TempSensor;
                 }else {
-                    testr.tempIC=__tempICtempVal;
+                    myTestResult.tempIC=__tempICtempVal;
                     __tempIC__error__cnt=0;}
 
-                if(!myBoard.GetBatBankTemp(&testr.tempBatBank,true) || (testr.tempBatBank>__Limit_MAX_BatBank_Temp)) 
+                if(!myBoard.GetBatBankTemp(&myTestResult.tempBatBank,true) || (myTestResult.tempBatBank>__Limit_MAX_BatBank_Temp)) 
                 {
                     if(__tempBatBack__error__cnt++>5) _mState=showError(ERROR::TempSensor_CapBank);//testr.ErrorNo=ERROR::TempSensor;                
                 }
                         file << myTempVal.DisChargeTime<<","<< std::fixed
                     <<std::setprecision(1)<<myTempVal.VCap << std::endl;
-                //testr.ErrorNo=0;
+                //myTestResult.ErrorNo=0;
                 usleep(100000);
-                if(myTempVal.VCap>0) testr.VCap_SWOff=myTempVal.VCap;
+                if(myTempVal.VCap>0) myTestResult.VCap_SWOff=myTempVal.VCap;
 
                 if ( myTempVal.LoadCurrent>-1 && myTempVal.LoadCurrent<0.05 ) {
                     showLog("\n");
-                    testr.time_DisCharge=myTempVal.DisChargeTime;
-                    if(testr.VCap_SWOff< testr.Limit_MIN_VCap_ShutdownVoltage || testr.VCap_SWOff> testr.Limit_MAX_VCap_ShutdownVoltage){
-                        showLog((std::ostringstream{} << "Vcap on Shut Down is:" << std::fixed << std::setprecision(2) << testr.VCap_SWOff << "V").str());                            
+                    myTestResult.time_DisCharge=myTempVal.DisChargeTime;
+                    if(myTestResult.VCap_SWOff< myTestResult.Limit_MIN_VCap_ShutdownVoltage || myTestResult.VCap_SWOff> myTestResult.Limit_MAX_VCap_ShutdownVoltage){
+                        showLog((std::ostringstream{} << "Vcap on Shut Down is:" << std::fixed << std::setprecision(2) << myTestResult.VCap_SWOff << "V").str());                            
                         _mState=showError(ERROR::VCapShutDownOutOfRange);//testr.ErrorNo=ERROR::VCapOutOfRange;
                     }
                     else{
@@ -1469,7 +1427,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                 //showLog("\n");
                 showLog("Current EEPROM");
                 myBoard.myEEPROM.EEPROMDataBuffShow();
-                if (testr.EEPROM_Status==EEPROMProcesSts::Ok){
+                if (myTestResult.EEPROM_Status==EEPROMProcesSts::Ok){
                     myBoard.myEEPROM.getLastVerData();
                     myBoard.myEEPROM.myData.show();
                     //showLog(myBoard.myEEPROM.myData.getAll_Str());
@@ -1510,8 +1468,8 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                 
             break;
             case 24:
-                //if(myArg.EEPROMCFG) testr.VCap_SWOff=0;
-                myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,testr);
+                //if(myArg.EEPROMCFG) myTestResult.VCap_SWOff=0;
+                myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);
                 myBoard.myEEPROM.getCurrentTime();						
                 myBoard.myEEPROM.BuffUpdate_LVer();
                 myBoard.myEEPROM.EEPROMDataBuffShow();//just for test
@@ -1627,7 +1585,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
         
     showLog("SAVE DATA...");
     //SaveResult(true,myArg.StoreFolderPath+myArg.FileName_EUI,myArg.StoreFolderPath+myArg.FileName_Test);    
-    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(testr.ErrorNo == 0) ? true : false);
+    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
     //SaveResult(false,myArg.StoreFolderPath+myArg.FileName_EUI,myArg.StoreFolderPath+myArg.FileName_Test);//testingNoCap);
     SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
@@ -1653,8 +1611,9 @@ void USV_TEST_UTIL_V2::runICA2506(void){
                 myTempVal.clear();
                 myBoard.myEEPROM.clear_EEPROM_Buffer();
                 myBoard.myEEPROM.myData.clear();
-                testr.clear();
-                testrReset();                
+                //myTestResult.clear();
+                //testrReset(myBoard.boardName);
+                myTestResult.clear(myBoard.boardName);
                 showLog("ICA2506 ReadEUI");
                 showLog("Start: Reset Relays and Test start.");
                 myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);                
