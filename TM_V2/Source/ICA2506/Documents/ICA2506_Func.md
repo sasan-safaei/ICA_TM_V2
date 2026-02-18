@@ -149,11 +149,41 @@ g++ -std=c++17 main.cpp STM32G030Class.cpp -o ica2506_flash
 g++ -std=c++17 your_app.cpp STM32G030Class.cpp -o your_app
 ```
 
-## Command-Line Tool Usage
+## Main Program Implementation
+
+The `main.cpp` command-line tool is structured to automatically perform initialization tasks before processing user commands:
+
+```cpp
+int main(int argc, char* argv[]) {
+    // Initialize with default configuration
+    STM32G030F6_Class stm32("interface/raspberrypi2-native.cfg", "target/stm32g0x.cfg", 
+                                0x08000000, 200, "/dev/ttyAMA1", 9600);
+    
+    // Always read option bytes (displays boot configuration)
+    stm32.Flash_Func({"--ob"});
+    
+    // Always reset the MCU
+    stm32.Flash_Func({"--reset"});
+    
+    // Process all command-line arguments (including program name)
+    return stm32.Flash_Func(argc, argv);
+}
+```
+
+This ensures:
+- Boot configuration is displayed on every run
+- MCU is reset after option byte read
+- User commands are then processed
+
+**Note**: The Flash_Func method internally skips argv[0] when processing arguments, so the command-line tool correctly handles user arguments starting from position 1.
+
+To skip automatic initialization, modify main.cpp to call Flash_Func directly with your desired arguments.
 
 ## Command-Line Tool Usage
 
 The included `main.cpp` provides a command-line interface to the class functionality.
+
+**Note**: The command-line tool automatically reads option bytes (`--ob`) and resets the MCU (`--reset`) before processing any command-line arguments.
 
 ### Flash firmware
 
@@ -180,11 +210,13 @@ Possible results:
 
 ### Read option bytes
 
+Option bytes are automatically read on every invocation. To only read option bytes:
+
 ```bash
-./ica2506_flash --ob
+./ica2506_flash
 ```
 
-This prints raw option-byte words and a decoded OPTR summary.
+This prints raw option-byte words and a decoded OPTR summary, then resets the MCU.
 
 ### Mass erase
 
@@ -193,6 +225,8 @@ This prints raw option-byte words and a decoded OPTR summary.
 ```
 
 ### Reset MCU (exit boot mode)
+
+The MCU is automatically reset after reading option bytes. To explicitly request reset:
 
 ```bash
 ./ica2506_flash --reset

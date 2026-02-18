@@ -9,9 +9,7 @@
 int main(int argc, char* argv[]) {
     STM32G030F6_Class stm32("interface/raspberrypi2-native.cfg", "target/stm32g0x.cfg", 
                                 0x08000000, 200, "/dev/ttyAMA1", 9600);
-    //stm32.Flash_Func(argc, argv);    
-    //stm32.Flash_Func({"--ob"});
-    //stm32.Flash_Func({"STM32G030F6.bin"});
-    //stm32.Flash_Func({"--reset"});
-    stm32.Flash_Func({});
+    stm32.Flash_Func({"--ob"});
+    stm32.Flash_Func({"--reset"});    
+    return stm32.Flash_Func(argc, argv);
 }
