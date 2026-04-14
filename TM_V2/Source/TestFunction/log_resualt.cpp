@@ -291,12 +291,12 @@ int SaveResult(std::string _fileNameTest){
 				,EUI[0],EUI[1],EUI[2],EUI[3],EUI[4],EUI[5],EUI[6],EUI[7]
 				,myBoard.boardName_str
 				,SaveTime->tm_year%100,SaveTime->tm_mon+1,SaveTime->tm_mday,SaveTime->tm_hour,SaveTime->tm_min,SaveTime->tm_sec);
-	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1f°C,_,%d,%d\n", 
-				testr.Vcap_Max, testr.VCap_SWOff, 
-				testr.time_charge, testr.time_DisCharge,testr.time_WaitToOutSwOff, testr.time_OutSwOff, 
-				testr.Load_Current, testr.VOut1, testr.VOut2, 
-				testr.tempIC,
-				testr.repaired_Cap,testr.ErrorNo);
+	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1fC,_,%d,%d\n", 
+				myTestResult.Vcap_Max, myTestResult.VCap_SWOff, 
+				myTestResult.time_charge, myTestResult.time_DisCharge,myTestResult.time_WaitToOutSwOff, myTestResult.time_OutSwOff, 
+				myTestResult.Load_Current, myTestResult.VOut1, myTestResult.VOut2, 
+				myTestResult.tempIC,
+				myTestResult.repaired_Cap,myTestResult.ErrorNo);
 
 	fprintf(file, "%s", file_stream);
 	// Close the file	

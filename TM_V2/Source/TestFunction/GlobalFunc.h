@@ -176,7 +176,7 @@ struct testResult{
 		}
     }
 };
-extern testResult testr;
+extern testResult myTestResult;
 
 
     

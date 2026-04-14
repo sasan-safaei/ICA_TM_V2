@@ -170,6 +170,7 @@ class USV_TEST_UTIL_V2{
         void DongleCheck(void);
         void run(void);
         void run_TestMachine(void);
+        void run_TestMachine_ucProgram(void);
         void runICA2308_simple_test(float _version=1.0);
         void runICA2407_simple_test(void);
         void runICA2506(void);
@@ -177,6 +178,20 @@ class USV_TEST_UTIL_V2{
         void run_ManualTest(void);
         uint8_t showError(uint8_t _errorNo);
         void checkLabDevice(void);
+        struct __constValue{
+            float InCurrent_NoAR_MaxLimit=0.0;
+            float InCurrent_AR_MinLimit=0.0;
+            float VCC_minLimit=3.1;
+            float VCC_maxLimit=3.6;
+            void setDefault(){
+                InCurrent_NoAR_MaxLimit=0.020;
+                InCurrent_AR_MinLimit=0.300;
+            }   
+            void setFor2510(){
+                InCurrent_NoAR_MaxLimit=0.030;
+                InCurrent_AR_MinLimit=0.100;
+            }
+        } constValue;
         
 };
 

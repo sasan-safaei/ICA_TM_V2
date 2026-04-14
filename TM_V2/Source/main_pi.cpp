@@ -155,11 +155,22 @@ void App_TM_V2::taskLoop() {
         __str.erase(std::remove(__str.begin(), __str.end(), ' '), __str.end());
         myUSVTestV2.myArg.FileName_EUI = __str;
         switch(myInterActReg.gui_CMD){
-            case 1: 
-            case 2:
+            case ICA_NT_USV_2315://1//ICA2315 
+            case ICA_NT_USV_2405://2//ICA2405
+                if (myInterActReg.gui_CMD==ICA_NT_USV_2315) myUSVTestV2.constValue.setDefault();
+                if (myInterActReg.gui_CMD==ICA_NT_USV_2405) myUSVTestV2.constValue.setDefault();
+                
                 myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin!!! (" << myInterActReg.gui_CMD << ")").str());
                 myUSVTestV2.checkLabDevice();sleep(.5);                    
                 myUSVTestV2.run_TestMachine();
+                break;
+            case ICA_2506://5//ICA2506
+            case ICA_2510://6 //ICA2510
+                myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin!!! (" << myInterActReg.gui_CMD << ")").str());
+                myUSVTestV2.checkLabDevice();sleep(.5); 
+                if (myInterActReg.gui_CMD==ICA_2506) myUSVTestV2.constValue.setDefault();
+                if (myInterActReg.gui_CMD==ICA_2510) myUSVTestV2.constValue.setFor2510();
+                myUSVTestV2.run_TestMachine_ucProgram();
             break;            
             case 3:            
                 myUSVTestV2.showLog("ICA2308 Test Function");                   
@@ -168,10 +179,6 @@ void App_TM_V2::taskLoop() {
             case 4:
                 myUSVTestV2.showLog("ICA2407 Test Function");                     
                 myUSVTestV2.runICA2407_simple_test();
-                break;
-            case 5: 
-                myUSVTestV2.showLog("ICA506 Test Function under Construction");
-                myUSVTestV2.runICA2506();
                 break;
             default:
                 myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());

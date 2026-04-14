@@ -288,7 +288,7 @@ class GuiManager(Node):
         def fmt(v):
                 return f"{v:.2f}v" if v >= 0 else "--"            
         #if self.last_tm_run_sts==3:                    
-        if self.dongle_selected_index==5:#ICA2308
+        if self.dongle_selected_index==3:#ICA2308
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_Name, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, self.dongle_selected_text))            
             rstring=f"IN: {msg.vin:.1f}V, {msg.in_current:.3f}A"
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_IN_Data, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))

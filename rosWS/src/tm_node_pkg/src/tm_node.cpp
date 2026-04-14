@@ -148,7 +148,7 @@ private:
                 if(msg->dongle_sel>0){
                     tm_sts_msg.tm_log = "gui Start button pressed!";
                     tm_sts_msg.tm_run_sts = 2;
-                    if (msg->dongle_sel==5 || msg->dongle_sel==6)
+                    if (msg->dongle_sel==3 || msg->dongle_sel==4)
                         tm_sts_msg.tm_run_sts = 3;
                     myInterActReg.gui_CMD = msg->dongle_sel;
                     myInterActReg.board_version = msg->board_version;

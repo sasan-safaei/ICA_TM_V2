@@ -88,6 +88,9 @@ private:
 	// Reset the microcontroller
 	bool Reset();
 	
+	// Test SWD interface connection
+	bool TestInterface();
+	
 	// UART transmit
 	bool UartTx(const std::string& hexStream);
 	

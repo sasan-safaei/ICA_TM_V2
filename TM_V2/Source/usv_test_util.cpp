@@ -69,12 +69,11 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
     //uint8_t _Board_Ver = _version;//(_dongle & 0x07);
     switch (_dongle)
     {
-    case 1://2405
-        myBoard.boardName=2405;
-        sprintf(myBoard.boardKind_str,"NT-CLX USV");
-        myBoard.boardType=ICA_NT_USV_2405;
-        myBoard.boardVer=0;
             
+    case 1://2405
+    case 5://ICA2506
+    case 6://ICA2510
+        myBoard.boardVer=0;            
         myBoard.myBoardInfo.LTC3350_RSNSI1=0.016;
         myBoard.myBoardInfo.LTC3350_RSNSI2=0.016;
         myBoard.myBoardInfo.LTC3350_RSNSC=0.003;
@@ -85,21 +84,52 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         myBoard.myBoardInfo.Board_SupperCapSingleCap = 50;//50.0F
         myBoard.myBoardInfo.Board_SupperCapNum = 4;//3.0V
         myBoard.myBoardInfo.Board_SupperCapType=255;//XXXX
-        myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V
-        switch ((uint16_t)_version*100)
-        {
-            case 161:
-            myBoard.boardVer=0xA6;
-            myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
-            myBoard.myBoardInfo.Board_MaxTemp85V=26;    
-            break;
-            case 162:            
-            myBoard.boardVer=0xA6;
-            myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_2;
-            myBoard.myBoardInfo.Board_MaxTemp85V=26;
-            break;            
+        myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V    
+        if(_dongle==ICA_NT_USV_2405){    
+            myBoard.boardName=2405;
+            sprintf(myBoard.boardKind_str,"NT-CLX USV");
+            myBoard.boardType=ICA_NT_USV_2405;
+            switch ((uint16_t)_version*100)
+            {
+                case 161:
+                myBoard.boardVer=0xA6;
+                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
+                myBoard.myBoardInfo.Board_MaxTemp85V=26;    
+                break;
+                case 162:            
+                myBoard.boardVer=0xA6;
+                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_2;
+                myBoard.myBoardInfo.Board_MaxTemp85V=26;
+                break;            
+            }            
         }
-        break;
+        if(_dongle==ICA_2506){
+            myBoard.boardName=2506;            
+            sprintf(myBoard.boardKind_str,"NT-CLX USV Pro");
+            myBoard.boardType=ICA_2506;
+            switch ((uint16_t)_version*100)
+            {
+                case 100:
+                myBoard.boardVer=0x10;
+                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
+                myBoard.myBoardInfo.Board_MaxTemp85V=26;    
+                break;
+            }            
+        }
+        if(_dongle==ICA_2510){
+            myBoard.boardName=2510;            
+            sprintf(myBoard.boardKind_str,"PSU-CLX-UPS");
+            myBoard.boardType=ICA_2510;
+            switch ((uint16_t)_version*100)
+            {
+                case 100:
+                myBoard.boardVer=0x10;
+                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
+                myBoard.myBoardInfo.Board_MaxTemp85V=26;    
+                break;
+            }            
+        }
+    break;
     case 2://2315
         myBoard.boardName=2315;
         sprintf(myBoard.boardKind_str,"NT-CLS USV");
@@ -153,33 +183,6 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         myBoard.boardType=ICA_2407;
         myBoard.boardVer=0;        
     break;
-    case 5: //ICA2506
-        myBoard.boardName=2506;
-        sprintf(myBoard.boardKind_str,"NT-CLX USV Pro");
-        sprintf(myBoard.boardName_str,"2506");        
-        myBoard.boardType=ICA_2506;//ICA_NT_USV_2405
-        myBoard.boardVer=0;
-    
-        myBoard.myBoardInfo.LTC3350_RSNSI1=0.016;
-        myBoard.myBoardInfo.LTC3350_RSNSI2=0.016;
-        myBoard.myBoardInfo.LTC3350_RSNSC=0.003;
-        myBoard.myBoardInfo.LTC3350_RTST=121;
-        myBoard.myBoardInfo.LTC3350_RT=107000;        
-        
-        myBoard.myBoardInfo.Board_SupperCapVoltage = 3.0;//3.0V
-        myBoard.myBoardInfo.Board_SupperCapSingleCap = 50;//50.0F
-        myBoard.myBoardInfo.Board_SupperCapNum = 4;//3.0V
-        myBoard.myBoardInfo.Board_SupperCapType=255;//XXXX
-        myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V
-        switch ((uint16_t)_version*100)
-        {
-            case 100:
-            myBoard.boardVer=0x10;
-            myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
-            myBoard.myBoardInfo.Board_MaxTemp85V=26;    
-            break;
-        }
-        break;
     default:
         myBoard.boardName=0;
         myBoard.boardVer=0;
@@ -1088,7 +1091,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                 myTempVal.clear();
                 myBoard.myEEPROM.clear_EEPROM_Buffer();
                 myBoard.myEEPROM.myData.clear();
-                showLog("ICA2315/ICA2405/2506 Testing Routine...\n");
+                showLog("ICA2315/ICA2405/ICA2506/ICA2510 Testing Routine...\n");
                 showLog("Start: Reset Relays and Test start.");
                 myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
                 if(myArg.LabDevice_PS || myArg.LabDevice_Load){
@@ -1121,7 +1124,6 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
             break;
             case 4:
                 if(_dcnt100ms-->0){
-                    //myTempVal.InCurrent=myTestDevice.getDUT_VINAmp();
                     if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
                     if(myTempVal.InCurrent>.020){
                         showLog("Failed (Current > 20mA)!\n");
@@ -1146,7 +1148,6 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
             break;
             case 6: 
                 if(_dcnt100ms-->0){
-                    //myTempVal.InCurrent=myTestDevice.getDUT_VINAmp();
                     if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
                     if(myTempVal.InCurrent>.300){ 
                         myInterActReg.TR.AR_On=true;
@@ -1592,47 +1593,171 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
         
 }
 
-void USV_TEST_UTIL_V2::runICA2506(void){
-    uint8_t _mState = 0, LMState=0xFF;
-    uint16_t _dcnt100ms=0;
-
+struct __temp__register{
+    uint8_t mState = 0;
+    uint8_t key=0;
+    uint16_t dcnt100ms=0;
+    std::ostringstream oss;
+    bool testingNoCap=false;    
+    uint8_t __rKey=0;
+    std::ofstream file;
+    uint8_t LMState=0xFF;
+    
+    uint16_t __lastTimeValue=0;
+    float __floatTmpVale=0;
+    uint8_t __tempBatBack__error__cnt=0;
+    float __tempICtempVal=0.0;
+    uint8_t __tempIC__error__cnt=0;
+    uint8_t __diffVcap__error__cnt=0;
+    uint8_t __error_cnt=0;
+ };
+ 
+void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
+    __temp__register __tr;
     showLog("******************************");
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);            
     DongleCheck();  
     ShowMyDongle();
-    while((_mState<0xF0) && (xrunning==true)){        
+    while((__tr.mState<0xF0) && (xrunning==true)){        
         usleep(100000);
         myTempVal.VIn= myTestDevice.getDUT_VIN();
-        myTempVal.InCurrent = myTestDevice.getDUT_VINAmp();        
-        switch (_mState){ 
-            case 0://clear registers & reset Relays *********************************************
+        myTempVal.InCurrent = myTestDevice.getDUT_VINAmp();
+        myTempVal.VOut= myTestDevice.getDUT_VOUT();
+        myTempVal.LoadCurrent = myTestDevice.getDUT_VOUTAmp();
+        switch(__tr.mState){
+            case 0:
                 myInterActReg.TR.DataClear();
                 removeJPG_PFiles_Jobs();
                 myTempVal.clear();
                 myBoard.myEEPROM.clear_EEPROM_Buffer();
                 myBoard.myEEPROM.myData.clear();
-                //myTestResult.clear();
-                //testrReset(myBoard.boardName);
-                myTestResult.clear(myBoard.boardName);
-                showLog("ICA2506 ReadEUI");
+                showLog("ICA2315/ICA2405/ICA2506/ICA2510 Testing Routine...\n");
                 showLog("Start: Reset Relays and Test start.");
-                myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);                
-            _mState++;
-            break;           
-            default: 
-                showLog("\n!!! END !!!\n");
-                _mState=0xFE;
-                break;
+                myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+                if(myArg.LabDevice_PS || myArg.LabDevice_Load){
+                    if(myArg.LabDevice_PS) 
+                        if (MyLabDevice.ReadPSCurrent()==-1){ __tr.mState=showError(ERROR::LabPSNoAnswer);break; }
+                    if(myArg.LabDevice_Load) 
+                        if(MyLabDevice.ReadLoadVoltage()==-1){ __tr.mState=showError(ERROR::LabLoadNoAnswer);break; }                    
+                    if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
+                    MyLabDevice.SetPSEnable(true);
+                    MyLabDevice.SetPSVoltage(__const_PSVoltage);
+                    MyLabDevice.SetPSCurrent(__const_PSCurrent_NoCap_NoLoad);
+                    MyLabDevice.SetLoadCurrent(0);	
+                }
+                __tr.mState++;
+            break;
+            case 1:                 
+                myTestResult.clear(myBoard.boardName);
+                showLog(" Ok.\n");
+                __tr.mState++;
+            break;
+            case 2: //set Power On *********************************************
+                myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
+                __tr.dcnt100ms=5;//500mSec
+                __tr.mState++;
+            break;     
+            case 3: //TEST1: wait for a 500mSec (MPOWER:ON AR:OFF -> No Current) *********************************************
+                myInterActReg.TR.currentTestNo=1;
+                showLog("Test1: No Current when Aufruesten is Off...");
+                __tr.mState++;            
+            break;
+            case 4:
+                if(__tr.dcnt100ms-->0){
+                    if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
+                    if(myTempVal.InCurrent>constValue.InCurrent_NoAR_MaxLimit){
+                        showLog((std::ostringstream{} << "Failed (Current > " << std::fixed << std::setprecision(2) << constValue.InCurrent_NoAR_MaxLimit << "A)!\n").str());
+                        myInterActReg.TR.AR_Off=false;
+                        __tr.mState=showError(ERROR::Aufruesten);
+                    }
+                }
+                else{
+                    if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);		            
+                    myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
+                    myDurationTimer.testTimeStartSec();//ChargeTime Start
+                    myInterActReg.TR.AR_Off=true;
+                    showLog(" Ok.\n");
+                    __tr.mState++;
+                }                    
+            break;
+            case 5:// TEST2: Mpower:ON & AR:ON -> current:300mA *********************************************
+                myInterActReg.TR.currentTestNo=2;
+                showLog("Test2: Turn On AufRuesten... ");                
+                __tr.dcnt100ms=5;//500mSec
+                __tr.mState++;    
+            break;
+            case 6: 
+                if(__tr.dcnt100ms-->0){
+                    if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
+                    if(myTempVal.InCurrent>constValue.InCurrent_AR_MinLimit){ 
+                        myInterActReg.TR.AR_On=true;
+                        showLog(" Ok.\n");
+                        __tr.mState++;
+                    }
+                    else{                
+                        myInterActReg.TR.AR_On=false;
+                        showLog((std::ostringstream{} << "Failed! (Current<" << std::fixed << std::setprecision(2) << constValue.InCurrent_AR_MinLimit << "})\n").str());
+                        __tr.mState=showError(ERROR::AufruestenOn);    
+                        
+                    }                    
+                }
+            break;
+            case 7://TEST3 : VCC test  3.1 < VCC < 3.6 ********************************************* 
+                myInterActReg.TR.currentTestNo=3;
+                myTempVal.VCC = myTestDevice.getDUT_VCC();
+                showLog((std::ostringstream{} << "Test3: VCC test (" << constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << constValue.VCC_maxLimit << "V)").str());
+                myInterActReg.TR.Vvcc=myTempVal.VCC;
+                if(myTempVal.VCC> constValue.VCC_minLimit && myTempVal.VCC< constValue.VCC_maxLimit){                    
+                    showLog(" Ok.\n");                        
+                    __tr.mState++;
+                }else{
+                    if(!(__tr.dcnt100ms-->=0)){
+                        showLog("Failed!\n");
+                        if(myTempVal.VCC< constValue.VCC_minLimit)
+                            __tr.mState=showError(ERROR::VCCIsLow);
+                        else
+                            __tr.mState=showError(ERROR::VCCIsOver);
+                    }
+                    
+                }                
+            break;
+            
+            default:
+                showLog("\nEND Wait to press Key.\n");        
+                __tr.mState=0xFE;
+            break;
+        }
+    myTempVal.result= __tr.mState;        
+        //if(myTestDevice.readKeys()==USV_Test_Interface::_KEY::K3) _mState=0xF1;
+        __tr.key=myInterActReg.getGuiCMD();
+        if(__tr.key==USV_Test_Interface::_KEY::K3) __tr.mState=0xF1;
         
-        }        
-        myTempVal.result=_mState;        
+        if(__tr.mState>11){
+            myTempVal.VCap=myBoard.GetVCap(0);        
+            myInterActReg.TR.Vcap1=myBoard.GetVCap(1);
+            myInterActReg.TR.Vcap2=myBoard.GetVCap(2);
+            myInterActReg.TR.Vcap3=myBoard.GetVCap(3);
+            myInterActReg.TR.Vcap4=myBoard.GetVCap(4);
+        }
         myInterActReg.TR.InCurrent=myTempVal.InCurrent;
+        myInterActReg.TR.LoadCurrent=myTempVal.LoadCurrent;
+        myInterActReg.TR.VOut=myTempVal.VOut;
         myInterActReg.TR.Vin=myTempVal.VIn;
-        myInterActReg.TR.Vvcc=myTempVal.VCC;                
+        myInterActReg.TR.VcapBank=myTempVal.VCap;
+        myInterActReg.TR.Vvcc=myTempVal.VCC;
+        myInterActReg.TR.CapChargeTime=myTempVal.chargeTime;
+        myInterActReg.TR.CapDisChargeTime=myTempVal.DisChargeTime;
+        myInterActReg.TR.OutSWOffTime=myTempVal.OutSWOffTime;    
     }
-    
+        
     showLog("SAVE DATA...");
-    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,true);
+    //SaveResult(true,myArg.StoreFolderPath+myArg.FileName_EUI,myArg.StoreFolderPath+myArg.FileName_Test);    
+    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
+    //SaveResult(false,myArg.StoreFolderPath+myArg.FileName_EUI,myArg.StoreFolderPath+myArg.FileName_Test);//testingNoCap);
+    SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);
+    while (xrunning==true){
+        usleep(100000);
+    }
+    __tr.mState=0xF1;    
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
-
 }

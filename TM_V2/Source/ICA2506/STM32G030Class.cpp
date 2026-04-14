@@ -379,6 +379,98 @@ bool STM32G030F6_Class::Reset() {
 	return true;
 }
 
+// Test SWD interface connection
+bool STM32G030F6_Class::TestInterface() {
+	if (!CommandAvailable("openocd")) {
+		fprintf(stderr, "TestInterface: openocd not found in PATH\n");
+		return false;
+	}
+
+	printf("==========================================\n");
+	printf("SWD Interface Connection Test\n");
+	printf("==========================================\n");
+	printf("Configuration:\n");
+	printf("  Interface: %s\n", interfaceCfg_.c_str());
+	printf("  Target:    %s\n", targetCfg_.c_str());
+	printf("  Speed:     %d kHz\n", adapterKhz_);
+	printf("  GPIO pins: SWCLK=%d, SWDIO=%d\n", kRpiSwclkGpio, kRpiSwdioGpio);
+	printf("==========================================\n\n");
+
+	// Build OpenOCD command to test connection
+	std::ostringstream cmd;
+	cmd << "openocd";
+	AppendInterfaceConfig(cmd, interfaceCfg_);
+	cmd << " -c \"set WORKAREASIZE 0x" << std::hex << kRpiWorkAreaSize << "\""
+		<< " -f " << targetCfg_
+		<< " -c \"adapter speed " << std::dec << adapterKhz_ << "\""
+		<< " -c \"init\""
+		<< " -c \"shutdown\" 2>&1";
+
+	// Run command and capture output
+	std::string output;
+	printf("Testing SWD connection...\n\n");
+	const int status = RunCommandCapture(cmd.str(), output);
+
+	// Display raw output
+	printf("OpenOCD Output:\n");
+	printf("----------------------------------------\n");
+	printf("%s\n", output.c_str());
+	printf("----------------------------------------\n\n");
+
+	// Parse output for key indicators
+	bool hasDeadbeef = (output.find("0xdeadbeef") != std::string::npos);
+	bool hasValidDpidr = (output.find("SWD DPIDR") != std::string::npos) && !hasDeadbeef;
+	bool hasError = (output.find("Error:") != std::string::npos);
+	
+	// Extract DPIDR value if present
+	std::string dpidrValue = "Not found";
+	size_t dpidrPos = output.find("SWD DPIDR");
+	if (dpidrPos != std::string::npos) {
+		size_t valueStart = output.find("0x", dpidrPos);
+		if (valueStart != std::string::npos) {
+			size_t valueEnd = output.find_first_of(" \t\n\r", valueStart);
+			if (valueEnd != std::string::npos) {
+				dpidrValue = output.substr(valueStart, valueEnd - valueStart);
+			}
+		}
+	}
+
+	// Print diagnostic results
+	printf("Diagnostic Results:\n");
+	printf("----------------------------------------\n");
+	printf("DPIDR Value:       %s\n", dpidrValue.c_str());
+	
+	if (hasDeadbeef) {
+		printf("Connection Status: FAILED (0xdeadbeef)\n");
+		printf("\nProbable Causes:\n");
+		printf("  1. Loose or disconnected wires (SWDIO/GPIO %d or SWCLK/GPIO %d)\n", 
+		       kRpiSwdioGpio, kRpiSwclkGpio);
+		printf("  2. Target chip not powered (check VDD = 3.3V)\n");
+		printf("  3. Ground not connected between debugger and target\n");
+		printf("  4. Wrong GPIO pin configuration\n");
+		printf("  5. Faulty target chip\n");
+		printf("\nTroubleshooting Steps:\n");
+		printf("  1. Check physical connections (SWDIO, SWCLK, GND, VDD)\n");
+		printf("  2. Verify target power (measure 3.3V on VDD pin)\n");
+		printf("  3. Try lower speed: use --testInterface interface target 10\n");
+		printf("  4. Check for shorts or damaged wires\n");
+		printf("  5. Verify GPIO pins are not used by other processes\n");
+	} else if (hasValidDpidr) {
+		printf("Connection Status: SUCCESS\n");
+		printf("\nThe SWD interface is working correctly.\n");
+		printf("You can proceed with flash operations.\n");
+	} else if (hasError) {
+		printf("Connection Status: ERROR\n");
+		printf("\nOpenOCD reported errors. Check the output above.\n");
+	} else {
+		printf("Connection Status: UNKNOWN\n");
+		printf("\nCould not determine connection status from output.\n");
+	}
+	printf("==========================================\n");
+
+	return hasValidDpidr && !hasDeadbeef;
+}
+
 // UART transmit
 bool STM32G030F6_Class::UartTx(const std::string& hexStream) {
 	std::vector<uint8_t> tx;
@@ -900,6 +992,7 @@ void PrintUsage(const char* prog) {
     std::cerr << "       " << prog << " --cmp <firmware.bin> [interface.cfg] [target.cfg] [address_hex] [adapter_khz]\n";
     std::cerr << "       " << prog << " --erase [interface.cfg] [target.cfg] [adapter_khz]\n";
     std::cerr << "       " << prog << " --reset [interface.cfg] [target.cfg] [adapter_khz]\n";
+    std::cerr << "       " << prog << " --testInterface [interface.cfg] [target.cfg] [adapter_khz]\n";
     std::cerr << "       " << prog << " --uart \"HEX BYTES\" [port] [baud] [idle_ms]\n";
     std::cerr << "Example: " << prog << " firmware.bin interface/stlink.cfg target/stm32g0x.cfg 0x08000000 1000\n";
     std::cerr << "Example: " << prog << " --ob interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
@@ -907,6 +1000,7 @@ void PrintUsage(const char* prog) {
     std::cerr << "Example: " << prog << " --cmp firmware.bin interface/raspberrypi2-native.cfg target/stm32g0x.cfg 0x08000000 200\n";
     std::cerr << "Example: " << prog << " --erase interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
     std::cerr << "Example: " << prog << " --reset interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
+    std::cerr << "Example: " << prog << " --testInterface\n";
     std::cerr << "Example: " << prog << " --uart \"49 50 A8\" /dev/ttyAMA1 9600 200\n";
 }
 
@@ -1122,6 +1216,31 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
         targetCfg_ = targetCfg;
         adapterKhz_ = adapterKhz;
         const bool ok = Reset();
+        return ok ? 0 : 1;
+    }
+
+    if (std::string(argv[1]) == "--testInterface") {
+        if (argc == 2) {
+            const bool ok = TestInterface();
+            return ok ? 0 : 1;
+        }
+        if (argc < 5) {
+            PrintUsage(argv[0]);
+            return 2;
+        }
+
+        const std::string interfaceCfg = argv[2];
+        const std::string targetCfg = argv[3];
+        const int adapterKhz = std::atoi(argv[4]);
+        if (adapterKhz <= 0) {
+            std::cerr << "Invalid adapter_khz: " << argv[4] << "\n";
+            return 2;
+        }
+
+        interfaceCfg_ = interfaceCfg;
+        targetCfg_ = targetCfg;
+        adapterKhz_ = adapterKhz;
+        const bool ok = TestInterface();
         return ok ? 0 : 1;
     }
 
