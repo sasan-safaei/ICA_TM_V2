@@ -188,7 +188,10 @@ The included `main.cpp` provides a command-line interface to the class functiona
 ### Flash firmware
 
 ```bash
-./ica2506_flash STM32G030F6.bin
+./ica2506_flash ./Firmware_Folder/STM32_ICA2410R1.1.bin
+./ica2506_flash --write-ob 0xDEFFE1AA
+./ica2506_flash --reset
+./ica2506_flash --uart "55 56 52 50"
 ```
 
 Custom interface/target/address/speed:

@@ -64,14 +64,15 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 	const std::string absBinPath = ToAbsolutePath(binPath);
 
 	// Because the board uses a MOSFET that inverts the reset signal (gate on GPIO 26,
-	// source to target reset on GPIO 24), toggle the gate to assert reset briefly
-	// before running OpenOCD so the target starts in a known state. Drive GP26 high
-	// for 100 ms then release.
-	std::system("echo 26 > /sys/class/gpio/export 2>/dev/null || true");
-	std::system("echo out > /sys/class/gpio/gpio26/direction 2>/dev/null || true");
-	std::system("echo 1 > /sys/class/gpio/gpio26/value 2>/dev/null || true");
-	usleep(100000);
-	std::system("echo 0 > /sys/class/gpio/gpio26/value 2>/dev/null || true");
+	// source to target reset on GPIO 24), assert the gate here and keep it asserted
+	// for the whole OpenOCD operation so the target is held in reset while we connect
+	// (connect-under-reset). Release the gate after OpenOCD finishes. This requires
+	// running as root so sysfs GPIO is writable.
+	std::string gpioPath = std::string("/sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio);
+	std::system((std::string("echo ") + std::to_string(kRpiNresetGpio) + " > /sys/class/gpio/export 2>/dev/null || true").c_str());
+	std::system((std::string("echo out > ") + gpioPath + "/direction 2>/dev/null || true").c_str());
+	// Assert gate (drive high) to hold reset (MOSFET inverts this)
+	std::system((std::string("echo 0 > ") + gpioPath + "/value 2>/dev/null || true").c_str());
 
 	std::ostringstream cmd;
 	cmd << "openocd";
@@ -90,6 +91,10 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 		<< " -c \"shutdown\"";
 
 	const int result = std::system(cmd.str().c_str());
+
+	// Release reset gate after OpenOCD finishes
+	std::system((std::string("echo 0 > ") + gpioPath + "/value 2>/dev/null || true").c_str());
+
 	if (result != 0) {
 		fprintf(stderr, "Flash: openocd failed (%d)\n", result);
 		return false;
@@ -739,11 +744,9 @@ return interfaceCfg.find("raspberrypi") != std::string::npos;
 
 void STM32G030F6_Class::AppendInterfaceConfig(std::ostringstream& cmd, const std::string& interfaceCfg) {
 if (IsRaspberryPiInterface(interfaceCfg)) {
-cmd << " -c \"adapter driver bcm2835gpio\""
-	<< " -c \"transport select swd\""
-	<< " -c \"bcm2835gpio_swd_nums " << kRpiSwclkGpio << " " << kRpiSwdioGpio << "\""
-	<< " -c \"bcm2835gpio_srst_num " << kRpiNresetGpio << "\""
-	<< " -c \"reset_config srst_only srst_push_pull\"";
+	cmd << " -c \"adapter driver bcm2835gpio\""
+		<< " -c \"transport select swd\""
+		<< " -c \"bcm2835gpio_swd_nums " << kRpiSwclkGpio << " " << kRpiSwdioGpio << "\"";
 } else {
 cmd << " -f " << interfaceCfg;
 }
