@@ -81,7 +81,7 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 		<< " -c \"adapter speed " << std::dec << adapterKhz_ << "\""
 		<< " -c \"stm32g0x.cpu configure -work-area-phys 0x" << std::hex << kRpiWorkAreaBase
 		<< " -work-area-size 0x" << std::hex << kRpiWorkAreaSize << " -work-area-backup 0\""
-		<< " -c \"cortex_m reset_config sysresetreq\""
+        
 		<< " -c \"init\""
 		<< " -c \"reset halt\""
 		<< " -c \"flash write_image erase " << absBinPath << " 0x" << std::hex << flashAddress_ << " bin\""
@@ -368,6 +368,19 @@ bool STM32G030F6_Class::Reset() {
 	if (!CommandAvailable("openocd")) {
 		fprintf(stderr, "Reset: openocd not found in PATH\n");
 		return false;
+	}
+
+	// If using the Raspberry Pi bcm2835gpio interface and the NRST line
+	// is driven through an inverting MOSFET, pulse the gate GPIO here
+	// so the target leaves an unexpected held-reset state before OpenOCD
+	// runs. This uses sysfs and requires the program to run with sudo.
+	if (IsRaspberryPiInterface(interfaceCfg_)) {
+		std::system((std::string("echo ") + std::to_string(kRpiNresetGpio) + " > /sys/class/gpio/export 2>/dev/null || true").c_str());
+		std::system((std::string("echo out > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/direction 2>/dev/null || true").c_str());
+		std::system((std::string("echo 1 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value 2>/dev/null || true").c_str());
+		usleep(100000);
+		std::system((std::string("echo 0 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value 2>/dev/null || true").c_str());
+		usleep(50000);
 	}
 
 	std::ostringstream cmd;
@@ -727,8 +740,10 @@ return interfaceCfg.find("raspberrypi") != std::string::npos;
 void STM32G030F6_Class::AppendInterfaceConfig(std::ostringstream& cmd, const std::string& interfaceCfg) {
 if (IsRaspberryPiInterface(interfaceCfg)) {
 cmd << " -c \"adapter driver bcm2835gpio\""
-<< " -c \"transport select swd\""
-<< " -c \"bcm2835gpio_swd_nums " << kRpiSwclkGpio << " " << kRpiSwdioGpio << "\"";
+	<< " -c \"transport select swd\""
+	<< " -c \"bcm2835gpio_swd_nums " << kRpiSwclkGpio << " " << kRpiSwdioGpio << "\""
+	<< " -c \"bcm2835gpio_srst_num " << kRpiNresetGpio << "\""
+	<< " -c \"reset_config srst_only srst_push_pull\"";
 } else {
 cmd << " -f " << interfaceCfg;
 }
