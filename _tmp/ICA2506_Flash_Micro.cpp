@@ -13,7 +13,7 @@
 namespace {
 constexpr int kRpiSwdioGpio = 25; // Pin 22
 constexpr int kRpiSwclkGpio = 11; // Pin 23
-constexpr int kRpiNresetGpio = 24; // Pin 18
+constexpr int kRpiNresetGpio = 26; // Pin 18 (updated to GP26 for MOSFET gate)
 constexpr int kRpiWorkAreaSize = 0x400;
 constexpr int kRpiWorkAreaBase = 0x20000000;
 constexpr uint32_t kOptionBytesAddr = 0x1FFF7800;
@@ -252,6 +252,14 @@ bool Flash_STM32G030F6(const std::string& binPath,
 	}
 
 	const std::string absBinPath = ToAbsolutePath(binPath);
+
+	// Toggle Raspberry Pi GPIO 26 (MOSFET gate) high briefly to assert target reset
+	// because the MOSFET inverts the logic (gate high -> target reset asserted).
+	std::system("echo 26 > /sys/class/gpio/export 2>/dev/null || true");
+	std::system("echo out > /sys/class/gpio/gpio26/direction 2>/dev/null || true");
+	std::system("echo 1 > /sys/class/gpio/gpio26/value 2>/dev/null || true");
+	usleep(100000);
+	std::system("echo 0 > /sys/class/gpio/gpio26/value 2>/dev/null || true");
 
 	std::ostringstream cmd;
 	cmd << "openocd";

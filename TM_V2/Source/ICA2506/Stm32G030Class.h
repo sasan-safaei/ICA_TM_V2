@@ -107,7 +107,7 @@ private:
 	// Constants
 	static constexpr int kRpiSwdioGpio = 25;
 	static constexpr int kRpiSwclkGpio = 11;
-	static constexpr int kRpiNresetGpio = 24;
+	static constexpr int kRpiNresetGpio = 26;
 	static constexpr int kRpiWorkAreaSize = 0x400;
 	static constexpr int kRpiWorkAreaBase = 0x20000000;
 	static constexpr uint32_t kOptionBytesAddr = 0x1FFF7800;

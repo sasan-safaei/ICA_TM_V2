@@ -63,6 +63,16 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 
 	const std::string absBinPath = ToAbsolutePath(binPath);
 
+	// Because the board uses a MOSFET that inverts the reset signal (gate on GPIO 26,
+	// source to target reset on GPIO 24), toggle the gate to assert reset briefly
+	// before running OpenOCD so the target starts in a known state. Drive GP26 high
+	// for 100 ms then release.
+	std::system("echo 26 > /sys/class/gpio/export 2>/dev/null || true");
+	std::system("echo out > /sys/class/gpio/gpio26/direction 2>/dev/null || true");
+	std::system("echo 1 > /sys/class/gpio/gpio26/value 2>/dev/null || true");
+	usleep(100000);
+	std::system("echo 0 > /sys/class/gpio/gpio26/value 2>/dev/null || true");
+
 	std::ostringstream cmd;
 	cmd << "openocd";
 	AppendInterfaceConfig(cmd, interfaceCfg_);
