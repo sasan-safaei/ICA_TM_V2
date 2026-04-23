@@ -68,12 +68,13 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 	// for the whole OpenOCD operation so the target is held in reset while we connect
 	// (connect-under-reset). Release the gate after OpenOCD finishes. This requires
 	// running as root so sysfs GPIO is writable.
-	std::string gpioPath = std::string("/sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio);
+
+	/*std::string gpioPath = std::string("/sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio);
 	std::system((std::string("echo ") + std::to_string(kRpiNresetGpio) + " > /sys/class/gpio/export 2>/dev/null || true").c_str());
 	std::system((std::string("echo out > ") + gpioPath + "/direction 2>/dev/null || true").c_str());
 	// Assert gate (drive high) to hold reset (MOSFET inverts this)
 	std::system((std::string("echo 0 > ") + gpioPath + "/value 2>/dev/null || true").c_str());
-
+	*/
 	std::ostringstream cmd;
 	cmd << "openocd";
 	AppendInterfaceConfig(cmd, interfaceCfg_);
@@ -93,7 +94,7 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 	const int result = std::system(cmd.str().c_str());
 
 	// Release reset gate after OpenOCD finishes
-	std::system((std::string("echo 0 > ") + gpioPath + "/value 2>/dev/null || true").c_str());
+	//std::system((std::string("echo 0 > ") + gpioPath + "/value 2>/dev/null || true").c_str());
 
 	if (result != 0) {
 		fprintf(stderr, "Flash: openocd failed (%d)\n", result);
@@ -1277,7 +1278,12 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
             PrintUsage(argv[0]);
             return 2;
         }
-        const std::string hexStream = argv[2];
+		const std::string hexStream = argv[2];
+		if (std::string(argv[2]) == "file"){
+			hexStream=ReadFileToHex(argv[3]);
+		}
+
+        
         std::string port = "/dev/ttyAMA1";
         int baud = 9600;
         int idleMs = 200;

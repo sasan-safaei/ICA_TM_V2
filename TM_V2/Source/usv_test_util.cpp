@@ -1181,11 +1181,11 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
                     
                 }                
             break;
-            case 8://TEST4 : Check EEPROM & serial Connection *********************************************
+            case 8://TEST4 : Check EEPROM & serial Connection *********************************************               
                 myInterActReg.TR.currentTestNo=4;
                 showLog("Test4: Board Connection.");
                 _dcnt100ms=250;//25Sec
-                _mState++;
+                _mState++;                
             break;
             case 9:
                 if(_dcnt100ms-->0){
@@ -1611,9 +1611,13 @@ struct __temp__register{
     uint8_t __diffVcap__error__cnt=0;
     uint8_t __error_cnt=0;
  };
- 
-void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
+ #define debugTime 1
+void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(uint8_t _DUT){
     __temp__register __tr;
+    std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
+    std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
+    std::string uartFileName = myInterActReg.Dongle+"_EEPROM.bin";
+    
     showLog("******************************");
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);            
     DongleCheck();  
@@ -1625,7 +1629,8 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
         myTempVal.VOut= myTestDevice.getDUT_VOUT();
         myTempVal.LoadCurrent = myTestDevice.getDUT_VOUTAmp();
         switch(__tr.mState){
-            case 0:
+            case 0: //clear registers & reset Relays & Check for Lab-Device ******************************
+            {
                 myInterActReg.TR.DataClear();
                 removeJPG_PFiles_Jobs();
                 myTempVal.clear();
@@ -1646,23 +1651,31 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
                     MyLabDevice.SetLoadCurrent(0);	
                 }
                 __tr.mState++;
+            }
             break;
-            case 1:                 
+            case 1://clear test result and show log
+            {                 
                 myTestResult.clear(myBoard.boardName);
                 showLog(" Ok.\n");
                 __tr.mState++;
+            }
             break;
             case 2: //set Power On *********************************************
+            {
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 __tr.dcnt100ms=5;//500mSec
                 __tr.mState++;
+            }
             break;     
             case 3: //TEST1: wait for a 500mSec (MPOWER:ON AR:OFF -> No Current) *********************************************
+            {
                 myInterActReg.TR.currentTestNo=1;
                 showLog("Test1: No Current when Aufruesten is Off...");
                 __tr.mState++;            
+            }
             break;
-            case 4:
+            case 4: //Wait for 500mSec and check current *********************************************
+            {
                 if(__tr.dcnt100ms-->0){
                     if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
                     if(myTempVal.InCurrent>constValue.InCurrent_NoAR_MaxLimit){
@@ -1679,16 +1692,22 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
                     showLog(" Ok.\n");
                     __tr.mState++;
                 }                    
+            
+            }
             break;
             case 5:// TEST2: Mpower:ON & AR:ON -> current:300mA *********************************************
+            {
                 myInterActReg.TR.currentTestNo=2;
                 showLog("Test2: Turn On AufRuesten... ");                
                 __tr.dcnt100ms=5;//500mSec
                 __tr.mState++;    
+            }
             break;
-            case 6: 
+            case 6://Wait for 500mSec and check current ********************************************* 
+            {
                 if(__tr.dcnt100ms-->0){
                     if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
+                    if(debugTime) constValue.InCurrent_AR_MinLimit= 0.001;
                     if(myTempVal.InCurrent>constValue.InCurrent_AR_MinLimit){ 
                         myInterActReg.TR.AR_On=true;
                         showLog(" Ok.\n");
@@ -1701,8 +1720,10 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
                         
                     }                    
                 }
+            }
             break;
             case 7://TEST3 : VCC test  3.1 < VCC < 3.6 ********************************************* 
+            {
                 myInterActReg.TR.currentTestNo=3;
                 myTempVal.VCC = myTestDevice.getDUT_VCC();
                 showLog((std::ostringstream{} << "Test3: VCC test (" << constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << constValue.VCC_maxLimit << "V)").str());
@@ -1720,6 +1741,37 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(void){
                     }
                     
                 }                
+            }
+            break;
+            case 8: __tr.mState = 10; break;
+            case 10: //TEST4 : uC Program *********************************************               
+            {   
+                std::string __cmd = std::string("sudo "+STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
+                showLog(__cmd+"\n");
+                int __ret = std::system(__cmd.c_str());
+                if(__ret==0){ showLog("uC Program OK.\n"); __tr.mState++; }
+                else{ showLog("uC Program Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
+            }
+            break;
+            case 11:
+            {
+                int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
+                if(__ret==0){ showLog("uC cmp Program OK.\n"); __tr.mState++; }
+                else{ showLog("uC cmp Program Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
+            }
+            case 12:
+            {
+                int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --reset").c_str());
+                if(__ret==0){ showLog("uC reset OK.\n"); __tr.mState++; }
+                else{ showLog("uC reset Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
+            }            
+            break;
+            case 13:
+            {
+                int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --uart "+STM32Path+"/Firmware_Folder/"+uartFileName).c_str());
+                if(__ret==0){ showLog("uC EEPROM UART OK.\n"); __tr.mState++; }
+                else{ showLog("uC EEPROM UART Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
+            }            
             break;
             
             default:

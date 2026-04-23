@@ -139,7 +139,7 @@ class USV_TEST_UTIL_V2{
             std::stringstream ss;
     
             if(myBoard.boardName>0)
-            ss << "ICA" << myBoard.boardName << " V " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << myBoard.boardVer;    
+            ss << "ICA" << myBoard.boardName << "V" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << myBoard.boardVer;    
             else
                 if(Dongle==0)
                     ss<<"No Dongle!";
@@ -170,7 +170,7 @@ class USV_TEST_UTIL_V2{
         void DongleCheck(void);
         void run(void);
         void run_TestMachine(void);
-        void run_TestMachine_ucProgram(void);
+        void run_TestMachine_ucProgram(uint8_t _DUT);
         void runICA2308_simple_test(float _version=1.0);
         void runICA2407_simple_test(void);
         void runICA2506(void);

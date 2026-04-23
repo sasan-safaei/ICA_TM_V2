@@ -31,6 +31,7 @@
             , LabLoadNoAnswer
             , END
             ,I2CFailed
+            ,uCProgramFailed
         };
     };
 
