@@ -9,6 +9,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
+#include <sstream>
 #include <iomanip>
 #include <limits.h>
 #include <sys/select.h>
@@ -1022,7 +1023,7 @@ void PrintUsage(const char* prog) {
     std::cerr << "       " << prog << " --erase [interface.cfg] [target.cfg] [adapter_khz]\n";
     std::cerr << "       " << prog << " --reset [interface.cfg] [target.cfg] [adapter_khz]\n";
     std::cerr << "       " << prog << " --testInterface [interface.cfg] [target.cfg] [adapter_khz]\n";
-    std::cerr << "       " << prog << " --uart \"HEX BYTES\" [port] [baud] [idle_ms]\n";
+    std::cerr << "       " << prog << " --uart  <file/str> <filePath/\"HEX BYTES\"> [port] [baud] [idle_ms]\n";
     std::cerr << "Example: " << prog << " firmware.bin interface/stlink.cfg target/stm32g0x.cfg 0x08000000 1000\n";
     std::cerr << "Example: " << prog << " --ob interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
     std::cerr << "Example: " << prog << " --write-ob 0x1FFEF8AA\n";
@@ -1030,7 +1031,8 @@ void PrintUsage(const char* prog) {
     std::cerr << "Example: " << prog << " --erase interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
     std::cerr << "Example: " << prog << " --reset interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
     std::cerr << "Example: " << prog << " --testInterface\n";
-    std::cerr << "Example: " << prog << " --uart \"49 50 A8\" /dev/ttyAMA1 9600 200\n";
+    std::cerr << "Example: " << prog << " --uart str \"49 50 A8\" /dev/ttyAMA1 9600 200\n";
+	std::cerr << "Example: " << prog << " --uart file ./filePath /dev/ttyAMA1 9600 200\n";
 }
 
 bool ParseHex(const std::string& text, uint32_t& value) {
@@ -1274,34 +1276,39 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
     }
 
     if (std::string(argv[1]) == "--uart") {
-        if (argc < 3) {
+        if (argc < 4) {
             PrintUsage(argv[0]);
             return 2;
-        }
-		const std::string hexStream = argv[2];
-		if (std::string(argv[2]) == "file"){
-			hexStream=ReadFileToHex(argv[3]);
+        }		
+		std::string hexStream = argv[3];
+		if (std::string(argv[2]) == "file") {
+			std::ifstream ifs(argv[3]);
+			if (!ifs) {
+				std::cerr << "Failed to open hex stream file: " << argv[3] << "\n";
+				return 2;
+			}
+			std::ostringstream oss;
+			oss << ifs.rdbuf();
+			hexStream = oss.str();
 		}
-
-        
         std::string port = "/dev/ttyAMA1";
         int baud = 9600;
         int idleMs = 200;
 
-        if (argc >= 4) {
-            port = argv[3];
-        }
         if (argc >= 5) {
-            baud = std::atoi(argv[4]);
+            port = argv[4];
+        }
+        if (argc >= 6) {
+            baud = std::atoi(argv[5]);
             if (baud <= 0) {
-                std::cerr << "Invalid baud: " << argv[4] << "\n";
+                std::cerr << "Invalid baud: " << argv[5] << "\n";
                 return 2;
             }
         }
-        if (argc >= 6) {
-            idleMs = std::atoi(argv[5]);
+        if (argc >= 7) {
+            idleMs = std::atoi(argv[6]);
             if (idleMs <= 0) {
-                std::cerr << "Invalid idle_ms: " << argv[5] << "\n";
+                std::cerr << "Invalid idle_ms: " << argv[6] << "\n";
                 return 2;
             }
         }

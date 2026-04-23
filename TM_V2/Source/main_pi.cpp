@@ -169,8 +169,12 @@ void App_TM_V2::taskLoop() {
                 myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin + uC!!! (" << myInterActReg.gui_CMD << ")").str());
                 myUSVTestV2.checkLabDevice();sleep(.5); 
                 if (myInterActReg.gui_CMD==ICA_2506) myUSVTestV2.constValue.setDefault();
-                if (myInterActReg.gui_CMD==ICA_2510) myUSVTestV2.constValue.setFor2510();
-                myUSVTestV2.run_TestMachine_ucProgram(myInterActReg.gui_CMD);
+                if (myInterActReg.gui_CMD==ICA_2510) {
+                    myUSVTestV2.constValue.setFor2510();
+                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510;
+                }
+                //myUSVTestV2.run_TestMachine_ucProgram(myInterActReg.gui_CMD);
+                myUSVTestV2.run_Test_Func();
             break;            
             case 3:            
                 myUSVTestV2.showLog("ICA2308 Test Function");                   

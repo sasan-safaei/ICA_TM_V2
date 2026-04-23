@@ -1,0 +1,15 @@
+[Unit]
+Description=ICA_TM_SERVICE
+After=network.target
+
+[Service]
+Type=simple
+User=ica
+Environment=QT_QPA_PLATFORM=linuxfb
+ExecStart=/home/ica/ica_usv_testdevice-gui/rosWS/runTM.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+

@@ -1,6 +1,6 @@
 #!/bin/bash
 cd ~/git_sasan/ICA_TM_V2/rosWS
-sudo ./setGPIO.sh
+./setGPIO.sh
 export TM_WORKSPACE=~/git_sasan/TM_WorkSpace/
 #export TM_SOURCE=~/git_sasan/ICA_TM_V2
 

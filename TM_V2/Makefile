@@ -3,7 +3,7 @@ LibName := libICA_USV_Test.so
 GCC = g++
 BuildDIR := ./build
 
-src_files := $(shell find ./Source -name "*.cpp")
+src_files := $(shell find ./Source -name "*.cpp" ! -path "./Source/STM32ProgFunc/*")
 header_files := $(shell find -name "*.h")
 obj_files := $(src_files:%.cpp=$(BuildDIR)/%.o)
 

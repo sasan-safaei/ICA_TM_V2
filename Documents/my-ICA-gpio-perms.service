@@ -1,0 +1,18 @@
+# How to use:
+# copy this file to /etc/systemd/system/gpio-perms.service
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now gpio-perms.service
+
+[Unit]
+Description=Set GPIO sysfs permissions
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/chown root:gpio /sys/class/gpio/export /sys/class/gpio/unexport
+ExecStart=/bin/chmod 0660 /sys/class/gpio/export /sys/class/gpio/unexport
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
