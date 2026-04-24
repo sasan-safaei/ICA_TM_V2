@@ -168,7 +168,10 @@ void App_TM_V2::taskLoop() {
             case ICA_2510://6 //ICA2510
                 myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin + uC!!! (" << myInterActReg.gui_CMD << ")").str());
                 myUSVTestV2.checkLabDevice();sleep(.5); 
-                if (myInterActReg.gui_CMD==ICA_2506) myUSVTestV2.constValue.setDefault();
+                if (myInterActReg.gui_CMD==ICA_2506) {
+                    myUSVTestV2.constValue.setDefault();
+                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2506;
+                }
                 if (myInterActReg.gui_CMD==ICA_2510) {
                     myUSVTestV2.constValue.setFor2510();
                     myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510;

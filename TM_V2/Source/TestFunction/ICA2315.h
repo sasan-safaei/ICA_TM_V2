@@ -66,7 +66,9 @@ public:
     unsigned char GPIO_read();
     void LineClear(const char *message);    
     bool readEUI64(uint8_t *eui64);
+    bool readuC_EUI(uint8_t *eui);
     bool readDataBuff(uint8_t *buff);//new
+    bool readuC_DataBuff(uint8_t *buff);
     bool writeDataBuff(uint8_t *buff);//new
     bool SC18IM_I2C_Write_EEPROMBlock(uint8_t ic_i2c_add, uint8_t reg_add, uint8_t *data);
     bool SC18IM_I2C_Read_EEPROMBlock(uint8_t ic_i2c_add, uint8_t reg_add, uint8_t *data);

@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <vector>
+#include <vector>
 
 
 #include "./TestFunction/ICA2315.h"
@@ -40,20 +42,70 @@
 // === ICA ===========================================================================================
 void testrReset();
 
-struct runStepList {
-    enum N {
-        testP1
-        ,testP2_InputCurrent
-        ,testP3_InputCurrent
-        ,testP4_EUI
-        ,testP5_ChargeTime
-        ,testP6_DisChargeTime
-        ,testP0_END
-    };
+
+struct __temp__register{
+    uint8_t RSL_state=0;
+    uint8_t RSL_Cnt=0;    
+    uint8_t mState = 0;
+    uint8_t m2State = 0;
+    
+    uint8_t key=0;
+    uint16_t dcnt100ms=0;
+    std::ostringstream oss;
+    bool testingNoCap=false;    
+    uint8_t __rKey=0;
+    std::ofstream file;
+    uint8_t LMState=0xFF;
+    
+    uint16_t __lastTimeValue=0;
+    float __floatTmpVale=0;
+    uint8_t __tempBatBack__error__cnt=0;
+    float __tempICtempVal=0.0;
+    uint8_t __tempIC__error__cnt=0;
+    uint8_t __diffVcap__error__cnt=0;
+    uint8_t __error_cnt=0;
+    bool __uartConnection=false;
+ };
+
+
+//RSL:runStepsList
+enum TestResult{
+    T_AR_Off=1
+    ,T_AR_On
+    ,T_VCC_Test
+    ,T_uC_Program
+    ,T_Uart
+    ,T_EEPROM
+    ,T_ChargeTest
+    ,T_FlyBackTest
+    ,T_WaitToOutSWOffTest
+    ,T_DisChargeTest
+};
+enum RSL {
+    Init=0
+    ,AR_Test
+    ,VCC_Test
+    ,uC_Program
+    ,Uart_EEPROM
+    ,ChargeTest
+    ,FlyBackTest
+    ,WaitToOutSWOffTest
+    ,DisChargeTest                
+    ,EndSuccess
+    ,EndFailed
+    ,Stop
+};
+enum FuncStatus {
+    running=0
+    ,success
+    ,failed
 };
 
 class USV_TEST_UTIL_V2{
     public:
+        std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::VCC_Test,RSL::Uart_EEPROM};
+        std::vector<uint8_t> toDO_ICA2506={RSL::Init,RSL::AR_Test,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
+        std::vector<uint8_t> toDoList={};
         bool xrunning;
         struct MYAruments{
             //uint8_t manual_Dongle=false;               
@@ -177,7 +229,7 @@ class USV_TEST_UTIL_V2{
         void forceStop(void);
         void run_ManualTest(void);
         uint8_t showError(uint8_t _errorNo);
-        void checkLabDevice(void);
+        void checkLabDevice(void);       
         struct __constValue{
             float InCurrent_NoAR_MaxLimit=0.0;
             float InCurrent_AR_MinLimit=0.0;
@@ -193,6 +245,19 @@ class USV_TEST_UTIL_V2{
             }
         } constValue;
         
+        void run_Test_Func();
+        void preLoopFunc(void);
+        void postLoopFunc(void);
+        void postLoopGetCaps(void);
+        uint8_t RSL_Init(__temp__register & _M2);
+        uint8_t RSL_AR_Test(__temp__register & _M2);
+        uint8_t RSL_VCC_Test(__temp__register & _M2);
+        uint8_t RSL_uC_Program(__temp__register & _M2);
+        uint8_t RSL_UART_EEPROM(__temp__register & _M2);
+        uint8_t RSL_ChargeTest(__temp__register & _M2);
+        uint8_t RSL_FlyBackTest(__temp__register & _M2);
+        uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);
+        uint8_t RSL_DisChargeTest(__temp__register & _M2);
 };
 
 

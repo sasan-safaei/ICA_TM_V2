@@ -259,6 +259,26 @@ bool ICA2315::readEUI64(uint8_t *eui64)
 {
     return SC18IM_I2C_Read_EEPROMBlock(EEPROM_I2C_ADDRESS,EUI64_ADDRESS,eui64);
 }
+bool ICA2315::readuC_EUI(uint8_t *eui)
+{
+  int result;
+  int __len=12;
+  //uint16_t buff;
+  unsigned char rxBuff[24]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  //serialPort.clearInputBuffer();
+  if(SP_Write({'U', 0x45,'P'}))
+  {  
+    serialRx_delay(50000);
+    if(serialPort.sp_read(rxBuff, __len))
+    {
+      for(int __i=0;__i<__len;__i++)
+        eui[__i]=rxBuff[__i];      
+      return true;
+    }
+  }
+  return false;  
+}
+
 bool ICA2315::readDataBuff(uint8_t *buff){
   for(int i=0;i<EEPROMDateBufferLen;i++){
     if(SC18IM_I2C_Read_EEPROMBlock(EEPROM_I2C_ADDRESS,EEPROMDateBufferAdd+(i*8),buff))
@@ -267,6 +287,23 @@ bool ICA2315::readDataBuff(uint8_t *buff){
       return false;
   }
   return true;  
+}
+bool ICA2315::readuC_DataBuff(uint8_t *buff){
+  int result;
+  int __len=EEPROMDateBufferLen*8;
+  unsigned char rxBuff[EEPROMDateBufferLen*8];
+  //serialPort.clearInputBuffer();
+  if(SP_Write({'U', 0x43, 0x52, 'P'}))
+  {  
+    serialRx_delay(50000);
+    if(serialPort.sp_read(rxBuff, __len))
+    {
+      for(int __i=0;__i<__len;__i++)
+        buff[__i]=rxBuff[__i];      
+      return true;
+    }
+  }
+  return false;  
 }
 bool ICA2315::writeDataBuff(uint8_t *buff){
   if (!WriteEEPROMBlock(1,buff)) { printf("Error on EEPROM-Write! Block0");return false;}

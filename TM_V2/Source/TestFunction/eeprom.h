@@ -31,10 +31,13 @@ constexpr size_t time_t_size = sizeof(time_t);
 #if time_t_size == 8
     #define time_sizeX64
 #endif
-
+struct struct_eepromType{
+ enum eepromType{Unknown=0, uChip=1, uC=2};
+};
 struct struct_eepromData{
+    struct_eepromType::eepromType type;
     uint8_t name[3]={'-','-','-'};
-    uint8_t EUI[8]={0,0,0,0,0,0,0,0};
+    uint8_t EUI[12]={0,0,0,0,0,0,0,0,0,0,0,0};
     uint16_t boardType=0;
     uint16_t boardVer=0 ;
     uint8_t dataVersion=0;
@@ -47,8 +50,9 @@ struct struct_eepromData{
     uint8_t capacitorValue=0;
     float VshutDown=0,supperCapVoltage=0;
     void clear(){
+        type=struct_eepromType::Unknown;
         name[0] = '-'; name[1] = '-'; name[2] = '-';
-        for (int i = 0; i < 8; ++i) EUI[i] = 0;
+        for (int i = 0; i < 12; ++i) EUI[i] = 0;
         boardType=0;
         boardVer=0 ;
         dataVersion=0;
@@ -84,7 +88,10 @@ struct struct_eepromData{
     }
     std::string getEUI_Str(){
         std::ostringstream oss;
-        oss << "\nEUI : [" 
+        switch (type)
+        {
+        case struct_eepromType::uChip:
+            oss << "EUI : [" 
             << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             << std::setw(2) << static_cast<int>(EUI[1]) << "."
             << std::setw(2) << static_cast<int>(EUI[2]) << "]"
@@ -93,6 +100,25 @@ struct struct_eepromData{
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
             << std::setw(2) << static_cast<int>(EUI[6]) << "."
             << std::setw(2) << static_cast<int>(EUI[7]) << "\n";
+            break;
+        case struct_eepromType::uC:
+            oss << "EUI : " 
+            << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
+            << std::setw(2) << static_cast<int>(EUI[1]) << "."
+            << std::setw(2) << static_cast<int>(EUI[2]) << "."
+            << std::setw(2) << static_cast<int>(EUI[3]) << "."
+            << std::setw(2) << static_cast<int>(EUI[4]) << "."
+            << std::setw(2) << static_cast<int>(EUI[5]) << "."
+            << std::setw(2) << static_cast<int>(EUI[6]) << "."
+            << std::setw(2) << static_cast<int>(EUI[7]) << "."
+            << std::setw(2) << static_cast<int>(EUI[8]) << "."
+            << std::setw(2) << static_cast<int>(EUI[9]) << "."
+            << std::setw(2) << static_cast<int>(EUI[10]) << "."
+            << std::setw(2) << static_cast<int>(EUI[11]) << "\n";
+            break;        
+        default: oss << "\nEUI : unKnown\n"; break;
+        }
+        
         return oss.str();
     }
     std::string getAll_Str(){
@@ -101,15 +127,16 @@ struct struct_eepromData{
         oss << "| Data Struct (ver." << static_cast<int>(dataVersion) << "):\n";
         oss << "|  name: " << name[0] << name[1] << name[2] << "\n";
         oss << "|  Board: " << boardType << " V " << std::setw(2) << std::setfill('0') << std::hex << boardVer << std::dec << "\n";
-        oss << "|  EUI : [" 
-            << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
-            << std::setw(2) << static_cast<int>(EUI[1]) << "."
-            << std::setw(2) << static_cast<int>(EUI[2]) << "]"
-            << std::setw(2) << static_cast<int>(EUI[3]) << "."
-            << std::setw(2) << static_cast<int>(EUI[4]) << "."
-            << std::setw(2) << static_cast<int>(EUI[5]) << "."
-            << std::setw(2) << static_cast<int>(EUI[6]) << "."
-            << std::setw(2) << static_cast<int>(EUI[7]) << ".\n";
+        oss << getEUI_Str();
+            //<<"|  EUI : [" 
+            //<< std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
+            //<< std::setw(2) << static_cast<int>(EUI[1]) << "."
+            //<< std::setw(2) << static_cast<int>(EUI[2]) << "]"
+            //<< std::setw(2) << static_cast<int>(EUI[3]) << "."
+            //<< std::setw(2) << static_cast<int>(EUI[4]) << "."
+            //<< std::setw(2) << static_cast<int>(EUI[5]) << "."
+            //<< std::setw(2) << static_cast<int>(EUI[6]) << "."
+            //<< std::setw(2) << static_cast<int>(EUI[7]) << ".\n";
         oss << std::nouppercase;
         std::tm *ttTime = std::localtime(&testTime); // Convert to local time
         oss << "|  SaveTime: " 

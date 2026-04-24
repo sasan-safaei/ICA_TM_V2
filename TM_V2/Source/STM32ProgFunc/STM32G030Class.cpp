@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iomanip>
 #include <limits.h>
+#include <termios.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -382,11 +383,11 @@ bool STM32G030F6_Class::Reset() {
 	// so the target leaves an unexpected held-reset state before OpenOCD
 	// runs. This uses sysfs and requires the program to run with sudo.
 	if (IsRaspberryPiInterface(interfaceCfg_)) {
-		std::system((std::string("echo ") + std::to_string(kRpiNresetGpio) + " > /sys/class/gpio/export 2>/dev/null || true").c_str());
-		std::system((std::string("echo out > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/direction 2>/dev/null || true").c_str());
-		std::system((std::string("echo 1 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value 2>/dev/null || true").c_str());
+		//std::system((std::string("echo ") + std::to_string(kRpiNresetGpio) + " > /sys/class/gpio/export 2>/dev/null || true").c_str());
+		//std::system((std::string("echo out > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/direction 2>/dev/null || true").c_str());
+		std::system((std::string("echo 1 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value").c_str());// 2>/dev/null || true").c_str());
 		usleep(100000);
-		std::system((std::string("echo 0 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value 2>/dev/null || true").c_str());
+		std::system((std::string("echo 0 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value").c_str());// 2>/dev/null || true").c_str());
 		usleep(50000);
 	}
 
@@ -592,6 +593,10 @@ bool STM32G030F6_Class::FrameProcess(const std::string& hexStream, std::string& 
 		return false;
 	}
 
+	// Clear any pending input on the serial port before sending the command
+	// to ensure we only read the response to the command we are about to send.
+	tcflush(fd, TCIFLUSH);
+
 	if (!tx.empty()) {
 		const ssize_t written = write(fd, tx.data(), tx.size());
 		if (written < 0 || static_cast<size_t>(written) != tx.size()) {
@@ -658,6 +663,9 @@ bool STM32G030F6_Class::FrameProcess(const std::string& hexStream, std::string& 
 		close(fd);
 		return false;
 	}
+	// Clear any pending input on the serial port before sending the command
+	// to ensure we only read the response to the command we are about to send.
+	tcflush(fd, TCIFLUSH);
 
 	if (!tx.empty()) {
 		const ssize_t written = write(fd, tx.data(), tx.size());

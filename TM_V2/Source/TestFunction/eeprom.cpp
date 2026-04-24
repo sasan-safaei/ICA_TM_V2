@@ -105,8 +105,11 @@ bool eeprom::getVer2Data(){
 }
 //public:	
 bool eeprom::ismicroChipIC(){
-    if(myData.EUI[0]==microChip_ID[0] && myData.EUI[1]==microChip_ID[1] && myData.EUI[2]==microChip_ID[2])
+    if(myData.EUI[0]==microChip_ID[0] && myData.EUI[1]==microChip_ID[1] && myData.EUI[2]==microChip_ID[2]){
+        myData.type=struct_eepromType::uChip;
         return true;
+    }
+        
     printf("unKnown EEPROM IC!!!!\n");
     return false;
 }
@@ -226,10 +229,11 @@ void eeprom::updateBoardInfo(int _boardName, int _boardVer, boardInfo _dataBI, t
 }
 uint8_t eeprom::CheckDataVersionProcess(bool debugShow){
     uint8_t __version=0;
+    /* we need 2 type: uChim & uC
     if(ismicroChipIC()==false){
         printf(" !!! EEPROM Check !!! Wrong IC (is not microChip IC).\n");
         return EEPROMProcesSts::WrongIC;
-    } 
+    } */
     if(isEmpty())
     {
         printf(" !!! EEPROM Check !!! Empty.\n");
