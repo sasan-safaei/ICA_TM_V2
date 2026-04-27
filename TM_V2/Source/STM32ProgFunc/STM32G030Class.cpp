@@ -685,7 +685,7 @@ bool STM32G030F6_Class::FrameProcess(const std::string& hexStream, std::string& 
 	while (true) {
 		const auto now = std::chrono::steady_clock::now();
 		const auto idle_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_data).count();
-		if (!rx.empty() && idle_elapsed >= idleTimeoutMs) {
+		if (idle_elapsed >= idleTimeoutMs){//(!rx.empty() && idle_elapsed >= idleTimeoutMs) {
 			break;
 		}
 

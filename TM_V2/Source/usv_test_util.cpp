@@ -109,7 +109,7 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         if(_dongle==ICA_2506){
             myBoard.boardName=2506;            
             sprintf(myBoard.boardKind_str,"NT-CLX USV Pro");
-            myBoard.boardType=ICA_2506;
+            myBoard.boardType=ICA_2506;            
             switch ((uint16_t)_version*100)
             {
                 case 100:
@@ -123,14 +123,17 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
             myBoard.boardName=2510;            
             sprintf(myBoard.boardKind_str,"PSU-CLX-UPS");
             myBoard.boardType=ICA_2510;
-            switch ((uint16_t)_version*100)
+            myBoard.boardVer=(uint16_t)(_version*100);
+            switch (myBoard.boardVer)
             {
                 case 100:
-                myBoard.boardVer=0x10;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
+                case 110:
+                case 120:
+                default:
+                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2510_1;
                 myBoard.myBoardInfo.Board_MaxTemp85V=26;    
                 break;
-            }            
+            }
         }
     break;
     case 2://2315
@@ -1736,7 +1739,7 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(uint8_t _DUT){
             case 8: __tr.mState = 10; break;
             case 10: //TEST4 : uC Program *********************************************               
             {   
-                std::string __cmd = std::string("sudo "+STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
+                std::string __cmd = std::string(STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
                 showLog(__cmd+"\n");
                 int __ret = std::system(__cmd.c_str());
                 if(__ret==0){ showLog("uC Program OK.\n"); __tr.mState++; }
@@ -1745,20 +1748,20 @@ void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(uint8_t _DUT){
             break;
             case 11:
             {
-                int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
+                int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
                 if(__ret==0){ showLog("uC cmp Program OK.\n"); __tr.mState++; }
                 else{ showLog("uC cmp Program Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
             }
             case 12:
             {
-                int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --reset").c_str());
+                int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
                 if(__ret==0){ showLog("uC reset OK.\n"); __tr.mState++; }
                 else{ showLog("uC reset Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
             }            
             break;
             case 13:
             {
-                int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --uart file "+STM32Path+"/Firmware_Folder/"+uartFileName).c_str());
+                int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart file "+STM32Path+"/Firmware_Folder/"+uartFileName).c_str());
                 if(__ret==0){ showLog("uC EEPROM UART OK.\n"); __tr.mState++; }
                 else{ showLog("uC EEPROM UART Failed!\n"); __tr.mState=showError(ERROR::uCProgramFailed); }
             }            
@@ -1981,21 +1984,21 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
 uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
-    std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
-    std::string uartFileName = myInterActReg.Dongle+"_EEPROM.txt";
+    std::string binFileName = myInterActReg.Dongle+"_STM32.bin";    
+    std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
     myInterActReg.TR.currentTestNo=TestResult::T_uC_Program;        
     switch (_M2.m2State) //TEST4 : uC Program ********************************************* 
     {
     case 0:// Compare uC-Flash with current firmware
     {
-        int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
-        if(__ret==0){ showLog("uC Programed before!!!.\n"); _M2.m2State++; } //(go to Next step just for test) _M2.m2State+=3; }
+        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
+        if(__ret==0){ showLog("uC Programed before!!!.\n"); _M2.m2State+=3; }
         else{ showLog("uC cmp Program Failed!\n"); _M2.m2State++; }
     }
     break;
     case 1:// program uC with current firmware
     {
-        std::string __cmd = std::string("sudo "+STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
+        std::string __cmd = std::string(STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
         showLog(__cmd+"\n");
         int __ret = std::system(__cmd.c_str());
         if(__ret==0){ showLog("uC Program OK.\n"); _M2.m2State++; }
@@ -2004,19 +2007,19 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     break;
     case 2:// Compare uC-Flash with current firmware
     {
-        int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
+        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
         if(__ret==0){ showLog("uC cmp Program OK.\n"); _M2.m2State++; }
         else{ showLog("uC cmp Program Failed!\n"); _M2.m2State=showError(ERROR::uCProgramFailed); return FuncStatus::failed; }
     }
     break;
     case 3:// Reset uC
     {
-        int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --reset").c_str());
+        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
         if(__ret==0){ showLog("uC reset OK.\n"); _M2.m2State++; }
         else{ showLog("uC reset Failed!\n"); _M2.m2State=showError(ERROR::uCProgramFailed); return FuncStatus::failed; }
     }
     break;
-    case 4: 
+    case 4:
     case 5:
     case 6:        
         _M2.m2State++; 
@@ -2024,7 +2027,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     case 7://Read EEPROM Value with current EEPROM-Ver (Just For Test)
     {
         myInterActReg.TR.currentTestNo=TestResult::T_Uart;
-        int __ret = std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
+        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
         if(__ret==0){ showLog("Read current uC EEPROM value (UART) OK.\n"); _M2.m2State++; }
         else{ showLog("Read current uC EEPROM value (UART) Failed!\n"); _M2.m2State=showError(ERROR::uCProgramFailed); return FuncStatus::failed; }
     }
@@ -2035,18 +2038,17 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
-
+    std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
+    std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
+        
     switch (_M2.m2State)
     {
     case 0:
     {
         showLog("Do RSL_uart... ");
         
-        std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
-        std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
-        std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --uart STR \"55 45 50\"").c_str());
-        std::system(std::string("sudo "+STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
-
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 45 50\"").c_str());
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());        
         myInterActReg.TR.currentTestNo=TestResult::T_Uart;
         showLog("Test4: Board Connection... ");
         _M2.dcnt100ms=250;//25Sec
@@ -2055,6 +2057,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     break;
     case 1:
     {
+        showLog("TEST!!!!!!!!!!<<<<<<<<<<<<<<<");
+        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"53 A0 01 00 53 A1 08 50\"").c_str());
+        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"53 A0 02 00 53 A1 08 50\"").c_str());
+        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"53 A0 01 00 53 A1 05 50\"").c_str());
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart file "+STM32Path+"/Firmware_Folder/"+eepromFileName).c_str());
+        showLog("TEST!!!!!!!!!!>>>>>>>>>>>>>>>");
         if(_M2.dcnt100ms>0){
             if(!myBoard.init(myArg.ttyName)){
                 showLog(" Failed to Serial Port Connection (INI)! \n");                         
@@ -2164,8 +2172,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             case RSL::AR_Test: __funcResualt = RSL_AR_Test(__tr); break;
             case RSL::VCC_Test: __funcResualt = RSL_VCC_Test(__tr); break;
             case RSL::uC_Program: __funcResualt = RSL_uC_Program(__tr); break;
-            case RSL::Uart: __funcResualt = RSL_uart(__tr); break;
-            case RSL::EEPROM: __funcResualt = RSL_EEPROM(__tr); break;
+            case RSL::Uart_EEPROM: __funcResualt = RSL_UART_EEPROM(__tr); break;            
             case RSL::ChargeTest: __funcResualt = RSL_ChargeTest(__tr); break;
             case RSL::FlyBackTest: __funcResualt = RSL_FlyBackTest(__tr); break;
             case RSL::WaitToOutSWOffTest: __funcResualt = RSL_WaitToOutSWOffTest(__tr) ; break;

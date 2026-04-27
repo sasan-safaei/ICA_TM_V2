@@ -15,6 +15,8 @@
 #define ICA_CapType_2405_2 1
 #define ICA_CapType_2315_1 2
 #define ICA_CapType_2315_2 3
+#define ICA_CapType_2510_1 4
+
 
 #define EEPROM_LastVersion 3
 #define EEPROM_I2C_ADDRESS  0x50  // I2C address of 24AA025E64
@@ -68,10 +70,13 @@ struct struct_eepromData{
     std::string getCapsKind(uint8_t _CapType ){
         char _result[128];
         switch(_CapType){
+            // http://intranet.ica.local/confluence/display/HE/EEPROM+Parameter+und+EUI
             case ICA_CapType_2405_1: sprintf(_result," (0) 2405-(Vishay- MAL223551008E3  50F 3V 18x35mm)\n");break;
             case ICA_CapType_2405_2: sprintf(_result," (1) 2405-(MaxWell BCAP0050P300X11 50F 3V 18x41mm)\n");break;
             case ICA_CapType_2315_1: sprintf(_result," (2) 2315-(MaxWell BCAP0150P300S17 150F 3V 25x50mm)\n");break;
             case ICA_CapType_2315_2: sprintf(_result," (3) 2315-(CDA     CXP-3R0157T-TW  150F 3V 23x58mm)\n");break;
+            case ICA_CapType_2510_1: sprintf(_result," (4) 2510-(enyGy     EC3R010722045S  33F 3V 22x45mm)\n");break;
+            
             default: sprintf(_result, " (\"<< %d <<\")unKnown\n",_CapType);    
         }
         return _result;

@@ -103,7 +103,7 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::VCC_Test,RSL::Uart_EEPROM};
+        std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM};
         std::vector<uint8_t> toDO_ICA2506={RSL::Init,RSL::AR_Test,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
         std::vector<uint8_t> toDoList={};
         bool xrunning;
@@ -189,9 +189,10 @@ class USV_TEST_UTIL_V2{
         }
         std::string DongleNameStr(){
             std::stringstream ss;
-    
+                        
             if(myBoard.boardName>0)
-            ss << "ICA" << myBoard.boardName << "V" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << myBoard.boardVer;    
+                ss << "ICA" << myBoard.boardName << "V" << myBoard.boardVer;    
+                //ss << "ICA" << myBoard.boardName << "V" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << myBoard.boardVer;    
             else
                 if(Dongle==0)
                     ss<<"No Dongle!";
