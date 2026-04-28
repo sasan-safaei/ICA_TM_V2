@@ -103,6 +103,7 @@ struct boardInfo{
         int Board_SupperCapNum=0;
         int Board_SupperCapType=0;
         int Board_MaxTemp85V=0;
+		float Board_VShutdownVoltage=0;
 };
 struct testResult{
 	uint8_t ErrorNo=0;

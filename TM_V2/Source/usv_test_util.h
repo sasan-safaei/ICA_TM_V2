@@ -249,7 +249,11 @@ class USV_TEST_UTIL_V2{
         void run_Test_Func();
         void preLoopFunc(void);
         void postLoopFunc(void);
-        void postLoopGetCaps(void);
+        void postLoopGetCaps(void);        
+        bool LabelPrint(void);
+        int runSTM32ProgFunc(std::string _cmd, std::string &result);
+        bool convertHexStrToByteArray(std::string hexStr, uint8_t* byteArray,uint16_t maxSize);
+        bool convertByteArrayToHexStr(uint8_t* byteArray, size_t byteArraySize, std::string &hexStr);
         uint8_t RSL_Init(__temp__register & _M2);
         uint8_t RSL_AR_Test(__temp__register & _M2);
         uint8_t RSL_VCC_Test(__temp__register & _M2);
@@ -259,6 +263,8 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_FlyBackTest(__temp__register & _M2);
         uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);
         uint8_t RSL_DisChargeTest(__temp__register & _M2);
+        
+
 };
 
 

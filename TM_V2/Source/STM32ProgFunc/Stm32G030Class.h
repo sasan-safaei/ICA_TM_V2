@@ -47,7 +47,7 @@ enum class FlashCompareResult {
 };
 
 class STM32G030F6_Class {
-public:
+public:	
 	int Flash_Func(int argc, char* argv[]);
 	int Flash_Func(std::initializer_list<const char*> args);
 	// Constructor with default configuration
@@ -62,8 +62,7 @@ public:
 					  int uartBaud);
 private:
 	// Flash programming
-	bool Flash(const std::string& binPath);
-	
+	bool Flash(const std::string& binPath);	
 	// Erase flash memory
 	bool Clear();
 	

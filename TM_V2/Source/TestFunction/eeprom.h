@@ -34,7 +34,7 @@ constexpr size_t time_t_size = sizeof(time_t);
     #define time_sizeX64
 #endif
 struct struct_eepromType{
- enum eepromType{Unknown=0, uChip=1, uC=2};
+ enum eepromType{Unknown=0, uChip=1, STuC=2};
 };
 struct struct_eepromData{
     struct_eepromType::eepromType type;
@@ -105,23 +105,28 @@ struct struct_eepromData{
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
             << std::setw(2) << static_cast<int>(EUI[6]) << "."
             << std::setw(2) << static_cast<int>(EUI[7]) << "\n";
-            break;
-        case struct_eepromType::uC:
-            oss << "EUI : " 
+            break;  
+        case struct_eepromType::STuC:
+            oss << "EUI : [" 
             << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             << std::setw(2) << static_cast<int>(EUI[1]) << "."
-            << std::setw(2) << static_cast<int>(EUI[2]) << "."
+            << std::setw(2) << static_cast<int>(EUI[2]) << "]"
             << std::setw(2) << static_cast<int>(EUI[3]) << "."
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
             << std::setw(2) << static_cast<int>(EUI[6]) << "."
-            << std::setw(2) << static_cast<int>(EUI[7]) << "."
-            << std::setw(2) << static_cast<int>(EUI[8]) << "."
-            << std::setw(2) << static_cast<int>(EUI[9]) << "."
-            << std::setw(2) << static_cast<int>(EUI[10]) << "."
-            << std::setw(2) << static_cast<int>(EUI[11]) << "\n";
-            break;        
-        default: oss << "\nEUI : unKnown\n"; break;
+            << std::setw(2) << static_cast<int>(EUI[7]) << "\n";
+            break;      
+        default: oss << "\nEUI : unKnown\n";
+        oss << "EUI : [" 
+            << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
+            << std::setw(2) << static_cast<int>(EUI[1]) << "."
+            << std::setw(2) << static_cast<int>(EUI[2]) << "]"
+            << std::setw(2) << static_cast<int>(EUI[3]) << "."
+            << std::setw(2) << static_cast<int>(EUI[4]) << "."
+            << std::setw(2) << static_cast<int>(EUI[5]) << "."
+            << std::setw(2) << static_cast<int>(EUI[6]) << "."
+            << std::setw(2) << static_cast<int>(EUI[7]) << "\n"; break;
         }
         
         return oss.str();
@@ -223,7 +228,8 @@ struct struct_eepromData{
 };
 class eeprom {
 private:
-    const unsigned char microChip_ID[3]={0x00,0x04,0xA3};        
+    const unsigned char microChip_ID[3]={0x00,0x04,0xA3};  
+    const unsigned char st_ID[3]={0x02,0x53,0x54};      
 public:
     struct ConvertV2toV3{
         uint8_t CapType=0xFF;
@@ -242,7 +248,7 @@ private:
     //Copy ver2.Data from EEPROMDataBuffer to myData struct
     bool getVer2Data();
     public:	
-    bool ismicroChipIC();
+    bool isKnownIC();
     void ShowEUI();
     void EEPROMDataBuffShow();
     void clear_EEPROM_Buffer();

@@ -9,7 +9,7 @@ ConsoleKeyClass myCKey;
 
 
 void USV_TEST_UTIL_V2::showLog(std::string _str){
-            printf("%s\n",_str.c_str());
+            //printf("%s\n",_str.c_str());
             myInterActReg.csLogWrite(_str);
         }
 void USV_TEST_UTIL_V2::checkLabDevice(){
@@ -82,12 +82,12 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         myBoard.myBoardInfo.LTC3350_RSNSC=0.003;
         myBoard.myBoardInfo.LTC3350_RTST=121;
         myBoard.myBoardInfo.LTC3350_RT=107000;        
-        
         myBoard.myBoardInfo.Board_SupperCapVoltage = 3.0;//3.0V
         myBoard.myBoardInfo.Board_SupperCapSingleCap = 50;//50.0F
         myBoard.myBoardInfo.Board_SupperCapNum = 4;//3.0V
         myBoard.myBoardInfo.Board_SupperCapType=255;//XXXX
         myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V    
+        myBoard.myBoardInfo.Board_VShutdownVoltage=0;
         if(_dongle==ICA_NT_USV_2405){    
             myBoard.boardName=2405;
             sprintf(myBoard.boardKind_str,"NT-CLX USV");
@@ -120,8 +120,10 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
             }            
         }
         if(_dongle==ICA_2510){
-            myBoard.boardName=2510;            
-            sprintf(myBoard.boardKind_str,"PSU-CLX-UPS");
+            myBoard.boardName=2510;           
+            myBoard.myBoardInfo.LTC3350_RT=105000; 
+
+            sprintf(myBoard.boardKind_str,"MB-PSU-MCU");
             myBoard.boardType=ICA_2510;
             myBoard.boardVer=(uint16_t)(_version*100);
             switch (myBoard.boardVer)
@@ -130,8 +132,10 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
                 case 110:
                 case 120:
                 default:
+                myBoard.myBoardInfo.Board_SupperCapSingleCap = 33;//33F
                 myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2510_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=26;    
+                myBoard.myBoardInfo.Board_MaxTemp85V=26;   
+                myBoard.myBoardInfo.Board_VShutdownVoltage=4.2;//4.2V 
                 break;
             }
         }
@@ -1222,7 +1226,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
 				break;
             case 10:
                 if (myBoard.readEUI64(myBoard.myEEPROM.myData.EUI)){
-                    if(myBoard.myEEPROM.ismicroChipIC()){                        
+                    if(myBoard.myEEPROM.isKnownIC()){                        
                         //myBoard.myEEPROM.ShowEUI(); 
                         myInterActReg.TR.UID_str=myBoard.myEEPROM.myData.getEUI_Str();
                         showLog(myInterActReg.TR.UID_str+"\n");
@@ -1482,6 +1486,7 @@ void USV_TEST_UTIL_V2::run_TestMachine(void){
             case 24:
                 //if(myArg.EEPROMCFG) myTestResult.VCap_SWOff=0;
                 myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);
+                
                 myBoard.myEEPROM.getCurrentTime();						
                 myBoard.myEEPROM.BuffUpdate_LVer();
                 myBoard.myEEPROM.EEPROMDataBuffShow();//just for test
@@ -1832,6 +1837,81 @@ void USV_TEST_UTIL_V2::postLoopGetCaps(){
     myInterActReg.TR.Vcap3=myBoard.GetVCap(3);
     myInterActReg.TR.Vcap4=myBoard.GetVCap(4);
 }
+int USV_TEST_UTIL_V2::runSTM32ProgFunc(std::string _cmd, std::string &result){
+    
+    FILE* p = popen(_cmd.c_str(), "r");
+    if (p) {
+        char buf[1024];
+        std::string out;
+        while (fgets(buf, sizeof(buf), p)) out += buf;
+        pclose(p);
+        // use `out`
+        if (out.length() > 1 ) {
+            //showLog(out);
+            result = out;
+            return 0;    
+        }else{
+            std::cout << "!!! runSTM32ProgFunc OK !!! \n";
+        }
+    }
+    std::cout<< "!!! runSTM32ProgFunc Error!!!\n";
+    return 1;
+}
+bool USV_TEST_UTIL_V2::convertHexStrToByteArray(std::string hexStr, uint8_t* _byteArray,uint16_t maxSize){
+    //byteArray.clear();
+    size_t pos = hexStr.find('\n');
+    if (pos != std::string::npos) hexStr = hexStr.substr(0, pos);
+    hexStr.erase(std::remove_if(hexStr.begin(), hexStr.end(), ::isspace), hexStr.end());
+    if (hexStr.length() % 2 != 0) {
+        std::cerr << "Invalid hex string length." << std::endl;
+        return false;
+    }
+    for (size_t i = 0; i < hexStr.length(); i += 2) {
+        if (i / 2 >= maxSize) {
+            std::cerr << "Hex string exceeds maximum buffer size." << std::endl;
+            return false;
+        }
+        std::string byteString = hexStr.substr(i, 2);
+        try {
+            uint8_t byte = static_cast<uint8_t>(std::stoul(byteString, nullptr, 16));
+            _byteArray[i / 2] = byte;
+            //std::cout<< "Byte " << (i / 2) << ": " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << std::dec << std::endl;
+
+        } catch (const std::exception &e) {
+            std::cerr << "Error converting hex string to byte array: " << e.what() << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+bool USV_TEST_UTIL_V2::convertByteArrayToHexStr(uint8_t* byteArray, size_t byteArraySize, std::string &hexStr){
+    std::ostringstream oss;
+    for (size_t i = 0; i < byteArraySize; ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byteArray[i])<<" ";
+    }
+    hexStr = oss.str();
+    return true;
+}
+bool USV_TEST_UTIL_V2::LabelPrint(){
+    char tmp1[50];
+    char tmp2[50];
+    showLog("Label Print... ");
+    myBoard.updateBoardNameStr();
+    sprintf(tmp1,"S-Nr:%s",myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str());
+    sprintf(tmp2,"ICA%s",myBoard.boardName_str);
+    qrcode_jpeg_output(myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str(),myBoard.boardKind_str,tmp2,tmp1);                
+    int __ret = QL700_Print();
+    if(__ret==0){  
+        //QL700_Print();
+        showLog(" Ok.\n");
+        return true;
+    }
+    else{        
+        showLog(" Error.\n");
+        return false;
+    }
+}
+
 uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){
     switch (_M2.m2State)
     {
@@ -1992,8 +2072,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     case 0:// Compare uC-Flash with current firmware
     {
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
-        if(__ret==0){ showLog("uC Programed before!!!.\n"); _M2.m2State+=3; }
-        else{ showLog("uC cmp Program Failed!\n"); _M2.m2State++; }
+        std::cout<< "Flash Compare Result: "<< __ret << std::endl;
+        if(__ret==0){ showLog("Flash matches firmware."); _M2.m2State+=3; }
+        if(__ret==0x200){ showLog("Flash is empty."); _M2.m2State++; }
+        if(__ret==0x300){ showLog("Flash programmed with different firmware."); _M2.m2State++; }
+        if (__ret!=0 && __ret!=0x200 && __ret!=0x300){ showLog("Flash compare failed"); _M2.m2State=showError(ERROR::uCProgramFailed); return FuncStatus::failed; }
     }
     break;
     case 1:// program uC with current firmware
@@ -2027,12 +2110,69 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     case 7://Read EEPROM Value with current EEPROM-Ver (Just For Test)
     {
         myInterActReg.TR.currentTestNo=TestResult::T_Uart;
-        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
-        if(__ret==0){ showLog("Read current uC EEPROM value (UART) OK.\n"); _M2.m2State++; }
-        else{ showLog("Read current uC EEPROM value (UART) Failed!\n"); _M2.m2State=showError(ERROR::uCProgramFailed); return FuncStatus::failed; }
+        std::string __resualt="";
+        //int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
+        int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str(),__resualt);
+        if(__ret==0){ showLog("Read current uC EEPROM value (UART) OK.");
+            showLog("EEPROM:( "+__resualt+" )\n");
+            {
+                std::vector<uint8_t> byteArray;
+                if (convertHexStrToByteArray(__resualt,myBoard.myEEPROM.EEPROMDataBuffer,EEPROMDateBufferLen*8)){
+                    if (myTestResult.EEPROM_Status=myBoard.myEEPROM.CheckDataVersionProcess(false)==EEPROMProcesSts::Ok){
+                        memcpy(&myBoard.myEEPROM.myData.testTime, &myBoard.myEEPROM.EEPROMDataBuffer[12], 4);
+                        std::tm *ttTime = std::localtime(&myBoard.myEEPROM.myData.testTime);
+                        if(ttTime->tm_year==70){
+                            showLog("EEPROM data has No time!!!.\n");
+                            _M2.m2State++;
+                        }
+                        else{
+                            showLog("EEPROM data version is OK.\n");
+                            _M2.m2State+=2; 
+                        }                    
+                    }
+                    else{
+                        showLog("EEPROM data version is Not OK!!!.\n");
+                        _M2.m2State++;
+                    }
+                }
+                else
+                {
+                    showLog("Failed to convert EEPROM hex string to byte array.\n");
+                    _M2.m2State=showError(ERROR::uCProgramFailed); 
+                    return FuncStatus::failed;
+                }
+            }
+        }
+        else{ 
+            showLog("Read current uC EEPROM value (UART) Failed!\n"); 
+            _M2.m2State=showError(ERROR::uCProgramFailed); return FuncStatus::failed; 
+        }
     }
     break;    
-    case 8: return FuncStatus::success;
+    case 8:
+    {   
+        showLog("!!! Update EEPROM value with current Board Info... ");
+        myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);
+        myBoard.myEEPROM.myData.VshutDown=4.3;//myBoard.myBoardInfo.Board_VShutdownVoltage;
+        myBoard.myEEPROM.getCurrentTime();						        
+        myBoard.myEEPROM.BuffUpdate_LVer();
+        std::string __resStr="";
+        
+        convertByteArrayToHexStr(myBoard.myEEPROM.EEPROMDataBuffer,29, __resStr);
+        std::string __str2= "55 43 57 "+__resStr+"50";
+        showLog("result:"+__str2);
+        int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \""+__str2+"\"").c_str(),__resStr);
+        if(__ret==0){ showLog("Write uC EEPROM value (UART) OK."); 
+            showLog("EEPROM:( "+__resStr+" )\n");
+        }
+        else{ 
+            showLog("Write uC EEPROM value (UART) Failed!\n"); _M2.m2State=showError(ERROR::uCProgramFailed); 
+            return FuncStatus::failed;
+        }
+        _M2.m2State++;
+    }
+    break;
+    case 9: return FuncStatus::success;
     default:return FuncStatus::failed;
     }
     return FuncStatus::running;
@@ -2045,36 +2185,27 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     {
     case 0:
     {
-        showLog("Do RSL_uart... ");
-        
-        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 45 50\"").c_str());
-        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());        
+        showLog("Do RSL_uart... ");                        
         myInterActReg.TR.currentTestNo=TestResult::T_Uart;
         showLog("Test4: Board Connection... ");
         _M2.dcnt100ms=250;//25Sec
         _M2.m2State++;  
     }
     break;
-    case 1:
+    case 1://check if UART Worked
     {
-        showLog("TEST!!!!!!!!!!<<<<<<<<<<<<<<<");
-        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"53 A0 01 00 53 A1 08 50\"").c_str());
-        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"53 A0 02 00 53 A1 08 50\"").c_str());
-        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"53 A0 01 00 53 A1 05 50\"").c_str());
-        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart file "+STM32Path+"/Firmware_Folder/"+eepromFileName).c_str());
-        showLog("TEST!!!!!!!!!!>>>>>>>>>>>>>>>");
         if(_M2.dcnt100ms>0){
             if(!myBoard.init(myArg.ttyName)){
                 showLog(" Failed to Serial Port Connection (INI)! \n");                         
                 myInterActReg.TR.UART_Con=false;
-                }else{
-                    myBoard.GPIOResetAll();
-                    if(myBoard.GPIO_read()!=false){
-                        showLog((std::ostringstream{} << "UART connection Ok (after " << std::fixed << std::setprecision(2) << myDurationTimer.TestTimeSec()  << "sec)").str());                        
-                        myInterActReg.TR.UART_Con=true;
-                        _M2.m2State++;
-                    } 				
-                }         
+            }else{
+                myBoard.GPIOResetAll();
+                if(myBoard.GPIO_read()!=false){
+                    showLog((std::ostringstream{} << "UART connection Ok (after " << std::fixed << std::setprecision(2) << myDurationTimer.TestTimeSec()  << "sec)").str());                        
+                    myInterActReg.TR.UART_Con=true;
+                    _M2.m2State++;
+                } 				
+            }         
         }
         else{
             showLog(" Failed to Serial Port Connection (Time Out)! \n");                         
@@ -2084,14 +2215,43 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
         }
     }
     break;
-    case 2:
+    case 2://Show EEPROM
+    {
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());        
+        _M2.m2State++; 
+    }
+    break;  
+    case 3://Show EUI
+    {
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 45 50\"").c_str());
+        _M2.m2State++;  
+    }
+    break;
+    case 4://Show UID
+    {
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 55 50\"").c_str());
+        _M2.m2State++;  
+    }
+    break;
+    
+    
+    case 5:
+        std::cout<<"TEST!!!!!!!!!!<<<<<<<<<<<<<<<\n";
+        
+        //std::system(std::string(STM32Path+ "/STM32ProgFunc --uart file "+STM32Path+"/Firmware_Folder/"+eepromFileName).c_str());        
+        std::cout<<"TEST!!!!!!!!!!>>>>>>>>>>>>>>>\n";
+        _M2.m2State++;
+    break;
+    case 6:
     {
         if (myBoard.readEUI64(myBoard.myEEPROM.myData.EUI)){
-            if(myBoard.myEEPROM.ismicroChipIC()){                        
+            if(myBoard.myEEPROM.isKnownIC()){    
+                showLog(" Known IC.");
                 myInterActReg.TR.UID_str=myBoard.myEEPROM.myData.getEUI_Str();
-                showLog(myInterActReg.TR.UID_str+"\n");
+                showLog(myInterActReg.TR.UID_str);
                 if(myBoard.readDataBuff(myBoard.myEEPROM.EEPROMDataBuffer))
-                    myTestResult.EEPROM_Status=myBoard.myEEPROM.CheckDataVersionProcess(false);                            
+                    myTestResult.EEPROM_Status=myBoard.myEEPROM.CheckDataVersionProcess(false);  
+                
                 myInterActReg.TR.EEPROMBuff_str=myBoard.myEEPROM.myData.getAll_Str(); 
                 myBoard.myEEPROM.EEPROMDataBuffShow();                           
                 myBoard.myEEPROM.myData.show(); 
@@ -2099,24 +2259,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
                 _M2.dcnt100ms=5;				
             }	
             else {
-                if(myBoard.readuC_EUI(myBoard.myEEPROM.myData.EUI)){
-                    myBoard.myEEPROM.myData.type=struct_eepromType::uC;
-                    myInterActReg.TR.UID_str=myBoard.myEEPROM.myData.getEUI_Str();
-                    showLog("12Byte: "+myInterActReg.TR.UID_str+"\n");
-                    if(myBoard.readuC_DataBuff(myBoard.myEEPROM.EEPROMDataBuffer))
-                        myTestResult.EEPROM_Status=myBoard.myEEPROM.CheckDataVersionProcess(false);                            
-                    myInterActReg.TR.EEPROMBuff_str=myBoard.myEEPROM.myData.getAll_Str(); 
-                    myBoard.myEEPROM.EEPROMDataBuffShow();                           
-                    myBoard.myEEPROM.myData.show(); 
-                    _M2.m2State++;	
-                    _M2.dcnt100ms=5;				
-                }
-                else{
                     showLog("unKnown ");
                     showLog("-- "+myInterActReg.TR.UID_str+"");
                     _M2.m2State=showError(ERROR::BoardConnection2);
                     return FuncStatus::failed;
-                }         
             }   
         }
         else {
@@ -2125,7 +2271,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
         }
     }
     break;
-    case 3: return FuncStatus::success;    
+    case 7: return FuncStatus::success;    
     default: return FuncStatus::failed;
     }
     
@@ -2177,7 +2323,12 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             case RSL::FlyBackTest: __funcResualt = RSL_FlyBackTest(__tr); break;
             case RSL::WaitToOutSWOffTest: __funcResualt = RSL_WaitToOutSWOffTest(__tr) ; break;
             case RSL::DisChargeTest: __funcResualt = RSL_DisChargeTest(__tr); break;
-            case RSL::EndSuccess: __tr.RSL_state=RSL::Stop; break;
+            case RSL::EndSuccess: //Label Print if Test Success
+            {   
+                LabelPrint();
+                __tr.RSL_state=RSL::Stop; 
+            }
+            break;
             case RSL::EndFailed: __tr.RSL_state=RSL::Stop; break;
             default:
                 showLog("\nEND Wait to press Key.\n");        

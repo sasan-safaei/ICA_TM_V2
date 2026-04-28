@@ -104,12 +104,15 @@ bool eeprom::getVer2Data(){
     return true;
 }
 //public:	
-bool eeprom::ismicroChipIC(){
+bool eeprom::isKnownIC(){
     if(myData.EUI[0]==microChip_ID[0] && myData.EUI[1]==microChip_ID[1] && myData.EUI[2]==microChip_ID[2]){
         myData.type=struct_eepromType::uChip;
         return true;
     }
-        
+    if(myData.EUI[0]==st_ID[0] && myData.EUI[1]==st_ID[1] && myData.EUI[2]==st_ID[2]){
+        myData.type=struct_eepromType::STuC;
+        return true;
+    }    
     printf("unKnown EEPROM IC!!!!\n");
     return false;
 }

@@ -1153,7 +1153,7 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
             const FlashCompareResult res = Verify(argv[2]);
             if (res == FlashCompareResult::Empty) {
                 std::cout << "Flash is empty" << std::endl;
-                return 0;
+                return 2;
             }
             if (res == FlashCompareResult::Same) {
                 std::cout << "Flash matches firmware" << std::endl;
@@ -1161,7 +1161,7 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
             }
             if (res == FlashCompareResult::Different) {
                 std::cout << "Flash programmed with different firmware" << std::endl;
-                return 0;
+                return 3;
             }
             std::cerr << "Flash compare failed" << std::endl;
             return 1;

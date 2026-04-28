@@ -14,5 +14,6 @@ int main(int argc, char* argv[]) {
                                 0x08000000, 50, "/dev/ttyAMA1", 9600);
     //stm32.Flash_Func({"--ob"});
     //stm32.Flash_Func({"--reset"});    
+    //return stm32.Flash_Func(argc, argv);
     return stm32.Flash_Func(argc, argv);
 }

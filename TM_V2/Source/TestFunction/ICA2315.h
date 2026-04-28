@@ -36,7 +36,7 @@ public:
     char boardName_str[25];
     char boardKind_str[25];
     ~ICA2315(){serialPort.sp_close();}
-    void updateBoardNameStr(){ sprintf(boardName_str,"%dV%X",boardName,boardVer); }
+    void updateBoardNameStr(){ sprintf(boardName_str,"%dV%d",boardName,boardVer>=100?boardVer/10:boardVer); }
     void serialRx_delay(useconds_t _usdelay = 20000){usleep(_usdelay);}//50000
     void GPIOResetAll(){ SP_Write({'O',0xE0,'P'});}
     void OutPUT_Off(){ SP_Write({'O',0x60,'P'});}
