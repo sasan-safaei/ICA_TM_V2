@@ -164,6 +164,7 @@ struct testResult{
 				break;
 			case 2506:
 			case 2405:
+			case 2510:
 				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2405;
 				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2405;
 				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2405;

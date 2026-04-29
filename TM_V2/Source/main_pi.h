@@ -37,7 +37,8 @@ struct _testResualtValue{
     float Vin,VOut,VcapBank,Vcap1,Vcap2,Vcap3,Vcap4,Vvcc;
     float InCurrent,LoadCurrent;
     std::string EEPROMBuff_str;
-    std::string UID_str;
+    std::string EUI_str;
+    std::string __UID_str;
     std::string errorStr1="";
     std::string errorStr2="";
     
@@ -51,7 +52,8 @@ struct _testResualtValue{
         Vcap1=0; Vcap2=0; Vcap3=0; Vcap4=0;
         Vvcc=0;
         InCurrent=0; LoadCurrent=0;
-        UID_str="";
+        EUI_str="";
+        __UID_str="";
         EEPROMBuff_str="";
         errorStr1="";
         errorStr2="";
@@ -81,7 +83,8 @@ struct _testResualtValue{
         <<"Vvcc:"<<static_cast<float>(Vvcc) <<" ,"
         <<"InCurrent:"<<static_cast<float>(InCurrent) <<" ,"
         <<"LoadCurrent:"<< static_cast<float>(LoadCurrent) <<" ,"
-        <<"UID_str:"<<UID_str <<" ,"
+        <<"EUI_str:"<<EUI_str <<" ,"
+        <<"__UID_str:"<<__UID_str <<" ,"
         <<"EEPROMBuff_str:"<<EEPROMBuff_str <<" ,"
         <<"errorStr:"<<errorStr1 << " "<<errorStr2 <<" .";
         return oss.str();
@@ -99,6 +102,7 @@ struct _msg_box{
         msg="";
         btnYesTxt="";
         btnNoTxt="";
+        counter=0;
     }
     void setResualt(int32_t _resualt){
         resualt=_resualt;
@@ -113,13 +117,14 @@ struct _msg_box{
         if(_timeOutSec>0)
             timeOutCnt=_timeOutSec;
         counter++;        
-        while(resualt==0 && timeOutCnt>0){
+        while(resualt==0){// && timeOutCnt>0){
             usleep(100000);
             if(++ms100>=10){
                 ms100=0;
                 timeOutCnt--;
             }
         }
+        clear();
         if(resualt==1)
             return true;
         return false;

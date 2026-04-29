@@ -120,7 +120,7 @@ private:
             }
        
         
-        tm_res_msg.uid_str=myLastInterActReg.TR.UID_str;
+        tm_res_msg.eui_str=myLastInterActReg.TR.EUI_str;
 
         tm_run_test_result->publish(tm_res_msg);
 

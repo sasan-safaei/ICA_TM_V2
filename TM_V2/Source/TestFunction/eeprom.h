@@ -39,7 +39,8 @@ struct struct_eepromType{
 struct struct_eepromData{
     struct_eepromType::eepromType type;
     uint8_t name[3]={'-','-','-'};
-    uint8_t EUI[12]={0,0,0,0,0,0,0,0,0,0,0,0};
+    uint8_t EUI[8]={0,0,0,0,0,0,0,0};
+    uint8_t UID[12]={0,0,0,0,0,0,0,0,0,0,0,0};
     uint16_t boardType=0;
     uint16_t boardVer=0 ;
     uint8_t dataVersion=0;
@@ -54,7 +55,8 @@ struct struct_eepromData{
     void clear(){
         type=struct_eepromType::Unknown;
         name[0] = '-'; name[1] = '-'; name[2] = '-';
-        for (int i = 0; i < 12; ++i) EUI[i] = 0;
+        for (int i = 0; i < 8; ++i) EUI[i] = 0;
+        for (int i = 0; i < 12; ++i) UID[i] = 0;
         boardType=0;
         boardVer=0 ;
         dataVersion=0;
@@ -104,7 +106,7 @@ struct struct_eepromData{
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
             << std::setw(2) << static_cast<int>(EUI[6]) << "."
-            << std::setw(2) << static_cast<int>(EUI[7]) << "\n";
+            << std::setw(2) << static_cast<int>(EUI[7]) << "";
             break;  
         case struct_eepromType::STuC:
             oss << "EUI : [" 
@@ -115,7 +117,7 @@ struct struct_eepromData{
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
             << std::setw(2) << static_cast<int>(EUI[6]) << "."
-            << std::setw(2) << static_cast<int>(EUI[7]) << "\n";
+            << std::setw(2) << static_cast<int>(EUI[7]) << "";
             break;      
         default: oss << "\nEUI : unKnown\n";
         oss << "EUI : [" 
@@ -126,7 +128,7 @@ struct struct_eepromData{
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
             << std::setw(2) << static_cast<int>(EUI[6]) << "."
-            << std::setw(2) << static_cast<int>(EUI[7]) << "\n"; break;
+            << std::setw(2) << static_cast<int>(EUI[7]) << ""; break;
         }
         
         return oss.str();
@@ -136,8 +138,9 @@ struct struct_eepromData{
         oss << ".----------------------------------------\n";
         oss << "| Data Struct (ver." << static_cast<int>(dataVersion) << "):\n";
         oss << "|  name: " << name[0] << name[1] << name[2] << "\n";
-        oss << "|  Board: " << boardType << " V " << std::setw(2) << std::setfill('0') << std::hex << boardVer << std::dec << "\n";
-        oss << getEUI_Str();
+        //oss << "|  Board: " << boardType << " V " << std::setw(2) << std::setfill('0') << std::hex << boardVer << std::dec << "\n";
+        oss << "|  Board: " << boardType << " V "  << boardVer << "\n";
+        oss << "|  "<<getEUI_Str();
             //<<"|  EUI : [" 
             //<< std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             //<< std::setw(2) << static_cast<int>(EUI[1]) << "."
@@ -221,7 +224,23 @@ struct struct_eepromData{
 
         return oss.str();
     }
-    
+    std::string getUID_Str(){
+        std::ostringstream oss;
+        oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
+            << std::setw(2) << static_cast<int>(UID[0])
+            << std::setw(2) << static_cast<int>(UID[1])
+            << std::setw(2) << static_cast<int>(UID[2])
+            << std::setw(2) << static_cast<int>(UID[3])
+            << std::setw(2) << static_cast<int>(UID[4])
+            << std::setw(2) << static_cast<int>(UID[5])
+            << std::setw(2) << static_cast<int>(UID[6])
+            << std::setw(2) << static_cast<int>(UID[7])
+            << std::setw(2) << static_cast<int>(UID[8])
+            << std::setw(2) << static_cast<int>(UID[9])
+            << std::setw(2) << static_cast<int>(UID[10])
+            << std::setw(2) << static_cast<int>(UID[11]);
+        return oss.str();
+    }
     void show(){
         std::cout<<getAll_Str();
     }

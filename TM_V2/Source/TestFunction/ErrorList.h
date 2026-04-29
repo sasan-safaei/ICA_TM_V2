@@ -32,6 +32,7 @@
             , END
             ,I2CFailed
             ,uCProgramFailed
+            ,ucUartFailed
         };
     };
 

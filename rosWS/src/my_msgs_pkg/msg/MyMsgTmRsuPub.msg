@@ -20,5 +20,5 @@ float32 vvcc
 float32 in_current
 float32 load_current
 string eeprom_buff_str
-string uid_str
+string eui_str
 string error_str

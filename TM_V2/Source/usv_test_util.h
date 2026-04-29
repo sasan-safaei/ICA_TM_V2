@@ -103,7 +103,8 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM};
+        //std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::AR_Test,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
+        std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::AR_Test,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
         std::vector<uint8_t> toDO_ICA2506={RSL::Init,RSL::AR_Test,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
         std::vector<uint8_t> toDoList={};
         bool xrunning;
@@ -203,10 +204,10 @@ class USV_TEST_UTIL_V2{
         }
         void ShowMyDongle(){
             char _str[32];
-            sprintf(_str,"ICA%d V %02X ",myBoard.boardName,myBoard.boardVer);            
+            sprintf(_str,"ICA%d V %d ",myBoard.boardName,myBoard.boardVer);
             showLog(_str);
             if(myBoard.myBoardInfo.Board_SupperCapType>0){
-                sprintf(_str,"Cap:%d Max %.1fV ",myBoard.myBoardInfo.Board_SupperCapType,((float)myBoard.myBoardInfo.Board_MaxTemp85V)/10);            
+                sprintf(_str,"Cap:%d x %.1fV ",myBoard.myBoardInfo.Board_SupperCapType,myBoard.myBoardInfo.Board_SupperCapVoltage);
                 showLog(_str);
             }
     

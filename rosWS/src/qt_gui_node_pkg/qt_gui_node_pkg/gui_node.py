@@ -195,68 +195,14 @@ class GuiManager(Node):
         msg.msgbox_press=0
         self.myPublish.publish(msg)
         self.get_logger().info(f"Published qt_pub {msg} ")
-    def show_msgbox(self, message: str, yes_text: str = "Yes", no_text: str = "No",timeout_ms: int = 5000 ) -> bool:
-        """Show a message box with custom text and return True/False."""
-        msgbox = QMessageBox()
-        msgbox.setWindowTitle("ROS2 Message")
-        msgbox.setText(message)
-
-        msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)
-        # Add buttons with custom labels
-        if(yes_text!=""): yes_button = msgbox.addButton(yes_text, QMessageBox.YesRole)
-        if(no_text!=""): no_button = msgbox.addButton(no_text, QMessageBox.NoRole)
-
-        msgbox.setStyleSheet("""
-            QMessageBox {
-                background-color: #00AA00;   /* Green background */
-            }
-            QLabel {
-                color: white;                /* Message text color */
-                font-size: 22pt;             /* Bigger message text */
-            }
-            QPushButton {
-                background-color: #4C566A;   /* Button background */
-                color: white;                /* Button text */
-                padding: 8px 16px;           /* Bigger buttons */
-                border-radius: 8px;          /* Rounded corners */
-                font-size: 24pt;             /* Bigger text */
-            }
-            QPushButton:hover {
-                background-color: #81A1C1;   /* Hover effect */
-            }
-            """)
-        
-        msgbox.setMinimumSize(1200, 800)   # width=400px, height=200px
-        msgbox.resize(1200, 800) 
-        
-        # Timer to close after timeout
-        def on_timeout():
-            if msgbox.isVisible():
-                msgbox.done(0)   # 0 = custom return code (timeout)
-                self.get_logger().info("!!!! MessageBox closed by timeout !!!")
-
-        QTimer.singleShot(timeout_ms, on_timeout)
-        #QTimer.singleShot(0, lambda: print("Event loop is running"))
-
-        result =msgbox.exec_()
-        self.get_logger().info(f"msgbox.exec_ ..... {QMessageBox.Rejected}")
-        
-        #if result == QMessageBox.Rejected:  # timeout or X button
-        #    return False
-        
-        msg = MyMsgQtPub()
-        msg.btn_press = 0
-        msg.dongle_sel = self.w_main.ui.cBoxDongle.currentIndex() #self._get_selected_dut_key()
-        msg.board_version = self._get_selected_version_float()
-        if msgbox.clickedButton() == yes_button:
-            self.get_logger().info(f"User pressed {yes_text} ")
-            msg.msgbox_press=1
-            #return True
-        else:
-            self.get_logger().info(f"User pressed {no_text}")
-            msg.msgbox_press=2
-            #return False   
-        self.myPublish.publish(msg)
+    def show_msgbox(self, message: str, yes_text: str = "Yes", no_text: str = "No", timeout_ms: int = 5000 ) -> None:
+        """Request the GUI thread to show a message box (non-blocking)."""
+        try:
+            self.w_main.showMsgRequested.emit(message, yes_text, no_text, int(timeout_ms), self)
+        except Exception:
+            # Fallback: log and return
+            self.get_logger().warning("Failed to emit showMsgRequested; dialog not shown.")
+        return None
     def show_about_dialog(self):
         self.show_msgbox("ICA test machine \n About App....","Ok","")
         #QMessageBox.about(None, "About This App", "This is a sample Qt5 application.\nVersion 1.0")
@@ -294,7 +240,7 @@ class GuiManager(Node):
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_IN_Data, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))
             rstring=f"Vcc: {msg.vvcc:.2f}V"
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_T3, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))
-            rstring=msg.uid_str.replace('\n', '').strip()            
+            rstring=msg.eui_str.replace('\n', '').strip()            
             rstring=rstring.split(']', 1)[-1].strip()
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_T4, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "EID: "+rstring))            
         else:#ICA2407
@@ -343,9 +289,9 @@ class GuiManager(Node):
             rstring=f"Vcc: {msg.vvcc:.2f}V"
             QMetaObject.invokeMethod( self.w_testing.ui.label_T3, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))
             #Line2
-            rstring=msg.uid_str.replace('\n', '').strip()
+            rstring=msg.eui_str.replace('\n', '').strip()
             rstring=rstring.split(']', 1)[-1].strip()
-            QMetaObject.invokeMethod( self.w_testing.ui.label_T4, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "UID: "+rstring))
+            QMetaObject.invokeMethod( self.w_testing.ui.label_T4, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "EUI: "+rstring))
             #Line3
             if msg.current_test_no==5:
                 rstring=f"{msg.cap_charge_time}Sec"
@@ -454,10 +400,68 @@ class GuiManager(Node):
 
 
 class WMain(QtWidgets.QMainWindow):
+    showMsgRequested = QtCore.pyqtSignal(str, str, str, int, object)
     def __init__(self):
         super().__init__()
         self.ui = UiWMain()
         self.ui.setupUi(self)
+        self.showMsgRequested.connect(self._on_show_msg_requested)
+
+    def _on_show_msg_requested(self, message: str, yes_text: str, no_text: str, timeout_ms: int, manager):
+        msgbox = QMessageBox()
+        msgbox.setWindowTitle("ROS2 Message")
+        msgbox.setText(message)
+
+        msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)
+        yes_button = None
+        no_button = None
+        if(yes_text!=""): yes_button = msgbox.addButton(yes_text, QMessageBox.YesRole)
+        if(no_text!=""): no_button = msgbox.addButton(no_text, QMessageBox.NoRole)
+
+        msgbox.setStyleSheet("""
+            QMessageBox {
+                background-color: #00AA00;   /* Green background */
+            }
+            QLabel {
+                color: white;                /* Message text color */
+                font-size: 22pt;             /* Bigger message text */
+            }
+            QPushButton {
+                background-color: #4C566A;   /* Button background */
+                color: white;                /* Button text */
+                padding: 8px 16px;           /* Bigger buttons */
+                border-radius: 8px;          /* Rounded corners */
+                font-size: 24pt;             /* Bigger text */
+            }
+            QPushButton:hover {
+                background-color: #81A1C1;   /* Hover effect */
+            }
+            """)
+
+        msgbox.setMinimumSize(1200, 800)
+        msgbox.resize(1200, 800)
+
+        def on_timeout():
+            if msgbox.isVisible():
+                msgbox.done(0)
+                manager.get_logger().info("!!!! MessageBox closed by timeout !!!")
+
+        QTimer.singleShot(timeout_ms, on_timeout)
+
+        result = msgbox.exec_()
+        manager.get_logger().info(f"msgbox.exec_ ..... {QMessageBox.Rejected}")
+
+        msg = MyMsgQtPub()
+        msg.btn_press = 0
+        msg.dongle_sel = manager.w_main.ui.cBoxDongle.currentIndex()
+        msg.board_version = manager._get_selected_version_float()
+        if msgbox.clickedButton() == yes_button:
+            manager.get_logger().info(f"User pressed {yes_text} ")
+            msg.msgbox_press=1
+        else:
+            manager.get_logger().info(f"User pressed {no_text}")
+            msg.msgbox_press=2
+        manager.myPublish.publish(msg)
 
 class WTesting(QtWidgets.QMainWindow):
     def __init__(self):

@@ -224,7 +224,7 @@ void eeprom::updateBoardInfo(int _boardName, int _boardVer, boardInfo _dataBI, t
     myData.capacitorValue=_dataBI.Board_SupperCapSingleCap;
     myData.supperCapVoltage=_dataBI.Board_SupperCapVoltage;
     myData.boardType=_boardName;
-    myData.boardVer=_boardVer;
+    myData.boardVer=(_boardVer>100)?(_boardVer/10):_boardVer;
     myData.VshutDown = _tr.VCap_SWOff;
     myData.CapType=_dataBI.Board_SupperCapType;
     myData.Temp85MaxV=_dataBI.Board_MaxTemp85V;
