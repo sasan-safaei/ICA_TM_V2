@@ -254,22 +254,22 @@ class GuiManager(Node):
                 
             if msg.current_test_no>=3:
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T3, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
-            if msg.current_test_no>=4:
+            if msg.current_test_no>=1:
                 QMetaObject.invokeMethod(self.w_testing.ui.CBox_UART, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T4, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
-            if msg.current_test_no>=5:
+            if msg.current_test_no>=1:
                 QMetaObject.invokeMethod( self.w_testing.ui.label_IN_Data, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod( self.w_testing.ui.label_OUT_Data, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod( self.w_testing.ui.label_Cap_Data, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T5_time, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod( self.w_testing.ui.label_allCaps, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
-            if msg.current_test_no>=6:
+            if msg.current_test_no>=1:
                 QMetaObject.invokeMethod(self.w_testing.ui.CBox_flyback_Dis, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod(self.w_testing.ui.CBox_flyback_En, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
                 QMetaObject.invokeMethod(self.w_testing.ui.CBox_OutSW, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))                
-            if msg.current_test_no>=8:
+            if msg.current_test_no>=1:
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T8_time, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
-            if msg.current_test_no>=9:
+            if msg.current_test_no>=1:
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T9_time, "setEnabled", Qt.QueuedConnection, QtCore.Q_ARG(bool, True))
             #Line0
             rstring=f"{msg.vin:.1f}V, {msg.in_current:.3f}A"
@@ -293,7 +293,7 @@ class GuiManager(Node):
             rstring=rstring.split(']', 1)[-1].strip()
             QMetaObject.invokeMethod( self.w_testing.ui.label_T4, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "EUI: "+rstring))
             #Line3
-            if msg.current_test_no==5:
+            if msg.current_test_no>1:
                 rstring=f"{msg.cap_charge_time}Sec"
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T5_time, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))
             #Line4
@@ -305,11 +305,11 @@ class GuiManager(Node):
             QMetaObject.invokeMethod(self.w_testing.ui.CBox_OutSW, "setChecked", Qt.QueuedConnection, QtCore.Q_ARG(bool, tmp))
             
             #Line5
-            if msg.current_test_no==8:
+            if msg.current_test_no>1:
                 rstring=f"{msg.out_sw_off_time}Sec"
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T8_time, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))    
             #Line6
-            if msg.current_test_no==9:
+            if msg.current_test_no>1:
                 rstring=f"{msg.cap_discharge_time}Sec"
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T9_time, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))            
             rstring = f"Caps Voltage: {fmt(msg.vcap1)}, {fmt(msg.vcap2)}, {fmt(msg.vcap3)}, {fmt(msg.vcap4)}"

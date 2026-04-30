@@ -32,6 +32,7 @@
 #include "unistd.h"
 struct _testResualtValue{
     uint8_t currentTestNo;
+    std::string currentTestNoStr; 
     int8_t AR_On,AR_Off,UART_Con,eeprom_status,FlyBackDis,FlayBackEn,OutSwOff;
     uint16_t CapChargeTime,CapDisChargeTime,OutSWOffTime,WaitToOutSWOffTime;
     float Vin,VOut,VcapBank,Vcap1,Vcap2,Vcap3,Vcap4,Vvcc;
@@ -133,6 +134,7 @@ struct _msg_box{
 };
 
 struct _interact_registers{
+    
     bool running_status = false;
     uint32_t gui_CMD=0;
 
@@ -167,7 +169,11 @@ struct _interact_registers{
             return "";
         }
     }
-
+    std::string getCurrentTestNoStr(){
+        std::ostringstream oss;
+        oss << "TestNo:" << static_cast<int>(TR.currentTestNo);
+        return oss.str();
+    }
 };
 
 
@@ -183,8 +189,6 @@ class App_TM_V2 {
         std::string send(const std::string& msg);
         std::string receive();
         App_TM_V2(): running(false) {}
-        void task_run();
-        void task_stop();
         // Destructor ensures clean exit
         ~App_TM_V2() {
             stop();
@@ -193,7 +197,7 @@ class App_TM_V2 {
 
         private:
         std::atomic<bool> running;
-        std::thread worker;
+        std::thread  worker;
         // The background task
         void taskLoop();
 };

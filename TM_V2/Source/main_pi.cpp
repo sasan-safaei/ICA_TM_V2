@@ -27,6 +27,8 @@ USV_TEST_UTIL_V2 myUSVTestV2;
 #include <algorithm> // for std::remove
 #include <string>
 #include <iostream>
+#include <thread>
+#include <system_error>
     
 int create_folder(const char *path) {
     struct stat st = {0};
@@ -105,32 +107,23 @@ bool App_TM_V2::initialize(int argc, char* argv[]){
         myUSVTestV2.Init();
     return false;
 }
-void App_TM_V2::stop() {
-    task_stop();
-    myUSVTestV2.forceStop();
-    //myUSVTestV2.myTestDevice.cleanLCD();            
-    //myUSVTestV2.myTestDevice.showOnLCD(1,"Main Page..Clean.");
-    
-}
-void App_TM_V2::pre_Check() {
-    //myUSVTestV2.myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);   
-    //printf("DongleID=%d version=%.1f\n",myInterActReg.DongleID,myInterActReg.board_version);  
-    /*switch (myInterActReg.DongleID){
-        case 1: myUSVTestV2.myArg.manual_Dongle=0x8; break;
-        case 2: myUSVTestV2.myArg.manual_Dongle=0x9; break;
-        case 3: myUSVTestV2.myArg.manual_Dongle=0x12; break;
-        case 4: myUSVTestV2.myArg.manual_Dongle=0x13; break;
-        case 5: myUSVTestV2.myArg.manual_Dongle=0x18; break;
-        case 6: myUSVTestV2.myArg.manual_Dongle=0x20; break;        
-        default: myUSVTestV2.myArg.manual_Dongle=0; break;        
-    } 
-    */              
-    myUSVTestV2.DongleCheck();
-}
 void App_TM_V2::run() {
-    //myInterActReg.running_status=true;
-    task_run();
+    if (!running){
+        worker = std::thread(&App_TM_V2::taskLoop, this);
+        running = true;
+    }
+    else {
+        std::cerr << "Task is already running.\n";
+    }
 }
+void App_TM_V2::stop() {
+    myUSVTestV2.xrunning = false;
+}
+void App_TM_V2::pre_Check() {           
+    myUSVTestV2.DongleCheck();
+
+}
+
 std::string App_TM_V2::send(const std::string& msg){
     std::ostringstream oss;
     oss << "TM3) status:" << myInterActReg.running_status<< ", M_State:" << myInterActReg.tm_state<<"\n" ;
@@ -150,7 +143,7 @@ void App_TM_V2::taskLoop() {
         //myUSVTestV2.myTestDevice.cleanLCD();    
         //while (running.load()) {
         
-        myInterActReg.running_status=myUSVTestV2.xrunning;        
+        myInterActReg.running_status=true;//myUSVTestV2.xrunning;        
         std::string __str= myInterActReg.Dongle+".csv";
         __str.erase(std::remove(__str.begin(), __str.end(), ' '), __str.end());
         myUSVTestV2.myArg.FileName_EUI = __str;
@@ -199,32 +192,24 @@ void App_TM_V2::taskLoop() {
         //}
         myUSVTestV2.xrunning = false;
         std::cout << "Task stopped.\n";
+        // If this function is running on the worker thread, detach and clear
+        // the `worker` member so the std::thread object is not left joinable
+        // after the thread function returns.
+        //if (worker.joinable() && std::this_thread::get_id() == worker.get_id()) {
+        try {
+            worker.detach();
+            running = false;
+        } catch (const std::system_error& e) {
+            std::cerr << "Failed to detach worker: " << e.what() << std::endl;
+        }
+        worker = std::thread();
+        //}
         //myInterActReg.TR.DataClear();
+        myInterActReg.running_status=false;
         myUSVTestV2.showLog("End Of taskLoop!!!");     
-}
-// Start the task
-void App_TM_V2::task_run() {
-    
-    if (running.load()) {
-        std::cout << "Task already running\n";
-        return;
-    }
-    running=true;
-    worker = std::thread(&App_TM_V2::taskLoop, this);
+
 }
 
-// Stop the task
-void App_TM_V2::task_stop() {
-    myUSVTestV2.xrunning= false;
-    
-    if (!running.load()) { 
-        std::cout << "Task not running\n";
-        return;
-    }
-    running=false;
-    if (worker.joinable())
-        worker.join();
-}
 /*int main(int argc, char* argv[]){
     
     if (myApp.initialize(argc,argv))

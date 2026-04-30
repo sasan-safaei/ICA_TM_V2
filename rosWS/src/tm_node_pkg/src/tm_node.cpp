@@ -162,12 +162,14 @@ private:
                 
                 break;
             case 2:
-                tm_sts_msg.tm_log = "gui Stop button pressed!";                
-                tm_sts_msg.tm_run_sts = 1;
+                tm_sts_msg.tm_log = "gui Stop button pressed!";                                                
                 myInterActReg.gui_CMD = 0;  
-                printf("Stop the myApp ....\n");
+                printf("Stop myApp ....\n");
                 myApp.stop();
                 printf("Stop ok.\n");
+                sleep(1.5);
+                if (myInterActReg.running_status==false)    
+                    tm_sts_msg.tm_run_sts = 1;
 
                 break;
             case 3:

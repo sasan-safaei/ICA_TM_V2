@@ -81,7 +81,8 @@ enum TestResult{
     ,T_WaitToOutSWOffTest
     ,T_DisChargeTest
 };
-enum RSL {
+struct RSL_struct{
+    enum RSL {
     Init=0
     ,AR_Test
     ,VCC_Test
@@ -94,6 +95,25 @@ enum RSL {
     ,EndSuccess
     ,EndFailed
     ,Stop
+    };
+    std::string getRSLStr(uint8_t _step){
+        switch(_step){
+            case Init: return "Init";
+            case AR_Test: return "AR_Test";
+            case VCC_Test: return "VCC_Test";
+            case uC_Program: return "uC_Program";
+            case Uart_EEPROM: return "Uart_EEPROM";
+            case ChargeTest: return "ChargeTest";
+            case FlyBackTest: return "FlyBackTest";
+            case WaitToOutSWOffTest: return "WaitToOutSWOffTest";
+            case DisChargeTest: return "DisChargeTest";                
+            case EndSuccess: return "EndSuccess";                
+            case EndFailed: return "EndFailed";                
+            case Stop: return "Stop";                
+            default:
+                return "";
+        }
+     }
 };
 enum FuncStatus {
     running=0
@@ -103,9 +123,9 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        //std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::AR_Test,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
-        std::vector<uint8_t> toDO_ICA2510={RSL::Init,RSL::AR_Test,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
-        std::vector<uint8_t> toDO_ICA2506={RSL::Init,RSL::AR_Test,RSL::VCC_Test,RSL::uC_Program,RSL::Uart_EEPROM,RSL::ChargeTest,RSL::FlyBackTest,RSL::WaitToOutSWOffTest,RSL::DisChargeTest};
+        //std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
+        std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
+        std::vector<uint8_t> toDO_ICA2506={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
         std::vector<uint8_t> toDoList={};
         bool xrunning;
         struct MYAruments{
