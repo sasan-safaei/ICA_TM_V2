@@ -2336,6 +2336,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     case 2: 
     case 3:
     case 4:
+    case 5:
         _M2.m2State++;
     break;
     case 6:
@@ -2370,8 +2371,6 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     case 7: return FuncStatus::success;    
     default: return FuncStatus::failed;
     }
-    
-
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
@@ -2379,14 +2378,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
     myInterActReg.TR.currentTestNo=TestResult::T_ChargeTest;
     switch (_M2.m2State)
     {
-    case 0:
-    {
+    case 0:{//Start Charge Test
         showLog("\nDo RSL_ChargeTest TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
         _M2.m2State++;
     }
     break;
-    case 1:
-    {
+    case 1:{//Check Charge Time and Current
         if(myArg.LabDevice_PS) myTempVal.InCurrent= MyLabDevice.ReadPSCurrent();
             myTempVal.chargeTime=myDurationTimer.TestTimeSec();                
             if(myTempVal.chargeTime!=myTempVal.ltime_mess){
@@ -2524,10 +2521,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
-    myInterActReg.TR.currentTestNo=TestResult::T_FlyBackTest;
+    myInterActReg.TR.currentTestNo=TestResult::T_WaitToOutSWOffTest;
     switch (_M2.m2State){        
     case 0:
-        showLog("\nDo RSL_FlyBackTest TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        showLog("\nDo RSL_WaitToOutSWOffTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
         myBoard.GPIOResetAll();
         _M2.m2State++;
     break;
@@ -2565,7 +2562,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
                 _M2.m2State++; 
             }
             else{
-                showLog("   wait to Output off time is not in range \n");
+                std::cout<< "Time:" << myTempVal.WaitToOutSWOffTime << "(" << myTestResult.Limit_MIN_WaitToOutSwOff << "-" << myTestResult.Limit_MAX_WaitToOutSwOff << ") \n";
+                showLog("   wait to Output off time is not in range ");
                 myTestResult.ErrorNo=ERROR::waitToOutSwOff;
                 //sprintf(_str,"Err.%d",myTestResult.ErrorNo);myTestDevice.showOnLCD(2,_str);
                 printf("\nGPIO Test Error (%d) on step %d\n",myTestResult.ErrorNo,_M2.m2State);
@@ -2578,15 +2576,16 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         //sprintf(_str,"T8 Ok");
         showLog("Ok.\n"); 
         myInterActReg.TR.OutSwOff=true;            
-        myBoard.GPIOResetAll();  _M2.dcnt100ms=150; 
+        //myBoard.GPIOResetAll();  
+        _M2.dcnt100ms=150; 
         _M2.m2State++;
     break;
     case 6:
         myTempVal.OutSWOffTime=myDurationTimer.TestTimeSec();
         //sprintf(_str,"T8 %d sec (%.1f)",myTempVal.OutSWOffTime,myTempVal.InCurrent);
         //printf("\r   Output Off time : %d sec... ",myTempVal.OutSWOffTime);
-        myBoard.GPIOResetAll();
-        if(myTempVal.LoadCurrent> 0.2 ){
+        //myBoard.GPIOResetAll();
+        if(myTempVal.LoadCurrent> 0.3 ){
             //showLog(_str);
             if(myTempVal.OutSWOffTime>myTestResult.Limit_MIN_OutSwOff && myTempVal.OutSWOffTime<myTestResult.Limit_MAX_OutSwOff){
                 _M2.m2State++; 
@@ -2602,6 +2601,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         break;
     case 7:
         //sprintf(_str,"S17");
+        myBoard.GPIOResetAll();
         myTestResult.time_WaitToOutSwOff=myTempVal.WaitToOutSWOffTime;
         myTestResult.time_OutSwOff=myTempVal.OutSWOffTime;
         //showLog("\n");
@@ -2625,8 +2625,104 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
-    showLog("Do RSL_DisChargeTest... ");
-    return FuncStatus::success;
+    static float __tempICtempVal=0.0;
+    static uint8_t __tempIC__error__cnt=0;
+    static uint8_t __diffVcap__error__cnt=0;
+    static uint8_t __tempBatBack__error__cnt=0;
+     myInterActReg.TR.currentTestNo=TestResult::T_DisChargeTest;
+    switch (_M2.m2State){        
+    case 0:
+        showLog("\nDo RSL_DisChargeTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        __tempICtempVal=0.0;
+        __tempIC__error__cnt=0;
+        __diffVcap__error__cnt=0;
+        __tempBatBack__error__cnt=0;
+        _M2.m2State++;
+    break;
+    case 1:
+    {
+        myTestDevice.setRelay(USV_Test_Interface::Relays::Load,false);
+        if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);
+        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(0);    
+        _M2.m2State++;            
+    }       
+    break;
+    case 2:
+    {
+        if(myArg.LabDevice_PS) myTempVal.InCurrent = MyLabDevice.ReadPSCurrent();					
+        if (myTempVal.InCurrent!=0 && myTempVal.InCurrent<.2) _M2.m2State++;
+    }
+    break;
+    case 3:// TEST9 : Discharge *********************************************
+    {
+        showLog("Test9: wait to disCharge SCap");
+        myInterActReg.TR.currentTestNo=9;
+        myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
+        if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);
+        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(__const_LoadCurrent);                                
+        myDurationTimer.testTimeStartSec();
+        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);				            
+        if (_M2.file.is_open()) { _M2.file.close(); }
+        _M2.file.open("./tmp/disChargeCurve.csv", std::ios::out);
+        _M2.file << "time,voltage"<< std::endl;
+        _M2.m2State++;	
+    }
+    break;
+    case 4:
+    {            
+        myTempVal.LoadCurrent = myTestDevice.getDUT_VOUTAmp();
+        myTempVal.VOut= myTestDevice.getDUT_VOUT();
+        if(myArg.LabDevice_Load){
+            myTempVal.VOut = MyLabDevice.ReadLoadVoltage();
+            myTempVal.LoadCurrent  = MyLabDevice.ReadLoadCurrent(); 
+        }
+        
+        myTempVal.VCap=myBoard.GetVCap(0);
+        
+        myTempVal.DisChargeTime=myDurationTimer.TestTimeSec();
+        if(!myBoard.CheckCapsVoltage(&myTempVal.VCap)){
+            myTempVal.VCap=0;
+            if(__diffVcap__error__cnt++>5)
+                _M2.m2State=showError(ERROR::VCapsNotSame);//testr.ErrorNo=ERROR::VCapsNotSame;
+        }else {_M2.__diffVcap__error__cnt=0;}
+
+        if(!myBoard.GetICTemp(&__tempICtempVal,false) || (__tempICtempVal>__Limit_MAX_IC_Temp)) {
+            if(__tempIC__error__cnt++>5)
+                _M2.m2State=showError(ERROR::TempSensor_IC);//testr.ErrorNo=ERROR::TempSensor;
+        }else {
+            myTestResult.tempIC=__tempICtempVal;
+            __tempIC__error__cnt=0;}
+
+        if(!myBoard.GetBatBankTemp(&myTestResult.tempBatBank,false) || (myTestResult.tempBatBank>__Limit_MAX_BatBank_Temp)) 
+        {
+            if(__tempBatBack__error__cnt++>5) _M2.m2State=showError(ERROR::TempSensor_CapBank);//testr.ErrorNo=ERROR::TempSensor;                
+        }
+                _M2.file << myTempVal.DisChargeTime<<","<< std::fixed
+            <<std::setprecision(1)<<myTempVal.VCap << std::endl;
+        //myTestResult.ErrorNo=0;
+        usleep(100000);
+        if(myTempVal.VCap>0) myTestResult.VCap_SWOff=myTempVal.VCap;
+
+        if ( myTempVal.LoadCurrent>-1 && myTempVal.LoadCurrent<0.05 ) {
+            showLog("\n");
+            myTestResult.time_DisCharge=myTempVal.DisChargeTime;
+            if(myTestResult.VCap_SWOff< myTestResult.Limit_MIN_VCap_ShutdownVoltage || myTestResult.VCap_SWOff> myTestResult.Limit_MAX_VCap_ShutdownVoltage){
+                showLog((std::ostringstream{} << "Vcap on Shut Down is:" << std::fixed << std::setprecision(2) << myTestResult.VCap_SWOff << "V").str());                            
+                _M2.m2State=showError(ERROR::VCapShutDownOutOfRange);//testr.ErrorNo=ERROR::VCapOutOfRange;
+            }
+            else{
+            _M2.m2State++;
+            _M2.dcnt100ms=50;
+            }
+            
+        }	
+    }                              
+    break;
+    case 5: return FuncStatus::success;    
+    default: return FuncStatus::failed;
+    }
+
+    return FuncStatus::running;
 }
 
 void USV_TEST_UTIL_V2::run_Test_Func(){
@@ -2644,12 +2740,14 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     __tr.RSL_state=toDoList[__tr.RSL_Cnt];
     RSL_struct x1;
     uint8_t __cnt1=0;
+    uint8_t lCurrentTestNo=0;
+    uint8_t lState=0;
     while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (xrunning==true) ){
-        if(__cnt1++>3){ //just in case
-            std::cout << "Xrunning: "<< (xrunning?"true":"false") 
-                      << " RSL:" << std::to_string(myInterActReg.TR.currentTestNo) 
-                      << " M2State:" << std::to_string(__tr.m2State) << std::endl;
-            __cnt1=0;
+        if(myInterActReg.TR.currentTestNo!=lCurrentTestNo || __tr.m2State!=lState){
+            std::cout << "StateMachin:  RSL: " << std::to_string(myInterActReg.TR.currentTestNo) 
+                      << " M2State: " << std::to_string(__tr.m2State) << std::endl;
+            lCurrentTestNo=myInterActReg.TR.currentTestNo;
+            lState=__tr.m2State;
         }   
         usleep(100000);
         

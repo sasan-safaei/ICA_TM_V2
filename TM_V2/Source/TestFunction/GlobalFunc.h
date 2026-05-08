@@ -64,6 +64,17 @@
 #define __Limit_MIN_VCap_ShutdownVoltage_2315 5.5
 #define __Limit_MAX_VCap_ShutdownVoltage_2315 6.5
 
+#define __Limit_MAX_Charge_time_2510 70
+#define __Limit_MIN_FullChargeCurrent_2510 0.160
+#define __Limit_MIN_ChargeCurrent_2510 0.500
+#define __Limit_MIN_WaitToOutSwOff_2510 8
+#define __Limit_MAX_WaitToOutSwOff_2510 12
+#define __Limit_MIN_OutSwOff_2510 3
+#define __Limit_MAX_OutSwOff_2510 7
+#define __Limit_MIN_VCap_ShutdownVoltage_2510 4.2
+#define __Limit_MAX_VCap_ShutdownVoltage_2510 4.7
+
+
 void printCurrentTime();
 void ica_delay_us (int _value);
 int ica_kbhit2(char* currentVal);
@@ -176,14 +187,14 @@ struct testResult{
 				break;
 			case 2510:
 				Limit_MAX_Charge_time=90;// __Limit_MAX_Charge_time_2405;
-				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2405;
-				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2405;
-				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2405;
-				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2405;
-				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2405;
-				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2405;
-				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2405;
-				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2405;
+				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2510;
+				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2510;
+				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2510;
+				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2510;
+				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2510;
+				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2510;
+				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2510;
+				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2510;
 				break;
 
 		}

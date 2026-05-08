@@ -123,8 +123,8 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        //std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
-        std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
+        std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
+        //std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
         std::vector<uint8_t> toDO_ICA2506={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
         std::vector<uint8_t> toDoList={};
         bool xrunning;
