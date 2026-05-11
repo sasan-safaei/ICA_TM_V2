@@ -308,6 +308,9 @@ class GuiManager(Node):
             if msg.current_test_no>1:
                 rstring=f"{msg.out_sw_off_time}Sec"
                 QMetaObject.invokeMethod( self.w_testing.ui.label_T8_time, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))    
+            if msg.current_test_no>1:
+                QMetaObject.invokeMethod( self.w_testing.ui.label_tempCapsBank, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, f"{msg.temp_scaps_bank:.1f}°C"))
+                QMetaObject.invokeMethod( self.w_testing.ui.label_tempIC, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, f"{msg.temp_ic:.1f}°C"))
             #Line6
             if msg.current_test_no>1:
                 rstring=f"{msg.cap_discharge_time}Sec"

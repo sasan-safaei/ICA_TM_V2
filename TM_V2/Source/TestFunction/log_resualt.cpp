@@ -265,7 +265,7 @@ int SaveResult(std::string _fileNameTest){
     if (file == NULL) {
         file = fopen(cFileName.c_str(), "w+");
         if (file == NULL) { perror("Error creating file"); return EXIT_FAILURE; }
-		sprintf(file_stream, "NUM,EUI-M,EUI,Device,Date,Time,VCapMaxs,VCap,T.charge,T.DisCharge,T.WaitToSWoff,T.SWOff,Load,VOut1,VOUT2,IC-Temp,Repaired_NoCap,Repaird_Cap,Desc\n");
+		sprintf(file_stream, "NUM,EUI-M,EUI,Device,Date,Time,VCapMaxs,VCapCut,T.charge,T.DisCharge,T.WaitToSWoff,T.SWOff,Load,VOut1,VOUT2,IC-Temp,Repaired_NoCap,Repaird_Cap,Desc\n");
 		fprintf(file, "%s", file_stream);
         printf("The file was not found, so a new file has been created.\n");
     }
@@ -291,7 +291,7 @@ int SaveResult(std::string _fileNameTest){
 				,EUI[0],EUI[1],EUI[2],EUI[3],EUI[4],EUI[5],EUI[6],EUI[7]
 				,myBoard.boardName_str
 				,SaveTime->tm_year%100,SaveTime->tm_mon+1,SaveTime->tm_mday,SaveTime->tm_hour,SaveTime->tm_min,SaveTime->tm_sec);
-	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1fC,_,%d,%d\n", 
+	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1f°C,_,%d,%d\n", 
 				myTestResult.Vcap_Max, myTestResult.VCap_SWOff, 
 				myTestResult.time_charge, myTestResult.time_DisCharge,myTestResult.time_WaitToOutSwOff, myTestResult.time_OutSwOff, 
 				myTestResult.Load_Current, myTestResult.VOut1, myTestResult.VOut2, 

@@ -34,7 +34,9 @@
 #define __const_PSCurrent_NoCap_NoLoad 0.5
 #define __const_PSCurrent_NoCap_Load 1.0
 
-#define __const_LoadCurrent 0.850
+#define __const_LoadCurrent24V 0.480//24V 50R
+#define __const_LoadCurrent12V 0.240//12V 50R
+
 #define __const_LoadCurrent_NoCap 0.300
 
 #define __Limit_MAX_IC_Temp 65.0
@@ -160,7 +162,7 @@ struct testResult{
 		Limit_MAX_VCap_ShutdownVoltage=0;
 		Limit_MIN_VCap_ShutdownVoltage=0;
 		Board_MaxTemp85V=0;//was Not in testrReset()
-		Load_Current=__const_LoadCurrent;
+		Load_Current=__const_LoadCurrent24V;
 		switch (_boardName){
 			case 2315:
 				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2315;
@@ -186,6 +188,7 @@ struct testResult{
 				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2405;
 				break;
 			case 2510:
+				Load_Current=__const_LoadCurrent12V;
 				Limit_MAX_Charge_time=90;// __Limit_MAX_Charge_time_2405;
 				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2510;
 				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2510;

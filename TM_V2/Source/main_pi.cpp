@@ -155,7 +155,8 @@ void App_TM_V2::taskLoop() {
                 
                 myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin!!! (" << myInterActReg.gui_CMD << ")").str());
                 myUSVTestV2.checkLabDevice();sleep(.5);                    
-                myUSVTestV2.run_TestMachine();
+                //myUSVTestV2.run_TestMachine();
+                myUSVTestV2.run_Test_Func();
                 break;
             case ICA_2506://5//ICA2506
             case ICA_2510://6 //ICA2510
@@ -173,12 +174,22 @@ void App_TM_V2::taskLoop() {
                 myUSVTestV2.run_Test_Func();
             break;            
             case 3:            
-                myUSVTestV2.showLog("ICA2308 Test Function");                   
-                myUSVTestV2.runICA2308_simple_test(myInterActReg.board_version);       
+                //myUSVTestV2.showLog("ICA2308 Test Function");                   
+                //myUSVTestV2.runICA2308_simple_test(myInterActReg.board_version);       
+                if (myInterActReg.gui_CMD==ICA_2308) {
+                    myUSVTestV2.constValue.setDefault();
+                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2308;
+                }
+                myUSVTestV2.run_Test_Func();
                 break;
             case 4:
                 myUSVTestV2.showLog("ICA2407 Test Function");                     
-                myUSVTestV2.runICA2407_simple_test();
+                //myUSVTestV2.runICA2407_simple_test();
+                if (myInterActReg.gui_CMD==ICA_2407) {
+                    myUSVTestV2.constValue.setDefault();
+                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2407;
+                }
+                myUSVTestV2.run_Test_Func();
                 break;
             default:
                 myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());

@@ -59,6 +59,7 @@ class ICA_justEUI{
     EEPROM24xx256 myEEPROM;    
 public:
     std::vector<uint8_t> EUI_Buffer;
+    void clearEUIBuffer(){EUI_Buffer.clear();}  
     bool ReadEUI();
     bool ReadEUI_EEPROM();
     std::string showEUI();

@@ -22,3 +22,5 @@ float32 load_current
 string eeprom_buff_str
 string eui_str
 string error_str
+float32 temp_scaps_bank
+float32 temp_ic

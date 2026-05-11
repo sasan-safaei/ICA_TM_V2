@@ -65,6 +65,7 @@ struct __temp__register{
     uint8_t __diffVcap__error__cnt=0;
     uint8_t __error_cnt=0;
     bool __uartConnection=false;
+    bool __isSupperCapsOnBoard=false;
  };
 
 
@@ -76,6 +77,7 @@ enum TestResult{
     ,T_uC_Program
     ,T_Uart
     ,T_EEPROM
+    ,T_EEPROM_I2C
     ,T_ChargeTest
     ,T_FlyBackTest
     ,T_WaitToOutSWOffTest
@@ -88,6 +90,7 @@ struct RSL_struct{
     ,VCC_Test
     ,uC_Program
     ,Uart_EEPROM
+    ,uart_EEPROM_RTC_I2C
     ,ChargeTest
     ,FlyBackTest
     ,WaitToOutSWOffTest
@@ -103,6 +106,7 @@ struct RSL_struct{
             case VCC_Test: return "VCC_Test";
             case uC_Program: return "uC_Program";
             case Uart_EEPROM: return "Uart_EEPROM";
+            case uart_EEPROM_RTC_I2C: return "uart_EEPROM_RTC_I2C";
             case ChargeTest: return "ChargeTest";
             case FlyBackTest: return "FlyBackTest";
             case WaitToOutSWOffTest: return "WaitToOutSWOffTest";
@@ -123,9 +127,58 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
-        //std::vector<uint8_t> toDO_ICA2510={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
-        std::vector<uint8_t> toDO_ICA2506={RSL_struct::RSL::Init,RSL_struct::RSL::AR_Test,RSL_struct::RSL::VCC_Test,RSL_struct::RSL::uC_Program,RSL_struct::RSL::Uart_EEPROM,RSL_struct::RSL::ChargeTest,RSL_struct::RSL::FlyBackTest,RSL_struct::RSL::WaitToOutSWOffTest,RSL_struct::RSL::DisChargeTest};
+        std::vector<uint8_t> toDO_ICA2510={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::AR_Test
+            ,RSL_struct::RSL::VCC_Test
+            ,RSL_struct::RSL::uC_Program
+            ,RSL_struct::RSL::Uart_EEPROM
+            ,RSL_struct::RSL::ChargeTest
+            ,RSL_struct::RSL::FlyBackTest
+            ,RSL_struct::RSL::WaitToOutSWOffTest
+            ,RSL_struct::RSL::DisChargeTest
+        };
+        std::vector<uint8_t> toDO_ICA2315={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::AR_Test
+            ,RSL_struct::RSL::VCC_Test
+            ,RSL_struct::RSL::Uart_EEPROM
+            ,RSL_struct::RSL::ChargeTest
+            ,RSL_struct::RSL::FlyBackTest
+            ,RSL_struct::RSL::WaitToOutSWOffTest
+            ,RSL_struct::RSL::DisChargeTest
+        };
+        std::vector<uint8_t> toDO_ICA2405={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::AR_Test
+            ,RSL_struct::RSL::VCC_Test
+            ,RSL_struct::RSL::Uart_EEPROM
+            ,RSL_struct::RSL::ChargeTest
+            ,RSL_struct::RSL::FlyBackTest
+            ,RSL_struct::RSL::WaitToOutSWOffTest
+            ,RSL_struct::RSL::DisChargeTest
+        };
+        std::vector<uint8_t> toDO_ICA2506={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::AR_Test
+            ,RSL_struct::RSL::VCC_Test
+            ,RSL_struct::RSL::uC_Program
+            ,RSL_struct::RSL::Uart_EEPROM
+            ,RSL_struct::RSL::ChargeTest
+            ,RSL_struct::RSL::FlyBackTest
+            ,RSL_struct::RSL::WaitToOutSWOffTest
+            ,RSL_struct::RSL::DisChargeTest
+        };
+        std::vector<uint8_t> toDO_ICA2308={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::VCC_Test
+            ,RSL_struct::RSL::uart_EEPROM_RTC_I2C
+            };
+        std::vector<uint8_t> toDO_ICA2407={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::VCC_Test
+            ,RSL_struct::RSL::uart_EEPROM_RTC_I2C
+            };
         std::vector<uint8_t> toDoList={};
         bool xrunning;
         struct MYAruments{
@@ -242,14 +295,14 @@ class USV_TEST_UTIL_V2{
         void showLog(std::string _str);
         void getArg(int argc, char* argv[]);
         void DongleCheck(void);
-        void run(void);
-        void run_TestMachine(void);
-        void run_TestMachine_ucProgram(uint8_t _DUT);
-        void runICA2308_simple_test(float _version=1.0);
+        //void run(void);
+        //void run_TestMachine(void);
+        //void run_TestMachine_ucProgram(uint8_t _DUT);
+        //void runICA2308_simple_test(float _version=1.0);
         void runICA2407_simple_test(void);
-        void runICA2506(void);
+        //void runICA2506(void);
         void forceStop(void);
-        void run_ManualTest(void);
+        //void run_ManualTest(void);
         uint8_t showError(uint8_t _errorNo);
         void checkLabDevice(void);       
         struct __constValue{
@@ -270,7 +323,8 @@ class USV_TEST_UTIL_V2{
         void run_Test_Func();
         void preLoopFunc(void);
         void postLoopFunc(void);
-        void postLoopGetCaps(void);        
+        void preLoopGetCaps(void);        
+        bool CheckCapsVoltageDiff(void);
         bool LabelPrint(void);
         int runSTM32ProgFunc(std::string _cmd, std::string &result);
         bool convertHexStrToByteArray(std::string hexStr, uint8_t* byteArray,uint16_t maxSize);
@@ -280,6 +334,7 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_VCC_Test(__temp__register & _M2);
         uint8_t RSL_uC_Program(__temp__register & _M2);
         uint8_t RSL_UART_EEPROM(__temp__register & _M2);
+        uint8_t RSL_UART_EEPROM_RTC_I2C(__temp__register & _M2);
         uint8_t RSL_ChargeTest(__temp__register & _M2);
         uint8_t RSL_FlyBackTest(__temp__register & _M2);
         uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);

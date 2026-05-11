@@ -108,7 +108,8 @@ private:
         tm_res_msg.out_sw_off=myLastInterActReg.TR.OutSwOff;
         tm_res_msg.out_sw_off_time=myLastInterActReg.TR.OutSWOffTime;
         tm_res_msg.cap_discharge_time=myLastInterActReg.TR.CapDisChargeTime;
-
+        tm_res_msg.temp_scaps_bank=myLastInterActReg.TR.TempScapsBank;
+        tm_res_msg.temp_ic=myLastInterActReg.TR.TempIC;
         if(myInterActReg.msgBox.counter>0)
             if(myInterActReg.msgBox.counter!=myLastInterActReg.msgBox.counter ){
                 tm_msg_box_msg.tm_msg_counter= myInterActReg.msgBox.counter;  
@@ -177,7 +178,7 @@ private:
                     myApp.stop();
                     tm_sts_msg.tm_log = "gui ReRun button pressed!";
                     tm_sts_msg.tm_run_sts = 2;
-                    if (msg->dongle_sel==5 || msg->dongle_sel==6)
+                    if (msg->dongle_sel==3 || msg->dongle_sel==4)
                         tm_sts_msg.tm_run_sts = 3;
                     myInterActReg.gui_CMD = msg->dongle_sel;
                     myInterActReg.board_version = msg->board_version;

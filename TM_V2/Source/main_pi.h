@@ -37,6 +37,8 @@ struct _testResualtValue{
     uint16_t CapChargeTime,CapDisChargeTime,OutSWOffTime,WaitToOutSWOffTime;
     float Vin,VOut,VcapBank,Vcap1,Vcap2,Vcap3,Vcap4,Vvcc;
     float InCurrent,LoadCurrent;
+    float TempScapsBank;
+    float TempIC;
     std::string EEPROMBuff_str;
     std::string EUI_str;
     std::string __UID_str;
@@ -53,6 +55,7 @@ struct _testResualtValue{
         Vcap1=0; Vcap2=0; Vcap3=0; Vcap4=0;
         Vvcc=0;
         InCurrent=0; LoadCurrent=0;
+        TempScapsBank=0; TempIC=0;
         EUI_str="";
         __UID_str="";
         EEPROMBuff_str="";
