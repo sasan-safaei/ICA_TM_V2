@@ -216,7 +216,7 @@ int SaveEUI(std::string _fileNameEUI,bool testResualt){
 	}else{
 		std::time_t Savetime_now = std::time(nullptr); // Get current time as a time_t object
 		std::tm *SaveTime = std::localtime(&Savetime_now); // Convert to local time    
-		myBoard.updateBoardNameStr();
+		//myBoard.updateBoardNameStr();
 		uint8_t EUI[8];
 		memcpy(EUI,myBoard.myEEPROM.myData.EUI,8);
 		sprintf(file_stream, "%04d,%02X%02X%02X,%02X%02X%02X%02X%02X,%s,20%02d-%02d-%02d,%02d:%02d:%02d"
@@ -265,7 +265,7 @@ int SaveResult(std::string _fileNameTest){
     if (file == NULL) {
         file = fopen(cFileName.c_str(), "w+");
         if (file == NULL) { perror("Error creating file"); return EXIT_FAILURE; }
-		sprintf(file_stream, "NUM,EUI-M,EUI,Device,Date,Time,VCapMaxs,VCapCut,T.charge,T.DisCharge,T.WaitToSWoff,T.SWOff,Load,VOut1,VOUT2,IC-Temp,Repaired_NoCap,Repaird_Cap,Desc\n");
+		sprintf(file_stream, "NUM,EUI-M,EUI,Device,Date,Time,VCapMaxs,VCapCut,T.charge,T.DisCharge,T.WaitToSWoff,T.SWOff,Load,VIn,VOut,IC-Temp,Repaired_NoCap,Repaird_Cap,Desc\n");
 		fprintf(file, "%s", file_stream);
         printf("The file was not found, so a new file has been created.\n");
     }
@@ -283,7 +283,7 @@ int SaveResult(std::string _fileNameTest){
 	line_count = count_lines(file,false,cFileName,&__tmp1);
 	std::time_t Savetime_now = std::time(nullptr); // Get current time as a time_t object
     std::tm *SaveTime = std::localtime(&Savetime_now); // Convert to local time    
-	myBoard.updateBoardNameStr();
+	//myBoard.updateBoardNameStr();
 	uint8_t EUI[8];
 	memcpy(EUI,myBoard.myEEPROM.myData.EUI,8);
 	sprintf(file_stream, "%04d,%02X%02X%02X,%02X%02X%02X%02X%02X,%s,20%02d-%02d-%02d,%02d:%02d:%02d"
@@ -294,7 +294,7 @@ int SaveResult(std::string _fileNameTest){
 	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1f°C,_,%d,%d\n", 
 				myTestResult.Vcap_Max, myTestResult.VCap_SWOff, 
 				myTestResult.time_charge, myTestResult.time_DisCharge,myTestResult.time_WaitToOutSwOff, myTestResult.time_OutSwOff, 
-				myTestResult.Load_Current, myTestResult.VOut1, myTestResult.VOut2, 
+				myTestResult.Load_Current, myTestResult.Vin_SaveResult, myTestResult.Vout_SaveResult, 
 				myTestResult.tempIC,
 				myTestResult.repaired_Cap,myTestResult.ErrorNo);
 

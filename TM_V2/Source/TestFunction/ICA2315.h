@@ -33,10 +33,11 @@ public:
     int boardName=-1;
     int boardType=-1;
     int boardVer=-1;
+    float boardVerDec=-1;
     char boardName_str[25];
     char boardKind_str[25];
     ~ICA2315(){serialPort.sp_close();}
-    void updateBoardNameStr(){ sprintf(boardName_str,"%dV%d",boardName,boardVer>=100?boardVer/10:boardVer); }
+    //void updateBoardNameStr(){ sprintf(boardName_str,"%dV%f",boardName,boardVerDec); }
     void serialRx_delay(useconds_t _usdelay = 20000){usleep(_usdelay);}//50000
     void GPIOResetAll(){ SP_Write({'O',0xE0,'P'});}
     void OutPUT_Off(){ SP_Write({'O',0x60,'P'});}
@@ -63,7 +64,7 @@ public:
     bool VShuntDown(void);
     bool RemessCapESR(void);
     
-    unsigned char GPIO_read();
+    bool GPIO_read(uint8_t *__retValue);
     void LineClear(const char *message);    
     bool readEUI64(uint8_t *eui64);
     bool readuC_EUI(uint8_t *eui);

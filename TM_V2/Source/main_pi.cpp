@@ -13,7 +13,7 @@ LabDevice MyLabDevice;
 durationTimerClass myDurationTimer;
 testResult myTestResult;
 myNet myTcpUdpNet;
-std::string lastModifiedTime="2025.03.18";
+std::string lastModifiedTime="2026.05.13";
 //ConsoleKeyClass myCKey;
 #include "usv_test_util.h"
 //#include "./TestFunction/usv_test_util.h"
@@ -71,9 +71,9 @@ bool getConfig(){
         if (line.rfind("Port=", 0) == 0) sprintf(myUSVTestV2.myArg.ttyName,"%s",line.substr(5).c_str());
     }
     file.close();
-    printf("\nConfig Value:\n");
-    std::cout << "  ttyName = " << myUSVTestV2.myArg.ttyName << std::endl;
-    std::cout << "  StoreFolder = " << myUSVTestV2.myArg.StoreFolderName << std::endl;
+    std::cout << " Config Loaded from : " << configFile << std::endl;
+    std::cout << " --- ttyName = " << myUSVTestV2.myArg.ttyName << std::endl;
+    std::cout << " --- StoreFolder = " << myUSVTestV2.myArg.StoreFolderName << std::endl;
     printf("\n");
     
     return true;
@@ -81,7 +81,7 @@ bool getConfig(){
 
 
 bool App_TM_V2::initialize(int argc, char* argv[]){
-    
+    std::cout << "TM_V2 Version: " << lastModifiedTime << std::endl;
     if (create_folder("./tmp") != 0) {
         return 1; // Handle error
     }
@@ -94,8 +94,9 @@ bool App_TM_V2::initialize(int argc, char* argv[]){
 
     if(myUSVTestV2.myArg.showErrorList){
         std::cout<<"SHOW ERROR LIST:\n";
+        __temp__register __tr;
         for (int i = 1; i < ERROR::END; ++i){
-            myUSVTestV2.showError(i);            
+            myUSVTestV2.showError(i,__tr);            
         }
         return 0;
     }
@@ -117,6 +118,7 @@ void App_TM_V2::run() {
     }
 }
 void App_TM_V2::stop() {
+    std::cout << "!!! Stopping task...\n";
     myUSVTestV2.xrunning = false;
 }
 void App_TM_V2::pre_Check() {           
@@ -147,58 +149,23 @@ void App_TM_V2::taskLoop() {
         std::string __str= myInterActReg.Dongle+".csv";
         __str.erase(std::remove(__str.begin(), __str.end(), ' '), __str.end());
         myUSVTestV2.myArg.FileName_EUI = __str;
-        switch(myInterActReg.gui_CMD){
-            case ICA_NT_USV_2315://1//ICA2315 
-            case ICA_NT_USV_2405://2//ICA2405
-                if (myInterActReg.gui_CMD==ICA_NT_USV_2315) myUSVTestV2.constValue.setDefault();
-                if (myInterActReg.gui_CMD==ICA_NT_USV_2405) myUSVTestV2.constValue.setDefault();
-                
-                myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin!!! (" << myInterActReg.gui_CMD << ")").str());
-                myUSVTestV2.checkLabDevice();sleep(.5);                    
-                //myUSVTestV2.run_TestMachine();
-                myUSVTestV2.run_Test_Func();
-                break;
-            case ICA_2506://5//ICA2506
-            case ICA_2510://6 //ICA2510
-                myUSVTestV2.showLog((std::ostringstream{} << "run_TestMachin + uC!!! (" << myInterActReg.gui_CMD << ")").str());
-                myUSVTestV2.checkLabDevice();sleep(.5); 
-                if (myInterActReg.gui_CMD==ICA_2506) {
-                    myUSVTestV2.constValue.setDefault();
-                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2506;
-                }
-                if (myInterActReg.gui_CMD==ICA_2510) {
-                    myUSVTestV2.constValue.setFor2510();
-                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510;
-                }
-                //myUSVTestV2.run_TestMachine_ucProgram(myInterActReg.gui_CMD);
-                myUSVTestV2.run_Test_Func();
-            break;            
-            case 3:            
-                //myUSVTestV2.showLog("ICA2308 Test Function");                   
-                //myUSVTestV2.runICA2308_simple_test(myInterActReg.board_version);       
-                if (myInterActReg.gui_CMD==ICA_2308) {
-                    myUSVTestV2.constValue.setDefault();
-                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2308;
-                }
-                myUSVTestV2.run_Test_Func();
-                break;
-            case 4:
-                myUSVTestV2.showLog("ICA2407 Test Function");                     
-                //myUSVTestV2.runICA2407_simple_test();
-                if (myInterActReg.gui_CMD==ICA_2407) {
-                    myUSVTestV2.constValue.setDefault();
-                    myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2407;
-                }
-                myUSVTestV2.run_Test_Func();
-                break;
+        myUSVTestV2.checkLabDevice();sleep(.5);   
+        myUSVTestV2.toDoList.clear();              
+        switch((uint8_t) myInterActReg.gui_CMD){
+            case DUT_ID::ID::ICA2405: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2405; break;
+            case DUT_ID::ID::ICA2315: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2315; break;
+            case DUT_ID::ID::ICA2308: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2308; break;
+            case DUT_ID::ID::ICA2407: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2407; break;                
+            case DUT_ID::ID::ICA2506: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2506; break;
+            case DUT_ID::ID::ICA2510: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510; break;                
             default:
                 myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());
                 break;
 
         }
-            //myUSVTestV2.run();
-            myInterActReg.tm_state+=1;
-            //std::cout << "Task running...\n";
+        if( myUSVTestV2.toDoList.size()>0) myUSVTestV2.run_Test_Func();
+        myInterActReg.tm_state+=1;
+        //std::cout << "Task running...\n";
             //std::this_thread::sleep_for(std::chrono::seconds(1));
         //}
         myUSVTestV2.xrunning = false;

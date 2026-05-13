@@ -148,7 +148,7 @@ class GuiManager(Node):
 
     def on_cbox_dongle_changed(self, index):
         self.dongle_selected_text = self.w_main.ui.cBoxDongle.currentText()
-        print(f"New index: {index}, New value: {self.dongle_selected_text}")
+        print(f"<gui_node> New index: {index}, New value: {self.dongle_selected_text}")
         
         self.w_main.ui.cBoxVer.clear()
         versions = self.dut_versions.get(self.dongle_selected_text, [])
@@ -178,13 +178,13 @@ class GuiManager(Node):
                 msg.msgbox_press = 0
                 msg.board_version = self._get_selected_version_float()
                 self.myPublish.publish(msg)
-                print(f"Board version set to: {msg.board_version}")
+                print(f"<gui_node> Board version set to: {msg.board_version}")
                 image_name = f"{self._get_selected_dut_key()}.jpg"
                 if not self.set_image("./uiBuild/" + image_name):
                     self.set_image("./uiBuild/No_Device.jpg")
                 
             except ValueError:
-                print(f"Could not convert '{text}' to float")
+                print(f"<gui_node> Could not convert '{text}' to float")
                 self.set_image("./uiBuild/No_Device.jpg")
     
     def publish_btn_CMD(self, btnNum):
@@ -234,7 +234,7 @@ class GuiManager(Node):
         def fmt(v):
                 return f"{v:.2f}v" if v >= 0 else "--"            
         #if self.last_tm_run_sts==3:                    
-        if self.dongle_selected_index==3:#ICA2308
+        if self.dongle_selected_index==3 or self.dongle_selected_index==4:#ICA2308/ICA2407
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_Name, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, self.dongle_selected_text))            
             rstring=f"IN: {msg.vin:.1f}V, {msg.in_current:.3f}A"
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_IN_Data, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))
@@ -243,9 +243,9 @@ class GuiManager(Node):
             rstring=msg.eui_str.replace('\n', '').strip()            
             rstring=rstring.split(']', 1)[-1].strip()
             QMetaObject.invokeMethod( self.w_ica2308.ui.label_T4, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "EID: "+rstring))            
-        else:#ICA2407
-            QMetaObject.invokeMethod( self.w_ica2308.ui.label_IN_Data, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, ".."))
-            QMetaObject.invokeMethod( self.w_ica2308.ui.label_T3, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, ".."))
+        #else:#ICA2407
+        #    QMetaObject.invokeMethod( self.w_ica2308.ui.label_IN_Data, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, ".."))
+        #    QMetaObject.invokeMethod( self.w_ica2308.ui.label_T3, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, ".."))
         
         if source == 'tm_test_result':
             if msg.current_test_no>=1:
@@ -321,7 +321,10 @@ class GuiManager(Node):
     def sts_callback(self, msg, source):
         #  testing & 2308 log textbox update *******************************************
         if msg.tm_log!="":        
-            self.get_logger().info(f"(TM_RunLog) {msg.tm_log}")
+            log_msg = msg.tm_log
+            if isinstance(log_msg, str) and log_msg.startswith("\n"):
+                log_msg = log_msg[1:]
+            self.get_logger().info(f"LCD: {log_msg}")
             QMetaObject.invokeMethod( self.w_testing.ui.TBrowser_msg, "append", Qt.QueuedConnection, QtCore.Q_ARG(str, msg.tm_log))
             QMetaObject.invokeMethod( self.w_ica2308.ui.TBrowser_msg, "append", Qt.QueuedConnection, QtCore.Q_ARG(str, msg.tm_log))
         # main window *******************************************************************
@@ -373,7 +376,7 @@ class GuiManager(Node):
                     QMetaObject.invokeMethod( self.w_testing.ui.label_T8_time, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "Test8"))
                     QMetaObject.invokeMethod( self.w_testing.ui.label_T9_time, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, "Test9"))
                 case 3:
-                    self.get_logger().info("Show testing ica2308 window")
+                    self.get_logger().info("Show testing ica2308/2407 window")
                     QtCore.QMetaObject.invokeMethod( self.w_main, "hide", QtCore.Qt.QueuedConnection )
                     QtCore.QMetaObject.invokeMethod( self.w_testing, "hide", QtCore.Qt.QueuedConnection )   
                     QtCore.QMetaObject.invokeMethod( self.w_ica2308, "show", QtCore.Qt.QueuedConnection )   

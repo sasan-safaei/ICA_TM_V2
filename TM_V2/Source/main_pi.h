@@ -140,7 +140,6 @@ struct _interact_registers{
     
     bool running_status = false;
     uint32_t gui_CMD=0;
-
     uint32_t tm_state =0;
     std::queue<std::string> fifo_csLog;
     
@@ -152,7 +151,7 @@ struct _interact_registers{
     
     uint8_t getGuiCMD(){
         uint8_t tmp= (uint8_t)gui_CMD;
-        gui_CMD=0;
+        //gui_CMD=0;
         return tmp;
     }
     // Push function: adds a new message to the queue

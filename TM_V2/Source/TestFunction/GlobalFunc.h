@@ -128,6 +128,8 @@ struct testResult{
 	float VCap_SWOff=0;
 	float Load_Current=0;
 	float VOut1=0,VOut2=0;
+	float Vout_SaveResult=0;
+	float Vin_SaveResult=0;
 	float tempIC=0,tempBatBank=0;
 	float Limit_MIN_ChargeCurrent=0;
 	float Limit_MIN_FullChargeCurrent=0;
@@ -140,6 +142,7 @@ struct testResult{
 	float Limit_MIN_VCap_ShutdownVoltage=0;
 	int Board_MaxTemp85V=0;
     void clear(int _boardName){
+		Vout_SaveResult=0;Vin_SaveResult=0;
 		ErrorNo=0;
 		EEPROM_Status=0;
 		Logstr='0';

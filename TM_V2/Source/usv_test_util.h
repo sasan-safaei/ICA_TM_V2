@@ -48,7 +48,9 @@ struct __temp__register{
     uint8_t RSL_Cnt=0;    
     uint8_t mState = 0;
     uint8_t m2State = 0;
-    
+    uint8_t m2ErrorCnt=0;
+    uint8_t m2ErrorCntLimit=0;
+    uint8_t m2ErrorNo=0;
     uint8_t key=0;
     uint16_t dcnt100ms=0;
     std::ostringstream oss;
@@ -70,6 +72,102 @@ struct __temp__register{
 
 
 //RSL:runStepsList
+struct DUT_ID{
+    enum ID{
+        NoDUT=0
+        ,ICA2405 //1
+        ,ICA2315 //2
+        ,ICA2308 //3 
+        ,ICA2407 //4 
+        ,ICA2506 //5 
+        ,ICA2510 //6
+        ,Unknown=9
+    };
+    std::string getName(ID id){
+        switch(id){
+            case ID::NoDUT: return "NoDUT";
+            case ID::ICA2405: return "ICA2405";
+            case ID::ICA2315: return "ICA2315";
+            case ID::ICA2308: return "ICA2308";
+            case ID::ICA2407: return "ICA2407";
+            case ID::ICA2506: return "ICA2506";
+            case ID::ICA2510: return "ICA2510";
+            default:
+                return "";
+        }
+    }
+    std::string getCompleteName(uint8_t id){
+        switch(id){
+            case ID::NoDUT: return "NoDUT";
+            case ID::ICA2405: return "ICA2405-NT-USV";
+            case ID::ICA2315: return "ICA2315-NT-USV";
+            case ID::ICA2308: return "ICA2308-LinuxBase";
+            case ID::ICA2407: return "ICA2407-IBISSlave";
+            case ID::ICA2506: return "ICA2506-NT-USV";
+            case ID::ICA2510: return "ICA2510-NT-USV";
+            default:
+                return "";
+        }
+    }
+    std::string getBoardKind(uint8_t id){
+        switch(id){
+            case ID::NoDUT: return "NoDUT";
+            case ID::ICA2405: return "NT-CLX USV";
+            case ID::ICA2315: return "NT-CLS USV";
+            case ID::ICA2308: return "Linux Base";
+            case ID::ICA2407: return "IBIS Slave";
+            case ID::ICA2506: return "NT-CLX USV Pro";
+            case ID::ICA2510: return "MB-PSU-MCU";
+            default:
+                return "";
+        }
+    }
+    uint32_t getNameInt(uint8_t id){
+        switch(id){
+            case ID::NoDUT: return 0;
+            case ID::ICA2405: return 2405;
+            case ID::ICA2315: return 2315;
+            case ID::ICA2308: return 2308;
+            case ID::ICA2407: return 2407;
+            case ID::ICA2506: return 2506;
+            case ID::ICA2510: return 2510;
+            default:
+                return 0;
+        }
+    }
+    std::string getNameIDStr(uint8_t id){
+        switch(id){
+            case ID::ICA2405: return "2405";
+            case ID::ICA2315: return "2315";
+            case ID::ICA2308: return "2308";
+            case ID::ICA2407: return "2407";
+            case ID::ICA2506: return "2506";
+            case ID::ICA2510: return "2510";
+            default:
+                return "";
+        }
+    }
+    int getBoardVersion(uint8_t id, float version){
+        switch(id){
+            case ID::ICA2405: {
+                int __tmpVer = static_cast<int>(version * 10);
+                return (((__tmpVer / 10) * 10) * 16) + (__tmpVer % 10);
+            }
+            break;
+            case ID::ICA2506:
+            case ID::ICA2510:
+            case ID::ICA2315: {
+                int __tmpVer2 = static_cast<int>(version * 10);
+                return (__tmpVer2 / 10) * 16 + (__tmpVer2 % 10);
+            }
+            break;
+            default:
+                return 0;
+        }
+     }
+     
+};
+
 enum TestResult{
     T_AR_Off=1
     ,T_AR_On
@@ -82,6 +180,7 @@ enum TestResult{
     ,T_FlyBackTest
     ,T_WaitToOutSWOffTest
     ,T_DisChargeTest
+    ,T_EEPROM_Uart_Save
 };
 struct RSL_struct{
     enum RSL {
@@ -91,6 +190,7 @@ struct RSL_struct{
     ,uC_Program
     ,Uart_EEPROM
     ,uart_EEPROM_RTC_I2C
+    ,uart_EEPROM_Save
     ,ChargeTest
     ,FlyBackTest
     ,WaitToOutSWOffTest
@@ -107,6 +207,7 @@ struct RSL_struct{
             case uC_Program: return "uC_Program";
             case Uart_EEPROM: return "Uart_EEPROM";
             case uart_EEPROM_RTC_I2C: return "uart_EEPROM_RTC_I2C";
+            case uart_EEPROM_Save: return "uart_EEPROM_Save";
             case ChargeTest: return "ChargeTest";
             case FlyBackTest: return "FlyBackTest";
             case WaitToOutSWOffTest: return "WaitToOutSWOffTest";
@@ -147,6 +248,7 @@ class USV_TEST_UTIL_V2{
             ,RSL_struct::RSL::FlyBackTest
             ,RSL_struct::RSL::WaitToOutSWOffTest
             ,RSL_struct::RSL::DisChargeTest
+            ,RSL_struct::RSL::uart_EEPROM_Save
         };
         std::vector<uint8_t> toDO_ICA2405={
             RSL_struct::RSL::Init
@@ -157,6 +259,7 @@ class USV_TEST_UTIL_V2{
             ,RSL_struct::RSL::FlyBackTest
             ,RSL_struct::RSL::WaitToOutSWOffTest
             ,RSL_struct::RSL::DisChargeTest
+            ,RSL_struct::RSL::uart_EEPROM_Save
         };
         std::vector<uint8_t> toDO_ICA2506={
             RSL_struct::RSL::Init
@@ -253,7 +356,7 @@ class USV_TEST_UTIL_V2{
             }
         } myTempVal;
         uint8_t Dongle=0;
-        std::string lastModifiedTime="2025.05.22";
+        std::string lastModifiedTime="2026.05.12";
         
         bool SelectBoard(uint8_t _dongle, float _version);
         void ShowMyName(){
@@ -264,27 +367,23 @@ class USV_TEST_UTIL_V2{
         std::string DongleNameStr(){
             std::stringstream ss;
                         
-            if(myBoard.boardName>0)
-                ss << "ICA" << myBoard.boardName << "V" << myBoard.boardVer;    
+            if(myBoard.boardName>0){
+                int __tmpVersion=myBoard.boardVerDec*100;
+                if((__tmpVersion % 10)==0)
+                    ss << "ICA" << myBoard.boardName << "V" << std::fixed << std::setprecision(1) << myBoard.boardVerDec;
+                else
+                    ss << "ICA" << myBoard.boardName << "V" << std::fixed << std::setprecision(2) << myBoard.boardVerDec;
                 //ss << "ICA" << myBoard.boardName << "V" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << myBoard.boardVer;    
-            else
+            }else{
                 if(Dongle==0)
                     ss<<"No Dongle!";
                 else
                     ss<<"unKnown Dongle!";
+            }
             return ss.str();
             
         }
-        void ShowMyDongle(){
-            char _str[32];
-            sprintf(_str,"ICA%d V %d ",myBoard.boardName,myBoard.boardVer);
-            showLog(_str);
-            if(myBoard.myBoardInfo.Board_SupperCapType>0){
-                sprintf(_str,"Cap:%d x %.1fV ",myBoard.myBoardInfo.Board_SupperCapType,myBoard.myBoardInfo.Board_SupperCapVoltage);
-                showLog(_str);
-            }
-    
-        }
+        
         void showOnRun(uint8_t _menuNo);
         
         void InformationMenu(void);
@@ -299,31 +398,36 @@ class USV_TEST_UTIL_V2{
         //void run_TestMachine(void);
         //void run_TestMachine_ucProgram(uint8_t _DUT);
         //void runICA2308_simple_test(float _version=1.0);
-        void runICA2407_simple_test(void);
+        //void runICA2407_simple_test(void);
         //void runICA2506(void);
         void forceStop(void);
         //void run_ManualTest(void);
-        uint8_t showError(uint8_t _errorNo);
+        uint8_t showError(uint8_t _errorNo,__temp__register & _M2);
         void checkLabDevice(void);       
         struct __constValue{
             float InCurrent_NoAR_MaxLimit=0.0;
             float InCurrent_AR_MinLimit=0.0;
             float VCC_minLimit=3.1;
             float VCC_maxLimit=3.6;
-            void setDefault(){
-                InCurrent_NoAR_MaxLimit=0.020;
-                InCurrent_AR_MinLimit=0.300;
-            }   
-            void setFor2510(){
-                InCurrent_NoAR_MaxLimit=0.030;
-                InCurrent_AR_MinLimit=0.100;
-            }
+            void setDefault( uint8_t __DUT_ID)
+            {
+                switch(__DUT_ID){                    
+                    case DUT_ID::ICA2510:
+                        InCurrent_NoAR_MaxLimit=0.030;
+                        InCurrent_AR_MinLimit=0.100;
+                    break;
+                    default:
+                        InCurrent_NoAR_MaxLimit=0.020;
+                        InCurrent_AR_MinLimit=0.100;//300
+                }
+                
+            }               
         } constValue;
         
         void run_Test_Func();
-        void preLoopFunc(void);
+        void preLoopFunc(__temp__register & _M2);
         void postLoopFunc(void);
-        void preLoopGetCaps(void);        
+        void preLoopGetCaps(__temp__register & _M2);        
         bool CheckCapsVoltageDiff(void);
         bool LabelPrint(void);
         int runSTM32ProgFunc(std::string _cmd, std::string &result);
@@ -339,6 +443,8 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_FlyBackTest(__temp__register & _M2);
         uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);
         uint8_t RSL_DisChargeTest(__temp__register & _M2);
+        uint8_t RSL_UART_Save_EEPROM(__temp__register & _M2);
+        
         
 
 };

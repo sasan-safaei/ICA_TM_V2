@@ -102,12 +102,13 @@ bool ICA2315::GPIO_get(uint16_t GPO_No){
   }
   return false;
 }
-unsigned char ICA2315::GPIO_read(){
+bool ICA2315::GPIO_read(uint8_t *__retValue){
   unsigned char rxBuff[5]={0,0,0,0,0};
   SP_Write({'I','P'});
   serialRx_delay();
   if(serialPort.sp_read(rxBuff, 1)){
-    return rxBuff[0];    
+    *__retValue = rxBuff[0];
+    return true;    
   }
   return false;
 }

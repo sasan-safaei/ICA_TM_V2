@@ -1149,6 +1149,126 @@ printf(" Error.\n");
 }
 
 
+#define _mState_EEPROMCFG 20
+void USV_TEST_UTIL_V2::runICA2407_simple_test(){
+    ICA_justEUI myICA2407;
+    //std::ofstream file;
+    uint8_t _mState = 0, LMState=0xFF;
+    uint16_t _dcnt100ms=0;
+    //float __floatTmpVale=0;
+    showLog("******************************");
+    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);            
+    DongleCheck();  
+    ShowMyDongle();
+    
+    //myArg.FileName_EUI="ICA-2407-EUI.csv";
+    
+    while((_mState<0xF0) && (xrunning==true)){        
+        usleep(100000);
+        //myTempVal.VIn= myTestDevice.getDUT_VIN();
+        //myTempVal.InCurrent = myTestDevice.getDUT_VINAmp();
+        
+        switch (_mState){ 
+            case 0://clear registers & reset Relays *********************************************
+                myInterActReg.TR.DataClear();                    
+                removeJPG_PFiles_Jobs();
+                myTempVal.clear();
+                myBoard.myEEPROM.clear_EEPROM_Buffer();
+                myBoard.myEEPROM.myData.clear();
+                //myTestResult.clear();
+                //testrReset(myBoard.boardName);
+                showLog("ICA2407 ReadEUI");
+                showLog("Start: Reset Relays and Test start.");
+                myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);                
+            _mState++;
+            break;           
+            case 1:                 
+                myTestResult.clear(myBoard.boardName);
+                showLog(" Ok.");
+                _mState++;
+            break;
+            case 2://TEST2 : Check EEPROM & serial Connection *********************************************
+                showLog("Check EEPROM & serial Connection");
+                sleep(1);
+                //system("i2cdetect -y 3");
+                _dcnt100ms=5;
+                _mState++;
+            break;
+            case 3:
+                if(_dcnt100ms-->0){
+                    if(myICA2407.ReadEUI_EEPROM()){
+                        _mState++;
+                    }
+                    else{
+                        showLog("ReadEUI Failed!!!!!!!!!");
+                    }
+                }
+                else
+                {
+                        printf(" Failed to I2C Connection! \n"); 
+                        _mState=showError(ERROR::I2CFailed);
+                }
+				break;
+            case 4:
+                for(int i=0;i<8;i++)
+                    myBoard.myEEPROM.myData.EUI[i]=myICA2407.EUI_Buffer[i];
+                myBoard.myEEPROM.ShowEUI(); //just for test  
+                myInterActReg.TR.EUI_str=myBoard.myEEPROM.myData.getEUI_Str();
+                showLog(myInterActReg.TR.EUI_str+"\n");
+                _mState++;                  
+            break;            
+            case 5:
+                _mState=25;
+            break;
+            case 25:// Label Print
+                showLog("Label Print... ");
+                _mState++;        
+                break;
+            case 26:
+                char tmp1[50];
+                char tmp2[50];
+                myBoard.updateBoardNameStr();
+                sprintf(myBoard.boardName_str,"2407A0");
+                sprintf(myBoard.boardKind_str,"IBIS Slave");
+                sprintf(tmp1,"S-Nr:%s",myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str());
+                sprintf(tmp2,"ICA%s",myBoard.boardName_str);
+                qrcode_jpeg_output(myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str(),myBoard.boardKind_str,tmp2,tmp1);
+                
+                if(QL700_Print()==0){                        
+                    QL700_Print();
+                    printf(" Ok.\n");
+                    _mState++; 
+                }
+                else{
+                    printf(" Error.\n");
+                    _mState=showError(ERROR::LabelPrintError);
+                }
+            break;
+            case 27:
+		            myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+                    myTestDevice.cleanLCD();
+                    _mState++;
+            break;
+            default: 
+                showLog("END Wait to press Key.");
+                _mState=0xFE;
+                break;
+        
+        }
+        
+        myTempVal.result=_mState;        
+        //myInterActReg.TR.InCurrent=myTempVal.InCurrent;
+        //myInterActReg.TR.Vin=myTempVal.VIn;
+        //myInterActReg.TR.Vvcc=myTempVal.VCC;             
+    }
+    
+    showLog("SAVE DATA...");
+    //just Save EUI for ICA2407
+    //SaveResult(true,myArg.StoreFolderPath+myArg.FileName_EUI,myArg.StoreFolderPath+myArg.FileName_Test);    
+    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,true);
+    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);    
+}
+
  #define debugTime 1
 void USV_TEST_UTIL_V2::run_TestMachine_ucProgram(uint8_t _DUT){
     __temp__register __tr;
