@@ -157,7 +157,8 @@ void App_TM_V2::taskLoop() {
             case DUT_ID::ID::ICA2308: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2308; break;
             case DUT_ID::ID::ICA2407: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2407; break;                
             case DUT_ID::ID::ICA2506: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2506; break;
-            case DUT_ID::ID::ICA2510: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510; break;                
+            case DUT_ID::ID::ICA2510: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510; break;   
+            case DUT_ID::ID::ICA1234: myUSVTestV2.toDoList = myUSVTestV2.toDo_ICA1234; break;             
             default:
                 myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());
                 break;

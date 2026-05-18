@@ -11,6 +11,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <limits>
 #include <limits.h>
 #include <termios.h>
 #include <sys/select.h>
@@ -89,7 +90,6 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 		<< " -c \"init\""
 		<< " -c \"reset halt\""
 		<< " -c \"flash write_image erase " << absBinPath << " 0x" << std::hex << flashAddress_ << " bin\""
-		<< " -c \"verify_image " << absBinPath << " 0x" << std::hex << flashAddress_ << " bin\""
 		<< " -c \"reset run\""
 		<< " -c \"shutdown\"";
 
@@ -169,7 +169,8 @@ FlashCompareResult STM32G030F6_Class::Verify(const std::string& binPath) {
 		return FlashCompareResult::Error;
 	}
 
-	FlashCompareResult result = CompareBinToDump(binPath, dumpPath);
+	// Pass binSize to compare so it ignores padding bytes OpenOCD may have added
+	FlashCompareResult result = CompareBinToDump(binPath, dumpPath, binSize);
 	std::remove(dumpPath.c_str());
 	return result;
 }
@@ -858,23 +859,50 @@ printf("  BOOT_LOCK: %u\n", boot_lock ? 1 : 0);
 }
 
 bool STM32G030F6_Class::DumpFlashImage(const std::string& outPath, uint32_t address, size_t size, std::string& output) {
-std::ostringstream cmd;
-cmd << "openocd";
-AppendInterfaceConfig(cmd, interfaceCfg_);
-cmd << " -c \"set WORKAREASIZE 0x" << std::hex << kRpiWorkAreaSize << "\""
-<< " -f " << targetCfg_
-<< " -c \"adapter speed " << std::dec << adapterKhz_ << "\""
-<< " -c \"init\""
-<< " -c \"reset halt\""
-<< " -c \"dump_image " << outPath << " 0x" << std::hex << address
-<< " 0x" << std::hex << size << "\""
-<< " -c \"shutdown\"";
+	// The flash controller is in reset while NRST is asserted, so AHB reads return
+	// incorrect data if we hold reset for the entire dump. Instead:
+	//   1. Assert NRST via sysfs so SWD pins are in default debug state on connect.
+	//   2. After init, write DEMCR.VC_CORERESET so the core halts when it exits reset.
+	//   3. Release NRST from within the OpenOCD session using exec+sh.
+	//   4. wait_halt: core halts at the reset vector; flash controller is now live.
+	//   5. dump_image reads correct flash data.
+	const std::string gpioBase = "/sys/class/gpio";
+	const std::string gpioPath = gpioBase + "/gpio" + std::to_string(kRpiNresetGpio);
+	std::system(("echo " + std::to_string(kRpiNresetGpio) + " > " + gpioBase + "/export 2>/dev/null || true").c_str());
+	std::system(("echo out > " + gpioPath + "/direction 2>/dev/null || true").c_str());
+	std::system(("echo 1 > " + gpioPath + "/value 2>/dev/null || true").c_str()); // HIGH → MOSFET ON → NRST LOW
 
-const int status = RunCommandCapture(cmd.str() + " 2>&1", output);
-return status == 0;
+	std::ostringstream cmd;
+	cmd << "openocd";
+	AppendInterfaceConfig(cmd, interfaceCfg_);
+	cmd << " -c \"set WORKAREASIZE 0x" << std::hex << kRpiWorkAreaSize << "\""
+		<< " -f " << targetCfg_
+		<< " -c \"reset_config none\""   // We own the reset pin; OpenOCD must not touch it
+		<< " -c \"adapter speed " << std::dec << adapterKhz_ << "\""
+		<< " -c \"init\""                // Connect while NRST is held LOW
+		<< " -c \"mww 0xe000edfc 0x01000001\""  // DEMCR: TRCENA | VC_CORERESET
+		// Release NRST from within OpenOCD so the core exits reset and halts immediately
+		<< " -c \"exec sh -c {echo 0 > /sys/class/gpio/gpio" << kRpiNresetGpio << "/value}\""
+		<< " -c \"wait_halt 2000\""      // Wait up to 2 s for core to halt at reset vector
+		<< " -c \"mww 0xe000edfc 0x01000000\""  // Clear VC_CORERESET (keep TRCENA)
+		<< " -c \"dump_image " << outPath << " 0x" << std::hex << address
+		<< " 0x" << std::hex << size << "\""
+		<< " -c \"shutdown\"";
+
+	const int status = RunCommandCapture(cmd.str() + " 2>&1", output);
+
+	// Ensure NRST is released even if exec inside OpenOCD failed
+	std::system(("echo 0 > " + gpioPath + "/value 2>/dev/null || true").c_str());
+
+	return status == 0;
 }
 
 FlashCompareResult STM32G030F6_Class::CompareBinToDump(const std::string& binPath, const std::string& dumpPath) {
+	// Default: compare entire files
+	return CompareBinToDump(binPath, dumpPath, std::numeric_limits<size_t>::max());
+}
+
+FlashCompareResult STM32G030F6_Class::CompareBinToDump(const std::string& binPath, const std::string& dumpPath, size_t maxBytes) {
 std::ifstream binFile(binPath, std::ios::binary);
 std::ifstream dumpFile(dumpPath, std::ios::binary);
 if (!binFile.is_open() || !dumpFile.is_open()) {
@@ -886,36 +914,42 @@ std::vector<unsigned char> binBuf(kBufferSize);
 std::vector<unsigned char> dumpBuf(kBufferSize);
 bool all_ff = true;
 bool all_same = true;
+size_t bytesCompared = 0;
 
-while (binFile && dumpFile) {
-binFile.read(reinterpret_cast<char*>(binBuf.data()), kBufferSize);
-dumpFile.read(reinterpret_cast<char*>(dumpBuf.data()), kBufferSize);
-const std::streamsize binRead = binFile.gcount();
-const std::streamsize dumpRead = dumpFile.gcount();
-if (binRead != dumpRead) {
-return FlashCompareResult::Error;
-}
-if (binRead <= 0) {
-break;
-}
-for (std::streamsize i = 0; i < binRead; ++i) {
-if (dumpBuf[static_cast<size_t>(i)] != 0xFFu) {
-all_ff = false;
-}
-if (dumpBuf[static_cast<size_t>(i)] != binBuf[static_cast<size_t>(i)]) {
-all_same = false;
-}
-}
-if (!all_ff && !all_same) {
-break;
-}
+while (binFile && dumpFile && bytesCompared < maxBytes) {
+	const size_t toRead = std::min(kBufferSize, maxBytes - bytesCompared);
+	binFile.read(reinterpret_cast<char*>(binBuf.data()), toRead);
+	dumpFile.read(reinterpret_cast<char*>(dumpBuf.data()), toRead);
+	const std::streamsize binRead = binFile.gcount();
+	const std::streamsize dumpRead = dumpFile.gcount();
+	
+	// At the end of file, if one is shorter than expected, it's an error
+	if (binRead != dumpRead) {
+		return FlashCompareResult::Error;
+	}
+	if (binRead <= 0) {
+		break;
+	}
+	
+	for (std::streamsize i = 0; i < binRead; ++i) {
+		if (dumpBuf[static_cast<size_t>(i)] != 0xFFu) {
+			all_ff = false;
+		}
+		if (dumpBuf[static_cast<size_t>(i)] != binBuf[static_cast<size_t>(i)]) {
+			all_same = false;
+		}
+	}
+	bytesCompared += static_cast<size_t>(binRead);
+	if (!all_ff && !all_same) {
+		break;
+	}
 }
 
 if (all_ff) {
-return FlashCompareResult::Empty;
+	return FlashCompareResult::Empty;
 }
 if (all_same) {
-return FlashCompareResult::Same;
+	return FlashCompareResult::Same;
 }
 return FlashCompareResult::Different;
 }

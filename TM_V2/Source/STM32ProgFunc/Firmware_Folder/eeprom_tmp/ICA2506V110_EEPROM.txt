@@ -1,0 +1,21 @@
+49 43 41 1B 03 09 CA 11 00 00 00 00 00 00 00 00 10 10 03 79 68 2A 1E 32 04 00 1A
+#
+# https://ica-group.atlassian.net/wiki/spaces/HWE/pages/272531474/EEPROM+Parameter+und+EUI
+# B0,B1,B2: ICA
+# B3: 0x1B=27       Packet Length
+# B4: 0x03          Packet Version
+# B5,B6:            Device ID
+# B7:               Device Version 0x12=1.2 
+# B8-B15: 0x00      Saving and testing Date
+# B16:              shunt value I(RSNSI1)
+# B17:              shunt value I(RSNSI2)
+# B18:              shunt value I(RSNSC)
+# B19:              shunt value (RTST)
+# B20:              shunt value (RT)
+# B21:              Caps Voltage on Switch the output Off 0x28=4.0V
+# B22:              supercap voltage 0x1e=3.0V
+# B23:              supercap single capacity 0x32=50F
+# B24: 	            supercap number of pieces
+# B25:              supercap type, See on List
+# B26:              supercap voltage on 85. 0x1a=2.6V
+

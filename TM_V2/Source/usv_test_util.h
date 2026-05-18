@@ -81,6 +81,7 @@ struct DUT_ID{
         ,ICA2407 //4 
         ,ICA2506 //5 
         ,ICA2510 //6
+        ,ICA1234 //7
         ,Unknown=9
     };
     std::string getName(ID id){
@@ -92,6 +93,7 @@ struct DUT_ID{
             case ID::ICA2407: return "ICA2407";
             case ID::ICA2506: return "ICA2506";
             case ID::ICA2510: return "ICA2510";
+            case ID::ICA1234: return "ICA1234";
             default:
                 return "";
         }
@@ -105,6 +107,7 @@ struct DUT_ID{
             case ID::ICA2407: return "ICA2407-IBISSlave";
             case ID::ICA2506: return "ICA2506-NT-USV";
             case ID::ICA2510: return "ICA2510-NT-USV";
+            case ID::ICA1234: return "ICA1234-TEST";
             default:
                 return "";
         }
@@ -118,6 +121,7 @@ struct DUT_ID{
             case ID::ICA2407: return "IBIS Slave";
             case ID::ICA2506: return "NT-CLX USV Pro";
             case ID::ICA2510: return "MB-PSU-MCU";
+            case ID::ICA1234: return "TEST Board";
             default:
                 return "";
         }
@@ -131,6 +135,7 @@ struct DUT_ID{
             case ID::ICA2407: return 2407;
             case ID::ICA2506: return 2506;
             case ID::ICA2510: return 2510;
+            case ID::ICA1234: return 1234;
             default:
                 return 0;
         }
@@ -143,6 +148,7 @@ struct DUT_ID{
             case ID::ICA2407: return "2407";
             case ID::ICA2506: return "2506";
             case ID::ICA2510: return "2510";
+            case ID::ICA1234: return "1234";
             default:
                 return "";
         }
@@ -154,6 +160,7 @@ struct DUT_ID{
                 return (((__tmpVer / 10) * 10) * 16) + (__tmpVer % 10);
             }
             break;
+            case ID::ICA1234:
             case ID::ICA2506:
             case ID::ICA2510:
             case ID::ICA2315: {
@@ -181,6 +188,7 @@ enum TestResult{
     ,T_WaitToOutSWOffTest
     ,T_DisChargeTest
     ,T_EEPROM_Uart_Save
+    ,T_Just_On
 };
 struct RSL_struct{
     enum RSL {
@@ -197,6 +205,7 @@ struct RSL_struct{
     ,DisChargeTest                
     ,EndSuccess
     ,EndFailed
+    ,justOn
     ,Stop
     };
     std::string getRSLStr(uint8_t _step){
@@ -228,6 +237,10 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
+        std::vector<uint8_t> toDo_ICA1234={
+            RSL_struct::RSL::Init
+            ,RSL_struct::RSL::justOn
+        };
         std::vector<uint8_t> toDO_ICA2510={
             RSL_struct::RSL::Init
             ,RSL_struct::RSL::AR_Test
@@ -282,6 +295,7 @@ class USV_TEST_UTIL_V2{
             ,RSL_struct::RSL::VCC_Test
             ,RSL_struct::RSL::uart_EEPROM_RTC_I2C
             };
+        
         std::vector<uint8_t> toDoList={};
         bool xrunning;
         struct MYAruments{
@@ -405,20 +419,22 @@ class USV_TEST_UTIL_V2{
         uint8_t showError(uint8_t _errorNo,__temp__register & _M2);
         void checkLabDevice(void);       
         struct __constValue{
-            float InCurrent_NoAR_MaxLimit=0.0;
-            float InCurrent_AR_MinLimit=0.0;
+            float InCurrent_NoAR_MaxLimit=0.020;
+            float InCurrent_AR_MinLimit=0.100;
             float VCC_minLimit=3.1;
             float VCC_maxLimit=3.6;
+
             void setDefault( uint8_t __DUT_ID)
             {
-                switch(__DUT_ID){                    
+                switch(__DUT_ID){     
+                    case DUT_ID::ICA2506:
+                        VCC_minLimit=2.8;//3.1 TEST TEST TEST
+                        VCC_maxLimit=3.6;           
+                    break;               
                     case DUT_ID::ICA2510:
                         InCurrent_NoAR_MaxLimit=0.030;
                         InCurrent_AR_MinLimit=0.100;
                     break;
-                    default:
-                        InCurrent_NoAR_MaxLimit=0.020;
-                        InCurrent_AR_MinLimit=0.100;//300
                 }
                 
             }               
@@ -444,6 +460,7 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);
         uint8_t RSL_DisChargeTest(__temp__register & _M2);
         uint8_t RSL_UART_Save_EEPROM(__temp__register & _M2);
+        uint8_t RSL_JUST_ON(__temp__register & _M2);
         
         
 

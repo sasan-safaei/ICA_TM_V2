@@ -82,8 +82,7 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
 
     switch (_dongle)
     {
-  
-            
+    case DUT_ID::ID::ICA1234: break;
     case DUT_ID::ID::ICA2405://2405
     case DUT_ID::ID::ICA2506://ICA2506
     case DUT_ID::ID::ICA2510://ICA2510
@@ -115,12 +114,14 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
             }            
         }
         if(_dongle==DUT_ID::ID::ICA2506){
+            myBoard.myBoardInfo.Board_VShutdownVoltage=4.2;//4.2V
             switch ((uint16_t)_version*100)
             {
                 case 100:
+                case 110:
                 //myBoard.boardVer=0x10;
                 myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=26;    
+                myBoard.myBoardInfo.Board_MaxTemp85V=26;                    
                 break;
             }            
         }
@@ -593,13 +594,13 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
             {                
                 myTempVal.VCC = myTestDevice.getDUT_VCC();
                 myInterActReg.TR.Vvcc=myTempVal.VCC;
-                if(myTempVal.VCC> 3.1 && myTempVal.VCC< 3.6){                    
-                    showLog((std::ostringstream{} << "Test3: VCC test (3.1V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < 3.6V)").str());
+                if(myTempVal.VCC> constValue.VCC_minLimit && myTempVal.VCC< constValue.VCC_maxLimit){                    
+                    showLog((std::ostringstream{} << "Test3: VCC test (" << constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << constValue.VCC_maxLimit << "V)").str());
                     showLog(" Ok.");                        
                     _M2.m2State++;
                 }else{
                     if(!(_M2.dcnt100ms==0)){
-                        showLog((std::ostringstream{} << "Test3: VCC test (3.1V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < 3.6V)").str());                    
+                        showLog((std::ostringstream{} << "Test3: VCC test (" << constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << constValue.VCC_maxLimit << "V)").str());                    
                         showLog("Failed!");
                         if(myTempVal.VCC< 3.1)
                             return showError(ERROR::VCCIsLow,_M2);
@@ -618,7 +619,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     myInterActReg.TR.currentTestNo=TestResult::T_uC_Program;
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
     std::string binFileName = myInterActReg.Dongle+"_STM32.bin";    
-    std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
+    //std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
 
     switch (_M2.m2State) //TEST4 : uC Program ********************************************* 
     {
@@ -636,7 +637,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         if(__ret==0){ showLog("Flash matches firmware."); _M2.m2State+=3; }
         if(__ret==0x200){ showLog("Flash is empty."); _M2.m2State++; }
         if(__ret==0x300){ showLog("Flash programmed with different firmware."); _M2.m2State++; }
-        if (__ret!=0 && __ret!=0x200 && __ret!=0x300){ showLog("Flash compare failed"); return showError(ERROR::uCProgramFailed,_M2); }
+        if (__ret!=0 && __ret!=0x200 && __ret!=0x300){ showLog((std::ostringstream{} << "Flash compare failed " << __ret).str()); return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
     case 1:// program uC with current firmware
@@ -839,7 +840,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     uint8_t __retValue=0;
     myInterActReg.TR.currentTestNo=TestResult::T_Uart;
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
-    std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
+    //std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
     switch (_M2.m2State)
     {
     case 0:
@@ -1404,12 +1405,28 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_Save_EEPROM(__temp__register & _M2){
 
 
 }
+uint8_t USV_TEST_UTIL_V2::RSL_JUST_ON(__temp__register & _M2){
+    switch(_M2.m2State){
+            case 0: //set Power On *********************************************
+            {   
+                myInterActReg.TR.currentTestNo=TestResult::T_Just_On;             
+                showLog("\nDo RSL_Just_On:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
+                myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
+                myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
+                _M2.m2State++;
+            }     
+            break;      
+            
+    }
+    return FuncStatus::running;
+}
 void USV_TEST_UTIL_V2::run_Test_Func(){
     //uint8_t _key=0;
     __temp__register __tr;
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
     std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
-    std::string uartFileName = myInterActReg.Dongle+"_EEPROM.txt";
+    //std::string uartFileName = myInterActReg.Dongle+"_EEPROM.txt";
     showLog("******************************");
     
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);            
@@ -1473,6 +1490,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 LabelPrint();
                 __tr.RSL_state=RSL_struct::RSL::Stop; 
             }
+            case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr);
             break;
             case RSL_struct::RSL::EndFailed: __tr.RSL_state=RSL_struct::RSL::Stop; break;
             default:

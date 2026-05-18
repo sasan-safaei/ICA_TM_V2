@@ -52,10 +52,16 @@
 #define __Limit_MIN_FullChargeCurrent_2315 0.300 //0.220
 
 		
+#define __Limit_MIN_WaitToOutSwOff_uC 8
+#define __Limit_MAX_WaitToOutSwOff_uC 12
+#define __Limit_MIN_OutSwOff_uC 3
+#define __Limit_MAX_OutSwOff_uC 7
+
 #define __Limit_MIN_WaitToOutSwOff_2405 0
 #define __Limit_MAX_WaitToOutSwOff_2405 5
 #define __Limit_MIN_OutSwOff_2405 10
 #define __Limit_MAX_OutSwOff_2405 30
+
 #define __Limit_MIN_VCap_ShutdownVoltage_2405 4.2
 #define __Limit_MAX_VCap_ShutdownVoltage_2405 4.7
 
@@ -69,10 +75,10 @@
 #define __Limit_MAX_Charge_time_2510 70
 #define __Limit_MIN_FullChargeCurrent_2510 0.160
 #define __Limit_MIN_ChargeCurrent_2510 0.500
-#define __Limit_MIN_WaitToOutSwOff_2510 8
-#define __Limit_MAX_WaitToOutSwOff_2510 12
-#define __Limit_MIN_OutSwOff_2510 3
-#define __Limit_MAX_OutSwOff_2510 7
+//#define __Limit_MIN_WaitToOutSwOff_2510 8
+//#define __Limit_MAX_WaitToOutSwOff_2510 12
+//#define __Limit_MIN_OutSwOff_2510 3
+//#define __Limit_MAX_OutSwOff_2510 7
 #define __Limit_MIN_VCap_ShutdownVoltage_2510 4.2
 #define __Limit_MAX_VCap_ShutdownVoltage_2510 4.7
 
@@ -178,15 +184,22 @@ struct testResult{
 				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2315;
 				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2315;
 				break;
-			case 2506:
 			case 2405:
-				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2405;
-				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2405;
-				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2405;
+			case 2506:
 				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2405;
 				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2405;
 				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2405;
 				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2405;
+				if(_boardName==2506){
+					Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_uC;
+					Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_uC;
+					Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_uC;
+					Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_uC;
+				}
+				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2405;
+				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2405;
+				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2405;
+				
 				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2405;
 				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2405;
 				break;
@@ -195,10 +208,10 @@ struct testResult{
 				Limit_MAX_Charge_time=90;// __Limit_MAX_Charge_time_2405;
 				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2510;
 				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2510;
-				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_2510;
-				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_2510;
-				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_2510;
-				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_2510;
+				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_uC;
+				Limit_MIN_WaitToOutSwOff=__Limit_MIN_WaitToOutSwOff_uC;
+				Limit_MIN_OutSwOff=__Limit_MIN_OutSwOff_uC;
+				Limit_MAX_OutSwOff=__Limit_MAX_OutSwOff_uC;
 				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2510;
 				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2510;
 				break;

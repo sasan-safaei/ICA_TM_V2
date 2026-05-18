@@ -138,6 +138,7 @@ private:
 	void PrintOptionBytesDecode(const std::vector<std::pair<uint32_t, uint32_t>>& words);
 	bool DumpFlashImage(const std::string& outPath, uint32_t address, size_t size, std::string& output);
 	FlashCompareResult CompareBinToDump(const std::string& binPath, const std::string& dumpPath);
+	FlashCompareResult CompareBinToDump(const std::string& binPath, const std::string& dumpPath, size_t maxBytes);
 
 	// Private helper methods - UART
 	int HexValue(char ch);
