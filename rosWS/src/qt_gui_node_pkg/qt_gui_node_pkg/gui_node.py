@@ -43,6 +43,7 @@ class GuiManager(Node):
     dongle_selected_text="..."
     dongle_selected_index=0
     last_tm_run_sts=-1
+    last_tmStatus="-"
     def __init__(self, app):
         super().__init__('gui_manager')
         # send_email() !!!!!!!!!!!!!!!!!!!!!!!!! hide just for test!!!!!!!!!!!!!!!!!!!!!
@@ -229,6 +230,10 @@ class GuiManager(Node):
     def msgbox_callback(self, msg, source):
         self.get_logger().info(f"!!!!! new msgBox callback:{msg.tm_msg}({msg.tm_btn_yes}/{msg.tm_btn_no}) cnt: {msg.tm_msg_counter} time:{msg.tm_msg_show_time}")
         #self.get_logger().info(f"!!!!! new msgBox callback:{msg.tm_msg}({msg.tm_btn_yes}/{msg.tm_btn_no}) cnt: {msg.tm_msg_counter} time:{msg.tm_msg_show_time}")
+        if msg.tm_msg_counter>=1000:
+            self.get_logger().info("!!! msgBox callback with counter -1, closing message box")
+            self.w_main.closeMsgRequested.emit()
+            return
         self.show_msgbox(msg.tm_msg,msg.tm_btn_yes,msg.tm_btn_no,(int)(msg.tm_msg_show_time)*1000)            
     def run_callback(self, msg, source):
         def fmt(v):
@@ -318,6 +323,24 @@ class GuiManager(Node):
             rstring = f"Caps Voltage: {fmt(msg.vcap1)}, {fmt(msg.vcap2)}, {fmt(msg.vcap3)}, {fmt(msg.vcap4)}"
             #rstring=f"Caps Voltage: {msg.vcap1:.2f}v,{msg.vcap2:.2f}v,{msg.vcap3:.2f}v,{msg.vcap4:.2f}v"
             QMetaObject.invokeMethod( self.w_testing.ui.label_allCaps, "setText", Qt.QueuedConnection, QtCore.Q_ARG(str, rstring))
+            
+            __status_raw = msg.resualt_status
+            if isinstance(__status_raw, int):
+                __status = chr(__status_raw)
+            else:
+                __status = str(__status_raw)
+            __status = __status.strip().upper()[:1]
+            if self.last_tmStatus!=__status:
+                self.get_logger().info(f"!!! Test Result: {__status} (raw: {__status_raw})")
+                self.last_tmStatus=__status
+                if __status == "O":
+                    QMetaObject.invokeMethod(self.w_testing, "set_stop_button_state", Qt.QueuedConnection, QtCore.Q_ARG(str, "Back"), QtCore.Q_ARG(str, "background-color: green;"))
+                    
+                elif __status == "F":
+                    QMetaObject.invokeMethod(self.w_testing, "set_stop_button_state", Qt.QueuedConnection, QtCore.Q_ARG(str, "Back"), QtCore.Q_ARG(str, "background-color: red;"))
+                else:
+                    QMetaObject.invokeMethod(self.w_testing, "set_stop_button_state", Qt.QueuedConnection, QtCore.Q_ARG(str, "Stop"), QtCore.Q_ARG(str, ""))
+                    
     def sts_callback(self, msg, source):
         #  testing & 2308 log textbox update *******************************************
         if msg.tm_log!="":        
@@ -407,14 +430,18 @@ class GuiManager(Node):
 
 class WMain(QtWidgets.QMainWindow):
     showMsgRequested = QtCore.pyqtSignal(str, str, str, int, object)
+    closeMsgRequested = QtCore.pyqtSignal()
     def __init__(self):
         super().__init__()
         self.ui = UiWMain()
         self.ui.setupUi(self)
+        self._active_msgbox = None
         self.showMsgRequested.connect(self._on_show_msg_requested)
+        self.closeMsgRequested.connect(self._on_close_msg_requested)
 
     def _on_show_msg_requested(self, message: str, yes_text: str, no_text: str, timeout_ms: int, manager):
         msgbox = QMessageBox()
+        self._active_msgbox = msgbox
         msgbox.setWindowTitle("ROS2 Message")
         msgbox.setText(message)
 
@@ -448,13 +475,18 @@ class WMain(QtWidgets.QMainWindow):
         msgbox.resize(1200, 800)
 
         def on_timeout():
-            if msgbox.isVisible():
+            if self._active_msgbox is msgbox and msgbox.isVisible():
                 msgbox.done(0)
                 manager.get_logger().info("!!!! MessageBox closed by timeout !!!")
+
+        def clear_active_msgbox():
+            if self._active_msgbox is msgbox:
+                self._active_msgbox = None
 
         QTimer.singleShot(timeout_ms, on_timeout)
 
         result = msgbox.exec_()
+        clear_active_msgbox()
         manager.get_logger().info(f"msgbox.exec_ ..... {QMessageBox.Rejected}")
 
         msg = MyMsgQtPub()
@@ -469,11 +501,20 @@ class WMain(QtWidgets.QMainWindow):
             msg.msgbox_press=2
         manager.myPublish.publish(msg)
 
+    def _on_close_msg_requested(self):
+        if self._active_msgbox is not None and self._active_msgbox.isVisible():
+            self._active_msgbox.done(0)
+
 class WTesting(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = UiWTesting()
         self.ui.setupUi(self)
+
+    @pyqtSlot(str, str)
+    def set_stop_button_state(self, text, stylesheet):
+        self.ui.BtnStop.setStyleSheet(stylesheet)
+        self.ui.BtnStop.setText(text)
 
 class WICA2308(QtWidgets.QMainWindow):
     def __init__(self):

@@ -102,17 +102,18 @@ struct _msg_box{
     std::string msg;
     std::string btnYesTxt;
     std::string btnNoTxt;
+    uint16_t ms100=0;
     void clear(){
         msg="";
         btnYesTxt="";
         btnNoTxt="";
-        counter=0;
+        //counter=0;
     }
     void setResualt(int32_t _resualt){
         resualt=_resualt;
     }
     bool waitForUser(std::string _msg,std::string _yesTxt,std::string _noTxt, uint16_t _timeOutSec){
-        uint16_t ms100=0;
+        ms100=0;
         timeOutCnt=60*60;        
         msg=_msg;
         btnYesTxt=_yesTxt;
@@ -120,7 +121,7 @@ struct _msg_box{
         resualt=0;
         if(_timeOutSec>0)
             timeOutCnt=_timeOutSec;
-        counter++;        
+        counter=1;        
         while(resualt==0){// && timeOutCnt>0){
             usleep(100000);
             if(++ms100>=10){
@@ -129,11 +130,33 @@ struct _msg_box{
             }
         }
         clear();
+        counter=0;
         if(resualt==1)
             return true;
         return false;
     }
-    
+    void waitForUser_JShow(std::string _msg,std::string _yesTxt,std::string _noTxt, uint16_t _timeOutSec){
+        uint16_t ms100=0;
+        timeOutCnt=60*60;        
+        msg=_msg;
+        btnYesTxt=_yesTxt;
+        btnNoTxt=_noTxt;
+        resualt=0;
+        if(_timeOutSec>0) timeOutCnt=_timeOutSec;
+        ms100=0;
+        counter++;
+    }
+    bool waiting(void){
+        usleep(100000);
+        if(++ms100>=10){
+            ms100=0;
+            if (timeOutCnt>0) timeOutCnt--;
+        }
+        if(timeOutCnt==0 ||resualt!=0) {clear();counter=1000; return false;}
+        return true;
+    }
+    void stop(void){ timeOutCnt=0; }
+    int32_t getResualt(void){ return resualt; }   
 };
 
 struct _interact_registers{
@@ -142,7 +165,7 @@ struct _interact_registers{
     uint32_t gui_CMD=0;
     uint32_t tm_state =0;
     std::queue<std::string> fifo_csLog;
-    
+    char resualtStatus=' ';
     std::string Dongle="";
     uint32_t DongleID=0;
     float board_version=0.0;

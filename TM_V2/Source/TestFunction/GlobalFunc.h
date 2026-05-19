@@ -221,6 +221,109 @@ struct testResult{
 };
 extern testResult myTestResult;
 
+//RSL:runStepsList
+struct DUT_ID{
+    enum ID{
+        NoDUT=0
+        ,ICA2405 //1
+        ,ICA2315 //2
+        ,ICA2308 //3 
+        ,ICA2407 //4 
+        ,ICA2506 //5 
+        ,ICA2510 //6
+        ,ICA1234 //7
+        ,Unknown=9
+    };
+    std::string getName(ID id){
+        switch(id){
+            case ID::NoDUT: return "NoDUT";
+            case ID::ICA2405: return "ICA2405";
+            case ID::ICA2315: return "ICA2315";
+            case ID::ICA2308: return "ICA2308";
+            case ID::ICA2407: return "ICA2407";
+            case ID::ICA2506: return "ICA2506";
+            case ID::ICA2510: return "ICA2510";
+            case ID::ICA1234: return "ICA1234";
+            default:
+                return "";
+        }
+    }
+    std::string getCompleteName(uint8_t id){
+        switch(id){
+            case ID::NoDUT: return "NoDUT";
+            case ID::ICA2405: return "ICA2405-NT-USV";
+            case ID::ICA2315: return "ICA2315-NT-USV";
+            case ID::ICA2308: return "ICA2308-LinuxBase";
+            case ID::ICA2407: return "ICA2407-IBISSlave";
+            case ID::ICA2506: return "ICA2506-NT-USV";
+            case ID::ICA2510: return "ICA2510-NT-USV";
+            case ID::ICA1234: return "ICA1234-TEST";
+            default:
+                return "";
+        }
+    }
+    std::string getBoardKind(uint8_t id){
+        switch(id){
+            case ID::NoDUT: return "NoDUT";
+            case ID::ICA2405: return "NT-CLX USV";
+            case ID::ICA2315: return "NT-CLS USV";
+            case ID::ICA2308: return "Linux Base";
+            case ID::ICA2407: return "IBIS Slave";
+            case ID::ICA2506: return "NT-CLX USV Pro";
+            case ID::ICA2510: return "MB-PSU-MCU";
+            case ID::ICA1234: return "TEST Board";
+            default:
+                return "";
+        }
+    }
+    uint32_t getNameInt(uint8_t id){
+        switch(id){
+            case ID::NoDUT: return 0;
+            case ID::ICA2405: return 2405;
+            case ID::ICA2315: return 2315;
+            case ID::ICA2308: return 2308;
+            case ID::ICA2407: return 2407;
+            case ID::ICA2506: return 2506;
+            case ID::ICA2510: return 2510;
+            case ID::ICA1234: return 1234;
+            default:
+                return 0;
+        }
+    }
+    std::string getNameIDStr(uint8_t id){
+        switch(id){
+            case ID::ICA2405: return "2405";
+            case ID::ICA2315: return "2315";
+            case ID::ICA2308: return "2308";
+            case ID::ICA2407: return "2407";
+            case ID::ICA2506: return "2506";
+            case ID::ICA2510: return "2510";
+            case ID::ICA1234: return "1234";
+            default:
+                return "";
+        }
+    }
+    int getBoardVersion(uint8_t id, float version){
+        switch(id){
+            case ID::ICA2405: {
+                int __tmpVer = static_cast<int>(version * 10);
+                return (((__tmpVer / 10) * 10) * 16) + (__tmpVer % 10);
+            }
+            break;
+            case ID::ICA1234:
+            case ID::ICA2506:
+            case ID::ICA2510:
+            case ID::ICA2315: {
+                int __tmpVer2 = static_cast<int>(version * 10);
+                return (__tmpVer2 / 10) * 16 + (__tmpVer2 % 10);
+            }
+            break;
+            default:
+                return 0;
+        }
+     }
+     
+};
 
     
 

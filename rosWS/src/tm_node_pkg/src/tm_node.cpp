@@ -110,6 +110,7 @@ private:
         tm_res_msg.cap_discharge_time=myLastInterActReg.TR.CapDisChargeTime;
         tm_res_msg.temp_scaps_bank=myLastInterActReg.TR.TempScapsBank;
         tm_res_msg.temp_ic=myLastInterActReg.TR.TempIC;
+        tm_res_msg.resualt_status= myLastInterActReg.resualtStatus;
         if(myInterActReg.msgBox.counter>0)
             if(myInterActReg.msgBox.counter!=myLastInterActReg.msgBox.counter ){
                 tm_msg_box_msg.tm_msg_counter= myInterActReg.msgBox.counter;  
@@ -144,17 +145,19 @@ private:
         //tm_sts_msg.tm_run_sts = 0;
         tm_sts_msg.tm_log="";        
         if (msg->btn_press > 0) {
+            printf("___Btn___tm_node: Get btn%d\n", msg->btn_press);
             switch (msg->btn_press) {
             case 1:
-                //printf("tm_node 11111111111111111111111111111111111111111111111111111111\n");
+                
                 if(msg->dongle_sel>0){
-                    //printf("tm_node 11 11 11 11 11 Dongle:%d \n",msg->dongle_sel);    
+                    
                     tm_sts_msg.tm_log = "gui Start button pressed!";
                     tm_sts_msg.tm_run_sts = 2;
                     if (msg->dongle_sel==3 || msg->dongle_sel==4)
                         tm_sts_msg.tm_run_sts = 3;
                     myInterActReg.gui_CMD = msg->dongle_sel;
                     myInterActReg.board_version = msg->board_version;
+                    printf("<tm_node> Start myApp ....\n");
                     myApp.run();
                     
                 }else{
@@ -166,7 +169,6 @@ private:
                 
                 break;
             case 2:
-                //printf("tm_node 222222222222222222222222222222222222222222222222222222222222222\n");
                 tm_sts_msg.tm_log = "gui Stop button pressed!";                                                
                 myInterActReg.gui_CMD = 0;  
                 printf("<tm_node> Stop myApp ....\n");
@@ -178,7 +180,6 @@ private:
 
                 break;
             case 3:
-                //printf("tm_node 333333333333333333333333333333333333333333333333333333333333333333\n");
                 if(msg->dongle_sel>0){
                     myApp.stop();
                     tm_sts_msg.tm_log = "gui ReRun button pressed!";
@@ -195,7 +196,7 @@ private:
                 }                
             break;
             default:
-                //printf("tm_node 44444444444444444444444444444444444444444444444444444444444\n");
+                printf("unKnown Btn\n");
                 tm_sts_msg.tm_log = "gui Unknown button pressed!";
                 //tm_sts_msg.tm_log_cnt+=1;
                 tm_sts_msg.tm_run_sts = 1;

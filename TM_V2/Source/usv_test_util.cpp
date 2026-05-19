@@ -1428,8 +1428,9 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
     //std::string uartFileName = myInterActReg.Dongle+"_EEPROM.txt";
     showLog("******************************");
-    
-    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);            
+    myInterActReg.resualtStatus='A';
+    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);       
+
     SelectBoard(myInterActReg.DongleID,myInterActReg.board_version);
     myInterActReg.Dongle= DongleNameStr();
     constValue.setDefault((uint8_t) myInterActReg.DongleID);
@@ -1525,14 +1526,24 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         myTempVal.result=__tr.RSL_state; 
         postLoopFunc();        
     }
-
+    if (myTestResult.ErrorNo == 0) myInterActReg.resualtStatus='O'; else myInterActReg.resualtStatus='F';
+    
     showLog("SAVE DATA...");
     SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
     SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);
-    
-    myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
-    myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
+    //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
+    //myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
+    myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
     myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
-    if(__tr.__isSupperCapsOnBoard) myInterActReg.msgBox.waitForUser("Wait 120 to Discharge","Ok","",120);    
+    myTestDevice.setRelay(USV_Test_Interface::Relays::VCCLoad,true);    
+    if(__tr.__isSupperCapsOnBoard){
+        myInterActReg.msgBox.waitForUser_JShow("Wait 120 to Discharge","Ok","",120);  
+        while(myInterActReg.msgBox.waiting()){
+            myTempVal.VCC = myTestDevice.getDUT_VCC();
+            myInterActReg.TR.Vvcc=myTempVal.VCC;
+            if(myTempVal.VCC< 1.0) myInterActReg.msgBox.stop();
+        }
+    } 
+      
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
 }
