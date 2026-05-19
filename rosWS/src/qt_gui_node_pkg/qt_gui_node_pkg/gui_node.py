@@ -98,41 +98,52 @@ class GuiManager(Node):
         return True
 
     def _load_dut_config(self, config_name=CONFIG_CFG_PATH):
+        """Parse [DUT_LIST] section.
+        Expected format per line:  {NAME,ver1,ver2,...}
+        e.g.  {ICA2405,1.61,1.62}
+        """
         dut_map = {}
         dut_versions = {}
         dut_base_list = []
-        config_path = os.path.join(os.path.dirname(__file__), config_name)
+        config_path = config_name if os.path.isabs(config_name) else os.path.join(os.path.dirname(__file__), config_name)
         if not os.path.isfile(config_path):
+            print(f"<gui_node> config not found: {config_path}")
             return dut_map, dut_versions, dut_base_list
 
-        in_dut_section = False
+        in_dut_list = False
         try:
-            with open(config_path, "r", encoding="utf-8") as config_file:
-                for line in config_file:
+            with open(config_path, "r", encoding="utf-8") as f:
+                for line in f:
                     stripped = line.strip()
-                    if not stripped:
+                    if not stripped or stripped.startswith("#"):
                         continue
+                    # section header
                     if stripped.startswith("[") and stripped.endswith("]"):
-                        in_dut_section = stripped == "[DUT]"
+                        in_dut_list = (stripped == "[DUT_LIST]")
                         continue
-                    if not in_dut_section:
+                    if not in_dut_list:
                         continue
-                    if ":" not in stripped:
+                    # expect {NAME,ver1,ver2,...}
+                    if not (stripped.startswith("{") and stripped.endswith("}")):
                         continue
-                    dut_key, dut_value = [part.strip() for part in stripped.split(":", 1)]
-                    if "," not in dut_value:
+                    parts = [p.strip() for p in stripped[1:-1].split(",")]
+                    if len(parts) < 2:
                         continue
-                    base, version = [part.strip() for part in dut_value.split(",", 1)]
+                    base = parts[0]
+                    versions = parts[1:]
                     if base not in dut_map:
                         dut_map[base] = {}
                         dut_versions[base] = []
                         dut_base_list.append(base)
-                    if version not in dut_map[base]:
-                        dut_map[base][version] = dut_key
-                        dut_versions[base].append(version)
-        except OSError:
+                    for ver in versions:
+                        if ver and ver not in dut_map[base]:
+                            dut_map[base][ver] = base   # key used for image lookup
+                            dut_versions[base].append(ver)
+        except OSError as e:
+            print(f"<gui_node> error reading config: {e}")
             return dut_map, dut_versions, dut_base_list
 
+        print(f"<gui_node> DUT_LIST loaded: {dut_base_list}")
         return dut_map, dut_versions, dut_base_list
 
     def _get_selected_dut_key(self):

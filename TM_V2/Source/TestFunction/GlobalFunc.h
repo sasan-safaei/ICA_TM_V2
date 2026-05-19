@@ -111,19 +111,7 @@ class durationTimerClass{
     
     
 
-struct boardInfo{
-        float LTC3350_RSNSI1=0;
-        float LTC3350_RSNSI2=0;
-        float LTC3350_RSNSC=0;
-        float LTC3350_RTST=0;
-        float LTC3350_RT=0;
-        float Board_SupperCapVoltage=0;
-        int Board_SupperCapSingleCap=0;
-        int Board_SupperCapNum=0;
-        int Board_SupperCapType=0;
-        int Board_MaxTemp85V=0;
-		float Board_VShutdownVoltage=0;
-};
+
 struct testResult{
 	uint8_t ErrorNo=0;
 	uint8_t EEPROM_Status=0;

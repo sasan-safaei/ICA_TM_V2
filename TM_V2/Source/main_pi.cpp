@@ -13,11 +13,12 @@ LabDevice MyLabDevice;
 durationTimerClass myDurationTimer;
 testResult myTestResult;
 myNet myTcpUdpNet;
-std::string lastModifiedTime="2026.05.13";
+std::string lastModifiedTime="19.05.2026";
 //ConsoleKeyClass myCKey;
 #include "usv_test_util.h"
 //#include "./TestFunction/usv_test_util.h"
 USV_TEST_UTIL_V2 myUSVTestV2;
+CfgReader cfg;
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -43,6 +44,7 @@ int create_folder(const char *path) {
     }
     return 0;
 }
+
 bool getConfig(){
 
     std::string configFile = myUSVTestV2.myArg.workSpace+"config.cfg";
@@ -86,7 +88,25 @@ bool App_TM_V2::initialize(int argc, char* argv[]){
         return 1; // Handle error
     }
     myUSVTestV2.getArg(argc, argv);
+    
+    if (cfg.load(myUSVTestV2.myArg.workSpace+"config.cfg")) {
+        for (const auto& dut : cfg.getDutList()) {
+            std::cout << dut.name << ", " << dut.version;
+            if (!dut.displayName.empty()) {
+                std::cout << ", " << dut.displayName;
+            }
+            std::cout << std::endl;
+            std::cout << dut.boardInfo.toString() << std::endl;
+            std::cout << "ToDo List: ";
+            for (const auto& task : dut.toDoList) {
+                std::cout << task << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+    
     getConfig();
+
     myUSVTestV2.myArg.StoreFolderPath=myUSVTestV2.myArg.workSpace+myUSVTestV2.myArg.StoreFolderName;
     if (create_folder( myUSVTestV2.myArg.StoreFolderPath.c_str()) != 0) {
         return 1; // Handle error

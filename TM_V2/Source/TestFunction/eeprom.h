@@ -5,6 +5,7 @@
 #include <ctime>
 #include <string.h>
 #include "GlobalFunc.h"
+#include "./../getBasic.h"
 
 #include <sstream>
 #include <iomanip>
@@ -278,7 +279,7 @@ private:
     // Update myData struct from Current Time
     void getCurrentTime();
     // Update myData struct from Arquments
-    void updateBoardInfo(int _boardName, int _boardVer, boardInfo _dataBI, testResult _tr);
+    void updateBoardInfo(int _boardName, int _boardVer, boardInfo_struct _dataBI, testResult _tr);
     uint8_t CheckDataVersionProcess(bool debugShow);  
 };
 

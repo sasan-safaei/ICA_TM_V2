@@ -28,7 +28,7 @@
 class ICA2315 {
 public:
     eeprom myEEPROM;
-    boardInfo myBoardInfo;
+    boardInfo_struct myBoardInfo;
     
     int boardName=-1;
     int boardType=-1;

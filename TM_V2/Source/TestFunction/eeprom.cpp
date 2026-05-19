@@ -213,7 +213,7 @@ void eeprom::BuffUpdate_LVer(){
     EEPROMDataBuffer[__len+1]=crc&0x0FF;
 }
 void eeprom::getCurrentTime(){ myData.testTime = std::time(nullptr); }
-void eeprom::updateBoardInfo(int _boardName, int _boardVer, boardInfo _dataBI, testResult _tr){
+void eeprom::updateBoardInfo(int _boardName, int _boardVer, boardInfo_struct _dataBI, testResult _tr){
     myData.RSNSI1=_dataBI.LTC3350_RSNSI1*1000;
     myData.RSNSI2=_dataBI.LTC3350_RSNSI2*1000;
     myData.RSNSC=_dataBI.LTC3350_RSNSC*1000;

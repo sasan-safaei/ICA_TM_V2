@@ -30,6 +30,7 @@
 
 #include <sstream>
 #include "unistd.h"
+#include "getBasic.h"
 struct _testResualtValue{
     uint8_t currentTestNo;
     std::string currentTestNoStr; 
@@ -227,5 +228,5 @@ class App_TM_V2 {
         void taskLoop();
 };
 extern App_TM_V2 myApp;
-
+extern CfgReader cfg;
 #endif // _ICA_MAIN_PI_H

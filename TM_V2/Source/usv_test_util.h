@@ -70,9 +70,6 @@ struct __temp__register{
     bool __isSupperCapsOnBoard=false;
  };
 
-
-
-
 enum TestResult{
     T_AR_Off=1
     ,T_AR_On
@@ -88,45 +85,7 @@ enum TestResult{
     ,T_EEPROM_Uart_Save
     ,T_Just_On
 };
-struct RSL_struct{
-    enum RSL {
-    Init=0
-    ,AR_Test
-    ,VCC_Test
-    ,uC_Program
-    ,Uart_EEPROM
-    ,uart_EEPROM_RTC_I2C
-    ,uart_EEPROM_Save
-    ,ChargeTest
-    ,FlyBackTest
-    ,WaitToOutSWOffTest
-    ,DisChargeTest                
-    ,EndSuccess
-    ,EndFailed
-    ,justOn
-    ,Stop
-    };
-    std::string getRSLStr(uint8_t _step){
-        switch(_step){
-            case Init: return "Init";
-            case AR_Test: return "AR_Test";
-            case VCC_Test: return "VCC_Test";
-            case uC_Program: return "uC_Program";
-            case Uart_EEPROM: return "Uart_EEPROM";
-            case uart_EEPROM_RTC_I2C: return "uart_EEPROM_RTC_I2C";
-            case uart_EEPROM_Save: return "uart_EEPROM_Save";
-            case ChargeTest: return "ChargeTest";
-            case FlyBackTest: return "FlyBackTest";
-            case WaitToOutSWOffTest: return "WaitToOutSWOffTest";
-            case DisChargeTest: return "DisChargeTest";                
-            case EndSuccess: return "EndSuccess";                
-            case EndFailed: return "EndFailed";                
-            case Stop: return "Stop";                
-            default:
-                return "";
-        }
-     }
-};
+
 enum FuncStatus {
     running=0
     ,success
@@ -135,64 +94,6 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        std::vector<uint8_t> toDo_ICA1234={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::justOn
-        };
-        std::vector<uint8_t> toDO_ICA2510={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::AR_Test
-            ,RSL_struct::RSL::VCC_Test
-            ,RSL_struct::RSL::uC_Program
-            ,RSL_struct::RSL::Uart_EEPROM
-            ,RSL_struct::RSL::ChargeTest
-            ,RSL_struct::RSL::FlyBackTest
-            ,RSL_struct::RSL::WaitToOutSWOffTest
-            ,RSL_struct::RSL::DisChargeTest
-        };
-        std::vector<uint8_t> toDO_ICA2315={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::AR_Test
-            ,RSL_struct::RSL::VCC_Test
-            ,RSL_struct::RSL::Uart_EEPROM
-            ,RSL_struct::RSL::ChargeTest
-            ,RSL_struct::RSL::FlyBackTest
-            ,RSL_struct::RSL::WaitToOutSWOffTest
-            ,RSL_struct::RSL::DisChargeTest
-            ,RSL_struct::RSL::uart_EEPROM_Save
-        };
-        std::vector<uint8_t> toDO_ICA2405={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::AR_Test
-            ,RSL_struct::RSL::VCC_Test
-            ,RSL_struct::RSL::Uart_EEPROM
-            ,RSL_struct::RSL::ChargeTest
-            ,RSL_struct::RSL::FlyBackTest
-            ,RSL_struct::RSL::WaitToOutSWOffTest
-            ,RSL_struct::RSL::DisChargeTest
-            ,RSL_struct::RSL::uart_EEPROM_Save
-        };
-        std::vector<uint8_t> toDO_ICA2506={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::AR_Test
-            ,RSL_struct::RSL::VCC_Test
-            ,RSL_struct::RSL::uC_Program
-            ,RSL_struct::RSL::Uart_EEPROM
-            ,RSL_struct::RSL::ChargeTest
-            ,RSL_struct::RSL::FlyBackTest
-            ,RSL_struct::RSL::WaitToOutSWOffTest
-            ,RSL_struct::RSL::DisChargeTest
-        };
-        std::vector<uint8_t> toDO_ICA2308={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::VCC_Test
-            ,RSL_struct::RSL::uart_EEPROM_RTC_I2C
-            };
-        std::vector<uint8_t> toDO_ICA2407={
-            RSL_struct::RSL::Init
-            ,RSL_struct::RSL::VCC_Test
-            ,RSL_struct::RSL::uart_EEPROM_RTC_I2C
-            };
         
         std::vector<uint8_t> toDoList={};
         bool xrunning;
