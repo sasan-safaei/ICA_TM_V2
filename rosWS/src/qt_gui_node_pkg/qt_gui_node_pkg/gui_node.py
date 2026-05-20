@@ -72,6 +72,7 @@ class GuiManager(Node):
         self.w_main.ui.actionAbout.triggered.connect(self.show_about_dialog)
         #self.w_main.ui.actionNewGitPass.triggered.connect(self.show_newGitPass)
         self.w_main.ui.actionPrint_EUI_s.triggered.connect(self.show_prinEUI)
+        self.set_image(tm_workspace+"uiBuild/No_Device.jpg")
         
         
 
@@ -187,18 +188,20 @@ class GuiManager(Node):
                 msg.btn_press = 0
                 msg.dongle_sel = self.w_main.ui.cBoxDongle.currentIndex()
                 #msg.board_version = board_ver_float
-                msg.msgbox_press = 0
+                msg.msgbox_press = 0    
                 msg.board_version = self._get_selected_version_float()
                 self.myPublish.publish(msg)
                 print(f"<gui_node> Board version set to: {msg.board_version}")
-                image_name = f"{self._get_selected_dut_key()}.jpg"
-                if not self.set_image("./uiBuild/" + image_name):
-                    self.set_image("./uiBuild/No_Device.jpg")
+                image_name = f"{self._get_selected_dut_key()}V{self._get_selected_version_float()}.jpg"
                 
-            except ValueError:
-                print(f"<gui_node> Could not convert '{text}' to float")
-                self.set_image("./uiBuild/No_Device.jpg")
-    
+                if not self.set_image(tm_workspace + "uiBuild/" + image_name):
+                    print(f"<gui_node> Attempting to set image: <<< {image_name} >>>")
+                    self.set_image(tm_workspace+"uiBuild/No_Device.jpg")
+                
+            except ValueError:            
+                self.set_image(tm_workspace+"uiBuild/No_Device.jpg")
+        else:
+            self.set_image(tm_workspace+"uiBuild/No_Device.jpg")
     def publish_btn_CMD(self, btnNum):
         msg =MyMsgQtPub()
         msg.btn_press = btnNum

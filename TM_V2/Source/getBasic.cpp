@@ -29,17 +29,26 @@ bool CfgReader::load(const std::string& filePath)
     // Reset previous values
     m_cfg = BasicConfig{};
 
-    enum class Section { NONE, TM_DEVICE, EMAIL, DUT_LIST, DUT_DEFAULT, DUT_SECTION, DUT_VERSION, BOARD_INFO, OTHER };
+    enum class Section { NONE, TM_DEVICE, EMAIL, CAPS_LIST, DUT_LIST, DUT_DEFAULT, DUT_SECTION, DUT_VERSION, BOARD_INFO, MEASUREMENT_POINT, OTHER };
     Section currentSection = Section::NONE;
     Section boardInfoOwner = Section::NONE;
+    Section measurementPointOwner = Section::NONE;
     std::string currentDutName;
     std::string currentDutVersion;
     std::string currentDutFullName;
+    std::string currentDutBoardKind;
     std::string defaultDutFullName;
+    std::string defaultDutBoardKind;
+    int defaultDutEEPROM_BVer = 0;
     boardInfo_struct currentBoardInfo;
     boardInfo_struct defaultBoardInfo;
+    measurementPoint_struct currentMeasurementPoint;
+    measurementPoint_struct defaultMeasurementPoint;
     bool hasDefaultBoardInfo = false;
+    bool hasDefaultMeasurementPoint = false;
     bool hasDefaultFullName = false;
+    bool hasDefaultBoardKind = false;
+    bool hasDefaultEEPROM_BVer = false;
     bool boardInfoHasData = false;
     std::vector<RSL_struct::RSL> currentToDoList;
     std::vector<RSL_struct::RSL> defaultToDoList;
@@ -71,10 +80,26 @@ bool CfgReader::load(const std::string& filePath)
         }
     };
 
+    auto applyMeasurementPointToBaseDut = [&](const std::string& name, const measurementPoint_struct& info) {
+        for (auto& dut : m_cfg.dutList) {
+            if (dut.name == name) {
+                dut.measurementPoint = info;
+            }
+        }
+    };
+
     auto applyFullNameToBaseDut = [&](const std::string& name, const std::string& FullName) {
         for (auto& dut : m_cfg.dutList) {
             if (dut.name == name) {
                 dut.FullName = FullName;
+            }
+        }
+    };
+
+    auto applyBoardKindToBaseDut = [&](const std::string& name, const std::string& boardKind) {
+        for (auto& dut : m_cfg.dutList) {
+            if (dut.name == name) {
+                dut.BoardKind = boardKind;
             }
         }
     };
@@ -87,12 +112,31 @@ bool CfgReader::load(const std::string& filePath)
         }
     };
 
+    auto applyEEPROMBVerToBaseDut = [&](const std::string& name, int eepromBoardVersion) {
+        for (auto& dut : m_cfg.dutList) {
+            if (dut.name == name) {
+                dut.EEPROM_BVer = eepromBoardVersion;
+                dut.hasEEPROM_BVer = true;
+            }
+        }
+    };
+
     auto applyDefaultsToEntry = [&](DutEntry& dut) {
         if (hasDefaultFullName && dut.FullName.empty()) {
             dut.FullName = defaultDutFullName;
         }
+        if (hasDefaultBoardKind && dut.BoardKind.empty()) {
+            dut.BoardKind = defaultDutBoardKind;
+        }
+        if (hasDefaultEEPROM_BVer && !dut.hasEEPROM_BVer) {
+            dut.EEPROM_BVer = defaultDutEEPROM_BVer;
+            dut.hasEEPROM_BVer = true;
+        }
         if (hasDefaultBoardInfo) {
             dut.boardInfo = defaultBoardInfo;
+        }
+        if (hasDefaultMeasurementPoint) {
+            dut.measurementPoint = defaultMeasurementPoint;
         }
         if (hasDefaultToDoList) {
             dut.toDoList = defaultToDoList;
@@ -109,6 +153,7 @@ bool CfgReader::load(const std::string& filePath)
         currentDutName = trim(dutName);
         currentDutVersion.clear();
         currentDutFullName.clear();
+        currentDutBoardKind.clear();
         currentSection = Section::DUT_SECTION;
     };
 
@@ -129,6 +174,7 @@ bool CfgReader::load(const std::string& filePath)
 
                 if      (sec == "TM_DEVICE") currentSection = Section::TM_DEVICE;
                 else if (sec == "EMAIL")     currentSection = Section::EMAIL;
+                else if (sec == "CAPS_LIST") currentSection = Section::CAPS_LIST;
                 else if (sec == "DUT_LIST")  currentSection = Section::DUT_LIST;
                  else if (sec == "DUT_DEFAULT") currentSection = Section::DUT_DEFAULT;
                 else if (sec == "DUT_VERSION" || sec == "DUT_version" || sec == "DUT-version" ||
@@ -136,6 +182,7 @@ bool CfgReader::load(const std::string& filePath)
                     currentSection = Section::DUT_VERSION;
                     currentDutVersion.clear();
                     currentDutFullName.clear();
+                    currentDutBoardKind.clear();
                 }
                 else if (sec == "DUT") {
                     std::string dutName = tail;
@@ -172,6 +219,23 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
+        if (currentSection == Section::DUT_VERSION && s.rfind("MEASUREMENT_POINT={", 0) == 0) {
+            if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                currentMeasurementPoint = dut->measurementPoint;
+            } else {
+                currentMeasurementPoint = measurementPoint_struct{};
+            }
+            measurementPointOwner = currentSection;
+            currentSection = Section::MEASUREMENT_POINT;
+            std::string rest = trim(s.substr(std::string("MEASUREMENT_POINT={").size()));
+            if (!rest.empty() && rest != "}") {
+                if (rest.back() == '}')
+                    rest.pop_back();
+                parseMeasurementPointLine(trim(rest), currentMeasurementPoint);
+            }
+            continue;
+        }
+
         if ((currentSection == Section::DUT_SECTION || currentSection == Section::DUT_VERSION || currentSection == Section::DUT_DEFAULT) &&
             s.rfind("toDO_LIST=", 0) == 0) {
             currentToDoList.clear();
@@ -204,6 +268,20 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
+        if ((currentSection == Section::DUT_SECTION || currentSection == Section::DUT_VERSION || currentSection == Section::DUT_DEFAULT) &&
+            s.rfind("MEASUREMENT_POINT={", 0) == 0) {
+            currentMeasurementPoint = measurementPoint_struct{};
+            measurementPointOwner = currentSection;
+            currentSection = Section::MEASUREMENT_POINT;
+            std::string rest = trim(s.substr(std::string("MEASUREMENT_POINT={").size()));
+            if (!rest.empty() && rest != "}") {
+                if (rest.back() == '}')
+                    rest.pop_back();
+                parseMeasurementPointLine(trim(rest), currentMeasurementPoint);
+            }
+            continue;
+        }
+
         if (currentSection == Section::DUT_SECTION &&
             (s.rfind("Name=", 0) == 0 || s.rfind("DUT-ID=", 0) == 0)) {
             std::string val = trim(s.substr(s.find('=') + 1));
@@ -219,11 +297,35 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
+        if (currentSection == Section::DUT_SECTION && s.rfind("BoardKind=", 0) == 0) {
+            const std::string val = trim(s.substr(std::string("BoardKind=").size()));
+            applyBoardKindToBaseDut(currentDutName, val);
+            continue;
+        }
+
         if (currentSection == Section::DUT_DEFAULT &&
             (s.rfind("FullName=", 0) == 0 || s.rfind("Name=", 0) == 0)) {
             defaultDutFullName = trim(s.substr(s.find('=') + 1));
             hasDefaultFullName = !defaultDutFullName.empty();
             applyDefaultsToAllDuts();
+            continue;
+        }
+
+        if (currentSection == Section::DUT_DEFAULT && s.rfind("BoardKind=", 0) == 0) {
+            defaultDutBoardKind = trim(s.substr(std::string("BoardKind=").size()));
+            hasDefaultBoardKind = !defaultDutBoardKind.empty();
+            applyDefaultsToAllDuts();
+            continue;
+        }
+
+        if (currentSection == Section::DUT_DEFAULT && s.rfind("EEPROM_BVer=", 0) == 0) {
+            try {
+                defaultDutEEPROM_BVer = std::stoi(trim(s.substr(std::string("EEPROM_BVer=").size())), nullptr, 0);
+                hasDefaultEEPROM_BVer = true;
+                applyDefaultsToAllDuts();
+            } catch (...) {
+                // Ignore malformed EEPROM_BVer and keep existing values.
+            }
             continue;
         }
 
@@ -237,12 +339,31 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
+        if (currentSection == Section::DUT_SECTION && s.rfind("EEPROM_BVer=", 0) == 0) {
+            try {
+                int eepromBoardVersion = std::stoi(trim(s.substr(std::string("EEPROM_BVer=").size())), nullptr, 0);
+                applyEEPROMBVerToBaseDut(currentDutName, eepromBoardVersion);
+            } catch (...) {
+                // Ignore malformed EEPROM_BVer and keep existing values.
+            }
+            continue;
+        }
+
         if (currentSection == Section::DUT_VERSION &&
             (s.rfind("Name=", 0) == 0 || s.rfind("FullName=", 0) == 0)) {
             std::string val = trim(s.substr(s.find('=') + 1));
             currentDutFullName = val;
             if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
                 dut->FullName = currentDutFullName;
+            }
+            continue;
+        }
+
+        if (currentSection == Section::DUT_VERSION && s.rfind("BoardKind=", 0) == 0) {
+            std::string val = trim(s.substr(std::string("BoardKind=").size()));
+            currentDutBoardKind = val;
+            if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                dut->BoardKind = currentDutBoardKind;
             }
             continue;
         }
@@ -261,6 +382,9 @@ bool CfgReader::load(const std::string& filePath)
                         if (!currentDutFullName.empty()) {
                             dut->FullName = currentDutFullName;
                         }
+                        if (!currentDutBoardKind.empty()) {
+                            dut->BoardKind = currentDutBoardKind;
+                        }
                     }
                 }
                 currentSection = boardInfoOwner;
@@ -274,9 +398,33 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
+        if (currentSection == Section::MEASUREMENT_POINT) {
+            if (s == "}") {
+                if (measurementPointOwner == Section::DUT_DEFAULT) {
+                    defaultMeasurementPoint = currentMeasurementPoint;
+                    hasDefaultMeasurementPoint = true;
+                    applyDefaultsToAllDuts();
+                } else if (measurementPointOwner == Section::DUT_SECTION && currentDutVersion.empty()) {
+                    applyMeasurementPointToBaseDut(currentDutName, currentMeasurementPoint);
+                } else if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                    dut->measurementPoint = currentMeasurementPoint;
+                }
+                currentSection = measurementPointOwner;
+                measurementPointOwner = Section::NONE;
+                continue;
+            }
+
+            std::string measurementLine = s;
+            if (!measurementLine.empty() && measurementLine.back() == ',')
+                measurementLine.pop_back();
+            parseMeasurementPointLine(measurementLine, currentMeasurementPoint);
+            continue;
+        }
+
         switch (currentSection) {
 
         case Section::TM_DEVICE: parseDeviceLine(s); break;       
+        case Section::CAPS_LIST: parseCapsListLine(s); break;
         case Section::DUT_LIST: {
             const std::size_t beforeCount = m_cfg.dutList.size();
             parseDutListLine(s, nextDutId);
@@ -301,10 +449,24 @@ bool CfgReader::load(const std::string& filePath)
                     } catch (...) {
                         // Ignore malformed IDs and keep existing values.
                     }
+                } else if (key == "EEPROM_BVer") {
+                    try {
+                        if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                            dut->EEPROM_BVer = std::stoi(val, nullptr, 0);
+                            dut->hasEEPROM_BVer = true;
+                        }
+                    } catch (...) {
+                        // Ignore malformed EEPROM_BVer and keep existing values.
+                    }
                 } else if (key == "Name") {
                     currentDutFullName = val;
                     if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
                         dut->FullName = currentDutFullName;
+                    }
+                } else if (key == "BoardKind") {
+                    currentDutBoardKind = val;
+                    if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                        dut->BoardKind = currentDutBoardKind;
                     }
                 }
             }
@@ -319,6 +481,43 @@ bool CfgReader::load(const std::string& filePath)
     std::cout << "[CfgReader] Loaded " << filePath
               << "  DUTs: " << m_cfg.dutList.size() << "\n";
     return true;
+}
+
+void CfgReader::parseCapsListLine(const std::string& line)
+{
+    if (line.empty())
+        return;
+
+    if (line.front() != '{' || line.back() != '}')
+        return;
+
+    std::string inner = line.substr(1, line.size() - 2);
+    std::vector<std::string> parts = splitCsv(inner);
+    if (parts.size() < 2)
+        return;
+
+    int capId = 0;
+    try {
+        capId = std::stoi(trim(parts[0]));
+    } catch (...) {
+        return;
+    }
+
+    std::string capName;
+    if (parts.size() >= 3) {
+        capName = trim(parts[2]);
+    } else {
+        capName = trim(parts[1]);
+    }
+
+    if (!capName.empty() && capName.front() == '"') {
+        capName.erase(capName.begin());
+    }
+    if (!capName.empty() && capName.back() == '"') {
+        capName.pop_back();
+    }
+
+    m_cfg.capTypeNames[capId] = capName;
 }
 
 // Parse  Key = Value  lines inside [TM_DEVICE]
@@ -393,8 +592,45 @@ void CfgReader::parseBoardInfoLine(const std::string& line, boardInfo_struct& in
         else if (key == "B_SCapSingleCap") info.Board_SupperCapSingleCap = std::stoi(val);
         else if (key == "B_SCapNum")      info.Board_SupperCapNum = std::stoi(val);
         else if (key == "B_SCapType")     info.Board_SupperCapType = std::stoi(val);
-        else if (key == "B_MaxTemp85V")   info.Board_MaxTemp85V = std::stoi(val);
+        else if (key == "B_MaxTemp85V")   info.Board_MaxTemp85V = (int)(std::stof(val)*10);
         else if (key == "B_VShutdown")    info.Board_VShutdownVoltage = std::stof(val);
+    } catch (...) {
+        // Ignore malformed values and keep defaults
+    }
+}
+
+void CfgReader::parseMeasurementPointLine(const std::string& line, measurementPoint_struct& info)
+{
+    auto eq = line.find('=');
+    if (eq == std::string::npos)
+        return;
+
+    std::string key = trim(line.substr(0, eq));
+    std::string val = trim(line.substr(eq + 1));
+
+    if (!val.empty() && val.back() == ',')
+        val.pop_back();
+
+    if (!val.empty() && val.front() == '{')
+        val.erase(val.begin());
+    if (!val.empty() && val.back() == '}')
+        val.pop_back();
+
+    try {
+        if      (key == "InCurrent_NoAR_MaxLimit") info.InCurrent_NoAR_MaxLimit = std::stof(val);
+        else if (key == "InCurrent_AR_MinLimit")   info.InCurrent_AR_MinLimit   = std::stof(val);
+        else if (key == "VCC_minLimit")            info.VCC_minLimit            = std::stof(val);
+        else if (key == "VCC_maxLimit")            info.VCC_maxLimit            = std::stof(val);
+        else if (key == "Load_Current")            info.Load_Current            = std::stof(val);
+        else if (key == "Limit_MIN_ChargeCurrent") info.Limit_MIN_ChargeCurrent = std::stof(val);
+        else if (key == "Limit_MIN_FullChargeCurrent") info.Limit_MIN_FullChargeCurrent = std::stof(val);
+        else if (key == "Limit_MAX_Charge_time")   info.Limit_MAX_Charge_time   = std::stoi(val);
+        else if (key == "Limit_MIN_WaitToOutSwOff") info.Limit_MIN_WaitToOutSwOff = std::stoi(val);
+        else if (key == "Limit_MAX_WaitToOutSwOff") info.Limit_MAX_WaitToOutSwOff = std::stoi(val);
+        else if (key == "Limit_MIN_OutSwOff")      info.Limit_MIN_OutSwOff      = std::stoi(val);
+        else if (key == "Limit_MAX_OutSwOff")      info.Limit_MAX_OutSwOff      = std::stoi(val);
+        else if (key == "Limit_MIN_VCap_ShutdownVoltage") info.Limit_MIN_VCap_ShutdownVoltage = std::stof(val);
+        else if (key == "Limit_MAX_VCap_ShutdownVoltage") info.Limit_MAX_VCap_ShutdownVoltage = std::stof(val);
     } catch (...) {
         // Ignore malformed values and keep defaults
     }
@@ -469,11 +705,28 @@ void CfgReader::showAllConfig()
     std::cout << "DUT List:\n";
     for (const auto& dut : m_cfg.dutList) {
         std::cout <<"ID: " << dut.id << ", Name: " << dut.name << ", Version: " << dut.version;
+        if (dut.hasEEPROM_BVer) {
+            std::cout << ", EEPROM_BVer: 0x" << std::hex << std::uppercase << dut.EEPROM_BVer << std::dec;
+        }
         if (!dut.FullName.empty()) {
             std::cout << ", Full Name: " << dut.FullName;
         }
+        if (!dut.BoardKind.empty()) {
+            std::cout << ", Board Kind: " << dut.BoardKind;
+        }
         std::cout << std::endl;
         std::cout << dut.boardInfo.toString() << std::endl;
+        if (dut.boardInfo.Board_SupperCapType != 0) {
+            const std::string capName = getCapTypeName(dut.boardInfo.Board_SupperCapType);
+            std::cout << "Cap Type Name: ";
+            if (!capName.empty()) {
+                std::cout << capName;
+            } else {
+                std::cout << "Unknown Cap Type";
+            }
+            std::cout << " (ID: " << dut.boardInfo.Board_SupperCapType << ")\n";
+        }
+        std::cout << dut.measurementPoint.toString() << std::endl;
         std::cout << "ToDo List: [";
         
         for (size_t i = 0; i < dut.toDoList.size(); ++i) {
@@ -484,5 +737,14 @@ void CfgReader::showAllConfig()
         std::cout << "]\n";
         std::cout << "-----------------------" << std::endl;
     }
+}
+
+std::string CfgReader::getCapTypeName(int capTypeId) const
+{
+    auto it = m_cfg.capTypeNames.find(capTypeId);
+    if (it == m_cfg.capTypeNames.end()) {
+        return "";
+    }
+    return it->second;
 }
 

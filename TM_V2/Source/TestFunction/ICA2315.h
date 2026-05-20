@@ -24,15 +24,50 @@
 //extern int Board_SupperCapSingleCap;
 //extern int Board_SupperCapNum;
 //extern boardInfo LTC3350value;
-
+struct __MessureValue{
+            float InCurrent_NoAR_MaxLimit=0.020;
+            float InCurrent_AR_MinLimit=0.100;
+            float VCC_minLimit=3.1;
+            float VCC_maxLimit=3.6;
+            float Load_Current=0;
+            float Limit_MIN_ChargeCurrent=0;
+            float Limit_MIN_FullChargeCurrent=0;
+            int Limit_MAX_Charge_time=0;
+            int Limit_MIN_WaitToOutSwOff=0;
+            int Limit_MAX_WaitToOutSwOff=0;
+            int Limit_MIN_OutSwOff=0;
+            int Limit_MAX_OutSwOff=0;
+            float Limit_MIN_VCap_ShutdownVoltage=0;
+            float Limit_MAX_VCap_ShutdownVoltage=0;
+            std::string toString() const {
+            std::ostringstream oss; 
+            oss << "MeasurementPoint:\n"
+                << "   InCurrent_NoAR_MaxLimit: " << InCurrent_NoAR_MaxLimit << " A, \n"
+                << "   InCurrent_AR_MinLimit: " << InCurrent_AR_MinLimit << " A, \n"
+                << "   VCC_minLimit: " << VCC_minLimit << " V, \n"
+                << "   VCC_maxLimit: " << VCC_maxLimit << " V, \n"
+                << "   Load_Current: " << Load_Current << " A, \n"
+                << "   Limit_MIN_ChargeCurrent: " << Limit_MIN_ChargeCurrent << " A, \n"
+                << "   Limit_MIN_FullChargeCurrent: " << Limit_MIN_FullChargeCurrent << " A, \n"
+                << "   Limit_MAX_Charge_time: " << Limit_MAX_Charge_time << " sec, \n"
+                << "   Limit_MIN_WaitToOutSwOff: " << Limit_MIN_WaitToOutSwOff << " sec, \n"
+                << "   Limit_MAX_WaitToOutSwOff: " << Limit_MAX_WaitToOutSwOff << " sec, \n"
+                << "   Limit_MIN_OutSwOff: " << Limit_MIN_OutSwOff << " sec, \n"
+                << "   Limit_MAX_OutSwOff: " << Limit_MAX_OutSwOff << " sec, \n"
+                << "   Limit_MIN_VCap_ShutdownVoltage: " << Limit_MIN_VCap_ShutdownVoltage << " V, \n"
+                << "   Limit_MAX_VCap_ShutdownVoltage: " << Limit_MAX_VCap_ShutdownVoltage << " V";
+                return oss.str();
+            }
+};
 class ICA2315 {
 public:
     eeprom myEEPROM;
     boardInfo_struct myBoardInfo;
-    
+    __MessureValue constValue;
     int boardName=-1;
     int boardType=-1;
     int boardVer=-1;
+    
     float boardVerDec=-1;
     char boardName_str[25];
     char boardKind_str[25];

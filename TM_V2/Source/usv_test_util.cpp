@@ -1,12 +1,77 @@
 #include "usv_test_util.h"
 #include "./TestFunction/ICA_justEUI.h"
 #include <filesystem>
+#include <cmath>
+#include <cctype>
 
 extern LabDevice MyLabDevice;
 extern durationTimerClass myDurationTimer;
 extern testResult myTestResult;
 extern _interact_registers myInterActReg;
 ConsoleKeyClass myCKey;
+
+namespace {
+
+bool versionMatches(const std::string& versionText, float versionValue)
+{
+    try {
+        return std::fabs(std::stof(versionText) - versionValue) < 0.001f;
+    } catch (...) {
+        return false;
+    }
+}
+
+int parseBoardNumber(const std::string& dutName)
+{
+    std::string digits;
+    for (char ch : dutName) {
+        if (std::isdigit(static_cast<unsigned char>(ch))) {
+            digits.push_back(ch);
+        }
+    }
+
+    if (digits.empty()) {
+        return 0;
+    }
+
+    try {
+        return std::stoi(digits);
+    } catch (...) {
+        return 0;
+    }
+}
+
+int encodeBoardVersion(const std::string& versionText)
+{
+    std::string majorDigits;
+    std::string minorDigits;
+    bool seenDot = false;
+
+    for (char ch : versionText) {
+        if (ch == '.' && !seenDot) {
+            seenDot = true;
+            continue;
+        }
+        if (!std::isdigit(static_cast<unsigned char>(ch))) {
+            continue;
+        }
+        if (seenDot) {
+            minorDigits.push_back(ch);
+        } else {
+            majorDigits.push_back(ch);
+        }
+    }
+
+    if (majorDigits.empty()) {
+        return 0;
+    }
+
+    const int major = std::stoi(majorDigits);
+    const int minor = minorDigits.empty() ? 0 : (minorDigits[0] - '0');
+    return major * 16 + minor;
+}
+
+}
 
 void USV_TEST_UTIL_V2::showLog(std::string _str){
             //printf("%s\n",_str.c_str());
@@ -68,128 +133,100 @@ bool USV_TEST_UTIL_V2::Init(){
     myTestDevice.Init();   
     return true;     
 }
+void USV_TEST_UTIL_V2::showSelectedBoardInfo(){
+    std::cout << "\n\n----------------------------------------\n";
+    std::cout << "Selected Board: " << myBoard.boardName_str << "\n";
+    std::cout << "  Type: " << myBoard.boardKind_str << "\n";
+    std::cout << "  Version: " <<std::hex << myBoard.boardVer / 16 << "." << (myBoard.boardVer % 16) << "\n";
+    
+    std::cout << "  Info: \n" << myBoard.myBoardInfo.toString();
+    std::cout << myBoard.constValue.toString() << "\n";
+    std::cout << "ToDo:\n";
+    for (const auto& step : toDoList) {
+             std::cout <<"   "<< RSL_struct().getRSLStr(step) << "\n";
+        }
+    std::cout << "\n";
+    std::cout << "----------------------------------------\n";
+
+ 
+}
 bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
-    //uint8_t _Board_type= _dongle;//(_dongle & 0xF8)>>3;
-    //uint8_t _Board_Ver = _version;//(_dongle & 0x07);
     myBoard.boardVerDec=_version;
     myBoard.boardType=_dongle;
-    sprintf(myBoard.boardKind_str,"%s",DUT_ID().getBoardKind(_dongle).c_str());
-    myBoard.boardName=DUT_ID().getNameInt(_dongle);
-    if((((int)(_version*100))%10)>0)
-        sprintf(myBoard.boardName_str,"%sV%.2f",DUT_ID().getNameIDStr(_dongle).c_str(),_version);     
-    else
-        sprintf(myBoard.boardName_str,"%sV%.1f",DUT_ID().getNameIDStr(_dongle).c_str(),_version);     
-    myBoard.boardVer=DUT_ID().getBoardVersion(_dongle, _version);  
 
-    switch (_dongle)
-    {
-    case DUT_ID::ID::ICA1234: break;
-    case DUT_ID::ID::ICA2405://2405
-    case DUT_ID::ID::ICA2506://ICA2506
-    case DUT_ID::ID::ICA2510://ICA2510
-        //myBoard.boardVer=0;            
-        myBoard.myBoardInfo.LTC3350_RSNSI1=0.016;
-        myBoard.myBoardInfo.LTC3350_RSNSI2=0.016;
-        myBoard.myBoardInfo.LTC3350_RSNSC=0.003;
-        myBoard.myBoardInfo.LTC3350_RTST=121;
-        myBoard.myBoardInfo.LTC3350_RT=107000;        
-        myBoard.myBoardInfo.Board_SupperCapVoltage = 3.0;//3.0V
-        myBoard.myBoardInfo.Board_SupperCapSingleCap = 50;//50.0F
-        myBoard.myBoardInfo.Board_SupperCapNum = 4;//3.0V
-        myBoard.myBoardInfo.Board_SupperCapType=255;//XXXX
-        myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V    
-        myBoard.myBoardInfo.Board_VShutdownVoltage=0;
-        if(_dongle==DUT_ID::ID::ICA2405){    
-            switch ((uint16_t)_version*100)
-            {
-                case 161:
-                //myBoard.boardVer=0xA6;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=26;    
-                break;
-                case 162:            
-                //myBoard.boardVer=0xA6;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_2;
-                myBoard.myBoardInfo.Board_MaxTemp85V=26;
-                break;            
-            }            
+    for (const auto& dut : cfg.getDutList()) {
+        if (dut.id != _dongle || !versionMatches(dut.version, _version)) {
+            continue;
         }
-        if(_dongle==DUT_ID::ID::ICA2506){
-            myBoard.myBoardInfo.Board_VShutdownVoltage=4.2;//4.2V
-            switch ((uint16_t)_version*100)
-            {
-                case 100:
-                case 110:
-                //myBoard.boardVer=0x10;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2405_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=26;                    
-                break;
-            }            
+        myBoard.myBoardInfo = dut.boardInfo;
+        myBoard.myBoardInfo.Board_SupperCapName = cfg.getCapTypeName(myBoard.myBoardInfo.Board_SupperCapType);
+        myBoard.constValue.InCurrent_NoAR_MaxLimit = dut.measurementPoint.InCurrent_NoAR_MaxLimit;
+        myBoard.constValue.InCurrent_AR_MinLimit = dut.measurementPoint.InCurrent_AR_MinLimit;
+        myBoard.constValue.VCC_minLimit = dut.measurementPoint.VCC_minLimit;
+        myBoard.constValue.VCC_maxLimit = dut.measurementPoint.VCC_maxLimit;
+        myBoard.constValue.Load_Current = dut.measurementPoint.Load_Current;
+        myBoard.constValue.Limit_MIN_ChargeCurrent = dut.measurementPoint.Limit_MIN_ChargeCurrent;
+        myBoard.constValue.Limit_MIN_FullChargeCurrent = dut.measurementPoint.Limit_MIN_FullChargeCurrent;
+        myBoard.constValue.Limit_MAX_Charge_time = dut.measurementPoint.Limit_MAX_Charge_time;
+        myBoard.constValue.Limit_MIN_WaitToOutSwOff = dut.measurementPoint.Limit_MIN_WaitToOutSwOff;
+        myBoard.constValue.Limit_MAX_WaitToOutSwOff = dut.measurementPoint.Limit_MAX_WaitToOutSwOff;
+        myBoard.constValue.Limit_MIN_OutSwOff = dut.measurementPoint.Limit_MIN_OutSwOff;
+        myBoard.constValue.Limit_MAX_OutSwOff = dut.measurementPoint.Limit_MAX_OutSwOff;
+        myBoard.constValue.Limit_MIN_VCap_ShutdownVoltage = dut.measurementPoint.Limit_MIN_VCap_ShutdownVoltage;
+        myBoard.constValue.Limit_MAX_VCap_ShutdownVoltage = dut.measurementPoint.Limit_MAX_VCap_ShutdownVoltage;
+        myTestResult.Board_MaxTemp85V = dut.boardInfo.Board_MaxTemp85V;
+        myBoard.myEEPROM.myData.cfgVshutDown = dut.boardInfo.Board_VShutdownVoltage;
+        // Keep legacy test-result limits in sync with cfg-driven measurement values.
+        myTestResult.Load_Current = myBoard.constValue.Load_Current;
+        //myTestResult.Limit_MIN_ChargeCurrent = myBoard.constValue.Limit_MIN_ChargeCurrent;
+        //myTestResult.Limit_MIN_FullChargeCurrent = myBoard.constValue.Limit_MIN_FullChargeCurrent;
+        //myTestResult.Limit_MAX_Charge_time = myBoard.constValue.Limit_MAX_Charge_time;
+        //myTestResult.Limit_MIN_WaitToOutSwOff = myBoard.constValue.Limit_MIN_WaitToOutSwOff;
+        //myTestResult.Limit_MAX_WaitToOutSwOff = myBoard.constValue.Limit_MAX_WaitToOutSwOff;
+        //myTestResult.Limit_MIN_OutSwOff = myBoard.constValue.Limit_MIN_OutSwOff;
+        //myTestResult.Limit_MAX_OutSwOff = myBoard.constValue.Limit_MAX_OutSwOff;
+        //myTestResult.Limit_MIN_VCap_ShutdownVoltage = myBoard.constValue.Limit_MIN_VCap_ShutdownVoltage;
+        //myTestResult.Limit_MAX_VCap_ShutdownVoltage = myBoard.constValue.Limit_MAX_VCap_ShutdownVoltage;
+        myBoard.boardName = parseBoardNumber(dut.name);
+        if (!dut.BoardKind.empty()) {
+            snprintf(myBoard.boardKind_str, sizeof(myBoard.boardKind_str), "%s", dut.BoardKind.c_str());
+        } else {
+            snprintf(myBoard.boardKind_str, sizeof(myBoard.boardKind_str), "%s", dut.name.c_str());
         }
-        if(_dongle==DUT_ID::ID::ICA2510){
-            myBoard.myBoardInfo.LTC3350_RT=105000; 
-            switch ((uint16_t)(_version*100))
-            {
-                case 100://myBoard.boardVer=0x10;
-                case 110://myBoard.boardVer=0x11;
-                case 120://myBoard.boardVer=0x12;
-                default:
-                myBoard.myBoardInfo.Board_SupperCapSingleCap = 33;//33F
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2510_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=26;   
-                myBoard.myBoardInfo.Board_VShutdownVoltage=4.2;//4.2V 
-                break;
-            }
+        if (dut.hasEEPROM_BVer) {
+            myBoard.boardVer = dut.EEPROM_BVer;
+        } else {
+            myBoard.boardVer = encodeBoardVersion(dut.version);
         }
-    break;
-    case DUT_ID::ID::ICA2315://2315
-        myBoard.boardVer=0;
-        myBoard.myBoardInfo.LTC3350_RSNSI1=0.006;
-        myBoard.myBoardInfo.LTC3350_RSNSI2=0.012;
-        myBoard.myBoardInfo.LTC3350_RSNSC=0.003;
-        myBoard.myBoardInfo.LTC3350_RTST=5;//for 50 ohm External load +121R  
-                                //10.7 for 100 ohm external Load
-        myBoard.myBoardInfo.LTC3350_RT=107000;
-        
-        myBoard.myBoardInfo.Board_SupperCapVoltage = 3.0;//3.0V
-        myBoard.myBoardInfo.Board_SupperCapSingleCap = 150;//50.0F
-        myBoard.myBoardInfo.Board_SupperCapNum = 4;//3.0V
-        myBoard.myBoardInfo.Board_SupperCapType=255;//XXXX
-        myBoard.myBoardInfo.Board_MaxTemp85V=22;//2.2V
-        //myBoard.boardVer=(static_cast<int>(_version) << 4) | static_cast<int>((_version - static_cast<int>(_version)) * 10 + 0.5);
-        
-        switch ((uint16_t)(_version*100))
-        {
-            case 251:
-                //myBoard.boardVer=0x25;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2315_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=27;   
-            break;
-            case 252:            
-                //myBoard.boardVer=0x25;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2315_2;
-                myBoard.myBoardInfo.Board_MaxTemp85V=25;
-            break;            
-            case 261:
-                //myBoard.boardVer=0x26;
-                myBoard.myBoardInfo.Board_SupperCapType=ICA_CapType_2315_1;
-                myBoard.myBoardInfo.Board_MaxTemp85V=27;   
-            break;
-            
+
+        if (myBoard.boardName > 0) {
+            if ((((int)(_version * 100)) % 10) > 0)
+                snprintf(myBoard.boardName_str, sizeof(myBoard.boardName_str), "%dV%.2f", myBoard.boardName, _version);
+            else
+                snprintf(myBoard.boardName_str, sizeof(myBoard.boardName_str), "%dV%.1f", myBoard.boardName, _version);
+        } else if (!dut.FullName.empty()) {
+            snprintf(myBoard.boardName_str, sizeof(myBoard.boardName_str), "%s", dut.FullName.c_str());
+        } else {
+            snprintf(myBoard.boardName_str, sizeof(myBoard.boardName_str), "%s", dut.name.c_str());
         }
-        break;
-    //case DUT_ID::ID::ICA2308://ica2308R1.2  break;
-    //case DUT_ID::ID::ICA2407: //ICA2407 break;
-    default:
-        myBoard.boardName=0;
-        myBoard.boardVer=0;
-        myBoard.boardType=DUT_ID::ID::Unknown;
-        myBoard.myBoardInfo.Board_SupperCapType=0;
-        myBoard.myBoardInfo.Board_MaxTemp85V=0;
-        return false;
-        break;
+
+        toDoList.clear();
+        for (const auto& step : dut.toDoList) {
+            toDoList.push_back(static_cast<uint8_t>(step));
+        }
+        return true;
     }
-    return true;
+
+    myBoard.boardName = 0;
+    myBoard.boardVer = 0;
+    myBoard.boardType = 0;
+    snprintf(myBoard.boardKind_str, sizeof(myBoard.boardKind_str), "%s", "Unknown DUT");
+    snprintf(myBoard.boardName_str, sizeof(myBoard.boardName_str), "%s", "Unknown DUT");
+    myBoard.myBoardInfo = boardInfo_struct{};
+    myBoard.myBoardInfo.Board_SupperCapName.clear();
+    myBoard.constValue = __MessureValue{};
+    toDoList.clear();
+    return false;
 }
 uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     std::string _strError1="", _strError2="",_strError3="";
@@ -244,7 +281,7 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     _M2.m2State=0xFF;
     return FuncStatus::failed;//0xFF;
 }
-void USV_TEST_UTIL_V2::InformationMenu(){
+/*void USV_TEST_UTIL_V2::InformationMenu(){
     char _str[32];
     uint8_t _StepNo=0;
     uint8_t _key=0;
@@ -268,7 +305,7 @@ void USV_TEST_UTIL_V2::InformationMenu(){
                 MyLabDevice.SetPSVoltage(__const_PSVoltage);
                 MyLabDevice.SetPSCurrent(__const_PSCurrent);    
             }
-            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myTestResult.Load_Current);	
+            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);	
 
             myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);            
             myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
@@ -281,7 +318,7 @@ void USV_TEST_UTIL_V2::InformationMenu(){
         case 5: checkLabDevice();_StepNo++; break;
         case 6: break;
         case 7: 
-            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myTestResult.Load_Current);	
+            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);	
             myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true); 
             myTestDevice.setRelay(USV_Test_Interface::Relays::VCCLoad,true);
             _StepNo++; break;
@@ -306,14 +343,15 @@ void USV_TEST_UTIL_V2::InformationMenu(){
     }
     
 }
+*/
 void USV_TEST_UTIL_V2::DongleCheck(){
-    //if(myArg.manual_Dongle!=0)
-    //    Dongle=myArg.manual_Dongle;
-    //else
-    //    Dongle=myTestDevice.readDongle();
-    //SelectBoard(Dongle,myInterActReg.board_version);
-    SelectBoard(myInterActReg.DongleID,myInterActReg.board_version);
-    myInterActReg.Dongle= DongleNameStr();
+    if(myBoard.boardVerDec!=myInterActReg.board_version ||
+        myBoard.boardType!=myInterActReg.DongleID){
+        if (SelectBoard(myInterActReg.DongleID,myInterActReg.board_version)) {
+            showSelectedBoardInfo();
+            myInterActReg.Dongle= DongleNameStr();
+        }
+    }
     
 }
 void USV_TEST_UTIL_V2::forceStop(void){
@@ -529,8 +567,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
             {
                 if(_M2.dcnt100ms>0){
                     if (myArg.LabDevice_PS) myTempVal.InCurrent=MyLabDevice.ReadPSCurrent();
-                    if(myTempVal.InCurrent>constValue.InCurrent_NoAR_MaxLimit){
-                        showLog((std::ostringstream{} << "Failed (Current > " << std::fixed << std::setprecision(2) << constValue.InCurrent_NoAR_MaxLimit << "A)!").str());
+                    if(myTempVal.InCurrent>myBoard.constValue.InCurrent_NoAR_MaxLimit){
+                        showLog((std::ostringstream{} << "Failed (Current > " << std::fixed << std::setprecision(2) << myBoard.constValue.InCurrent_NoAR_MaxLimit << "A)!").str());
                         myInterActReg.TR.AR_Off=false;
                         return showError(ERROR::Aufruesten,_M2);                        
                     }
@@ -557,7 +595,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
             case 4://Wait for 500mSec and check current ********************************************* 
             {
                 if(_M2.dcnt100ms>0){      
-                    if(myTempVal.InCurrent>constValue.InCurrent_AR_MinLimit){ 
+                    if(myTempVal.InCurrent>myBoard.constValue.InCurrent_AR_MinLimit){ 
                         myInterActReg.TR.AR_On=true;
                         showLog(" Ok.");
                         _M2.m2State++;
@@ -565,7 +603,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
                 }
                 else{                
                     myInterActReg.TR.AR_On=false;
-                    showLog((std::ostringstream{} << "Failed! (Current<" << std::fixed << std::setprecision(2) << constValue.InCurrent_AR_MinLimit << "})").str());
+                    showLog((std::ostringstream{} << "Failed! (Current<" << std::fixed << std::setprecision(2) << myBoard.constValue.InCurrent_AR_MinLimit << "})").str());
                     return showError(ERROR::AufruestenOn,_M2); 
                 } 
             }      
@@ -595,13 +633,13 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
             {                
                 myTempVal.VCC = myTestDevice.getDUT_VCC();
                 myInterActReg.TR.Vvcc=myTempVal.VCC;
-                if(myTempVal.VCC> constValue.VCC_minLimit && myTempVal.VCC< constValue.VCC_maxLimit){                    
-                    showLog((std::ostringstream{} << "Test3: VCC test (" << constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << constValue.VCC_maxLimit << "V)").str());
+                if(myTempVal.VCC> myBoard.constValue.VCC_minLimit && myTempVal.VCC< myBoard.constValue.VCC_maxLimit){                    
+                    showLog((std::ostringstream{} << "Test3: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());
                     showLog(" Ok.");                        
                     _M2.m2State++;
                 }else{
                     if(!(_M2.dcnt100ms==0)){
-                        showLog((std::ostringstream{} << "Test3: VCC test (" << constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << constValue.VCC_maxLimit << "V)").str());                    
+                        showLog((std::ostringstream{} << "Test3: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());                    
                         showLog("Failed!");
                         if(myTempVal.VCC< 3.1)
                             return showError(ERROR::VCCIsLow,_M2);
@@ -800,7 +838,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     {   
         showLog("Update EEPROM value with current Board Info... ");
         myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);
-        myBoard.myEEPROM.myData.VshutDown=4.2;//myBoard.myBoardInfo.Board_VShutdownVoltage;
+        //myBoard.myEEPROM.myData.VshutDown=4.2;//myBoard.myBoardInfo.Board_VShutdownVoltage;
         myBoard.myEEPROM.getCurrentTime();						        
         myBoard.myEEPROM.BuffUpdate_LVer();
         std::string __resStr="";
@@ -913,7 +951,20 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
         }
     }
     break;
-    case 7: return FuncStatus::success;    
+    case 7:
+        /*
+        std::cout << "\n#### JUST FOR TEST #######################################\n";
+        myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);            
+        myBoard.myEEPROM.getCurrentTime();						
+        myBoard.myEEPROM.BuffUpdate_LVer();
+        myBoard.myEEPROM.EEPROMDataBuffShow();//just for test
+        myBoard.myEEPROM.myData.show();
+                       
+        std::cout << "#### JUST FOR TEST #######################################\n";
+        */
+       _M2.m2State++; 
+    break;    
+    case 8: return FuncStatus::success;    
     default: return FuncStatus::failed;
     }
     
@@ -995,22 +1046,22 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
                     showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
                     if (_M2.__error_cnt++>3) showError(ERROR::ChargeDuration,_M2);
                 }                
-                if ((myTempVal.chargeTime > myTestResult.Limit_MAX_Charge_time) & (myTempVal.InCurrent> myTestResult.Limit_MIN_ChargeCurrent)) {
+                if ((myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time) & (myTempVal.InCurrent > myBoard.constValue.Limit_MIN_ChargeCurrent)) {
                     showLog((std::ostringstream{} << "\nTEST5.Error!!!  Time (" 
-                        << myTempVal.chargeTime << " > " << myTestResult.Limit_MAX_Charge_time 
+                        << myTempVal.chargeTime << " > " << myBoard.constValue.Limit_MAX_Charge_time 
                         << ") Current (" 
-                        << myTempVal.InCurrent << " > " << myTestResult.Limit_MIN_ChargeCurrent 
+                        << myTempVal.InCurrent << " > " << myBoard.constValue.Limit_MIN_ChargeCurrent 
                         << ")\n").str());
                     showError(ERROR::ChargeDuration,_M2);
                 }
-                if (myTempVal.chargeTime > myTestResult.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
+                if (myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
                     showLog((std::ostringstream{}<< "\nTEST5.Error!!!  Time ("
                         << myTempVal.chargeTime << " > "
-                        << (myTestResult.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
+                        << (myBoard.constValue.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
                         << ")\n" ).str());
                     showError(ERROR::ChargeDuration,_M2);
                 }
-                if(myTempVal.InCurrent < myTestResult.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
+                if(myTempVal.InCurrent < myBoard.constValue.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
                     myTestResult.time_charge=myTempVal.chargeTime;
                     _M2.m2State++;
                 }	
@@ -1028,7 +1079,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     switch (_M2.m2State){    
     case 0:
     {        
-        showLog("\nDo RSL_FlyBackTest ..."+ std::to_string(myInterActReg.TR.currentTestNo));
+        showLog("\nDo RSL_FlyBack Test:"+ std::to_string(myInterActReg.TR.currentTestNo));
         myBoard.GPIOResetAll();
         _M2.m2State++;
         _M2.m2ErrorCntLimit=10;
@@ -1043,7 +1094,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
-        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myTestResult.Load_Current);
+        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);
         if((myTestDevice.readRelay()&0x15)!=0x15){
             std::cout << "start... " << myTestDevice.readRelay() << std::endl;             
         }
@@ -1056,7 +1107,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     case 2: //wait to Power Current More then 500mA
         std::cout << "S2 INAmp:" << std::fixed << std::setprecision(3) << myTempVal.InCurrent << "A" << std::endl;
         myTestResult.VOut1=myTempVal.VOut;
-        if(myTempVal.InCurrent> myTestResult.Load_Current ) _M2.m2State++;
+        if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
         break;
     case 3: //Set FlayBack Off.
         myInterActReg.TR.currentTestNo=6;
@@ -1069,7 +1120,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         std::cout << "\rFlyBack-Dis... " << std::fixed << std::setprecision(3) << myTempVal.InCurrent << "A   " << std::endl;
         myTestResult.VOut2=myTempVal.VOut;
         myBoard.FlyBack_Off();
-        if(myTempVal.InCurrent!=-1 && myTempVal.InCurrent< myTestResult.Load_Current ) _M2.m2State++;
+        if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;
     break;
     case 5: //FlyBack diss is Ok        
         //sprintf(_str,"T6 Ok.");
@@ -1079,7 +1130,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         break;        
     case 6:  // check FlyBack reset
         //sprintf(_str,"S2 INAmp:%.3fA",myTempVal.InCurrent);
-        if(myTempVal.InCurrent> myTestResult.Load_Current) _M2.m2State++;
+        if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
         myBoard.GPIOResetAll();
         break;
     case 7:  //trun off Aufruesten
@@ -1088,7 +1139,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         break;
     case 8: //wait to Power Current less then 500mA
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);            
-        if(myTempVal.InCurrent!=-1 && myTempVal.InCurrent< myTestResult.Load_Current ) _M2.m2State++;
+        if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;
         break;
     case 9: //Set FlyBack Enable
         myInterActReg.TR.currentTestNo=7;
@@ -1097,7 +1148,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         break; 
     case 10: //wait to Power Current More then 500mA
         myBoard.FlyBackEn();
-        if(myTempVal.InCurrent> myTestResult.Load_Current )  _M2.m2State++; 
+        if(myTempVal.InCurrent > myBoard.constValue.Load_Current)  _M2.m2State++; 
         break;
     case 11: 
         showLog("Ok.\n");
@@ -1133,7 +1184,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
-        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myTestResult.Load_Current);
+        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);
         if((myTestDevice.readRelay()&0x15)!=0x15)
             std::cout << "start... " << myTestDevice.readRelay() << std::endl;                
         else{
@@ -1141,7 +1192,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         }
     break;
     case 2: 
-        if( myTempVal.LoadCurrent> myTestResult.Load_Current*.70 ) _M2.m2State++;
+        if (myTempVal.LoadCurrent > myBoard.constValue.Load_Current * .70f) _M2.m2State++;
     break;
     case 3: 
         showLog("Output-SW ... ");
@@ -1154,17 +1205,17 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         myTempVal.WaitToOutSWOffTime=myDurationTimer.TestTimeSec();                        
         //printf("\r   wait to Output off time : %d sec... ",myTempVal.WaitToOutSWOffTime);            
         //myBoard.OutPUT_Off();
-        if(myTempVal.LoadCurrent!=-1 && myTempVal.LoadCurrent< myTestResult.Load_Current*.70 ){
+        if(myTempVal.LoadCurrent != -1 && myTempVal.LoadCurrent < myBoard.constValue.Load_Current * .70f){
             //showLog(_str);
-            if(myTempVal.WaitToOutSWOffTime>=myTestResult.Limit_MIN_WaitToOutSwOff && myTempVal.WaitToOutSWOffTime<=myTestResult.Limit_MAX_WaitToOutSwOff){
-                showLog((std::ostringstream{} << "WaitTime:" << myTestResult.Limit_MIN_WaitToOutSwOff << " < (" 
-                    << myTempVal.WaitToOutSWOffTime << "sec) < " << myTestResult.Limit_MAX_WaitToOutSwOff).str());        
+            if(myTempVal.WaitToOutSWOffTime >= myBoard.constValue.Limit_MIN_WaitToOutSwOff && myTempVal.WaitToOutSWOffTime <= myBoard.constValue.Limit_MAX_WaitToOutSwOff){
+                showLog((std::ostringstream{} << "WaitTime:" << myBoard.constValue.Limit_MIN_WaitToOutSwOff << " < (" 
+                    << myTempVal.WaitToOutSWOffTime << "sec) < " << myBoard.constValue.Limit_MAX_WaitToOutSwOff).str());        
                 myDurationTimer.testTimeStartSec();
                 _M2.m2State++; 
             }
             else{
-                showLog((std::ostringstream{} << "wait to Output off time is not in range:" << myTestResult.Limit_MIN_WaitToOutSwOff << " < (" 
-                    << myTempVal.WaitToOutSWOffTime << "sec) < " << myTestResult.Limit_MAX_WaitToOutSwOff).str());        
+                showLog((std::ostringstream{} << "wait to Output off time is not in range:" << myBoard.constValue.Limit_MIN_WaitToOutSwOff << " < (" 
+                    << myTempVal.WaitToOutSWOffTime << "sec) < " << myBoard.constValue.Limit_MAX_WaitToOutSwOff).str());        
                 
                 return showError(ERROR::waitToOutSwOff,_M2);
             }            
@@ -1183,15 +1234,15 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         //sprintf(_str,"T8 %d sec (%.1f)",myTempVal.OutSWOffTime,myTempVal.InCurrent);
         //printf("\r   Output Off time : %d sec... ",myTempVal.OutSWOffTime);
         //myBoard.GPIOResetAll();
-        if(myTempVal.LoadCurrent> myTestResult.Load_Current*.70 ) {
+        if(myTempVal.LoadCurrent > myBoard.constValue.Load_Current * .70f) {
             //showLog(_str);
-            if(myTempVal.OutSWOffTime>myTestResult.Limit_MIN_OutSwOff && myTempVal.OutSWOffTime<myTestResult.Limit_MAX_OutSwOff){
-                showLog((std::ostringstream{} << "OffTime:" << myTestResult.Limit_MIN_OutSwOff << " < (" 
-                    << myTempVal.OutSWOffTime << "sec) < " << myTestResult.Limit_MAX_OutSwOff).str());        
+            if(myTempVal.OutSWOffTime > myBoard.constValue.Limit_MIN_OutSwOff && myTempVal.OutSWOffTime < myBoard.constValue.Limit_MAX_OutSwOff){
+                showLog((std::ostringstream{} << "OffTime:" << myBoard.constValue.Limit_MIN_OutSwOff << " < (" 
+                    << myTempVal.OutSWOffTime << "sec) < " << myBoard.constValue.Limit_MAX_OutSwOff).str());        
                 _M2.m2State++; 
             }else{
-                showLog((std::ostringstream{} << "Output off time is not in range:" << myTestResult.Limit_MIN_OutSwOff << " < (" 
-                    << myTempVal.OutSWOffTime << "sec) < " << myTestResult.Limit_MAX_OutSwOff).str());                        
+                showLog((std::ostringstream{} << "Output off time is not in range:" << myBoard.constValue.Limit_MIN_OutSwOff << " < (" 
+                    << myTempVal.OutSWOffTime << "sec) < " << myBoard.constValue.Limit_MAX_OutSwOff).str());                        
                 return showError(ERROR::OutSwOff,_M2);   
             }                            
         } 
@@ -1257,7 +1308,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         myInterActReg.TR.currentTestNo=9;
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
         if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);
-        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myTestResult.Load_Current);                                
+        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);                                
         myDurationTimer.testTimeStartSec();
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);				            
         if (_M2.file.is_open()) { _M2.file.close(); }
@@ -1306,7 +1357,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         if ( myTempVal.LoadCurrent>-1 && myTempVal.LoadCurrent<0.05 ) {
             showLog("\n");
             myTestResult.time_DisCharge=myTempVal.DisChargeTime;
-            if(myTestResult.VCap_SWOff< myTestResult.Limit_MIN_VCap_ShutdownVoltage || myTestResult.VCap_SWOff> myTestResult.Limit_MAX_VCap_ShutdownVoltage){
+            if(myTestResult.VCap_SWOff < myBoard.constValue.Limit_MIN_VCap_ShutdownVoltage || myTestResult.VCap_SWOff > myBoard.constValue.Limit_MAX_VCap_ShutdownVoltage){
                 showLog((std::ostringstream{} << "Vcap on Shut Down is:" << std::fixed << std::setprecision(2) << myTestResult.VCap_SWOff << "V").str());                            
                 showError(ERROR::VCapShutDownOutOfRange,_M2);//testr.ErrorNo=ERROR::VCapOutOfRange;
             }
@@ -1433,13 +1484,20 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);       
 
     SelectBoard(myInterActReg.DongleID,myInterActReg.board_version);
-    myInterActReg.Dongle= DongleNameStr();
-    constValue.setDefault((uint8_t) myInterActReg.DongleID);
-   
+    //myInterActReg.Dongle= DongleNameStr();
     showLog(std::string("ICA") + myBoard.boardName_str);
     if(myBoard.myBoardInfo.Board_SupperCapType>0){
         std::ostringstream _oss;
-        _oss << "Cap:" << myBoard.myBoardInfo.Board_SupperCapType << " x " << std::fixed << std::setprecision(1) << myBoard.myBoardInfo.Board_SupperCapVoltage << "V";
+        const std::string capName = cfg.getCapTypeName(myBoard.myBoardInfo.Board_SupperCapType);
+        _oss << "Cap:";
+        if (!capName.empty()) {
+            _oss << capName << " (";
+        }
+        _oss << myBoard.myBoardInfo.Board_SupperCapType;
+        if (!capName.empty()) {
+            _oss << ")";
+        }
+        _oss << " x " << std::fixed << std::setprecision(1) << myBoard.myBoardInfo.Board_SupperCapVoltage << "V";
         showLog(_oss.str());
     }
     
@@ -1457,9 +1515,8 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (xrunning==true) ){
         myInterActReg.TR.currentTestNoStr = x1.getRSLStr(__tr.RSL_state);
         if(myInterActReg.TR.currentTestNo!=lCurrentTestNo || __tr.m2State!=lState){
-            std::cout << "> > > > > StateMachin:  RSL(" << std::to_string(myInterActReg.TR.currentTestNo) <<")"
-                        << myInterActReg.TR.currentTestNoStr
-                        << " M2State: " << std::to_string(__tr.m2State) << std::endl;
+            std::cout << "... SM: RSL(" << std::to_string(myInterActReg.TR.currentTestNo)<<":" << std::to_string(__tr.m2State) << ")"
+                       << " - " << myInterActReg.TR.currentTestNoStr << std::endl;
             lCurrentTestNo=myInterActReg.TR.currentTestNo;
             lState=__tr.m2State;
             __tr.m2ErrorCnt=0;
@@ -1511,7 +1568,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             switch(__funcResualt){
                 case 0: break;
                 case 1: 
-                    showLog("RSL Succes! go to next..."); 
+                    //showLog("RSL Succes! go to next..."); 
                     if(++__tr.RSL_Cnt<toDoList.size())
                         __tr.RSL_state=toDoList[__tr.RSL_Cnt];
                     else

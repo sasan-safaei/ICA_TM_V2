@@ -125,15 +125,15 @@ struct testResult{
 	float Vout_SaveResult=0;
 	float Vin_SaveResult=0;
 	float tempIC=0,tempBatBank=0;
-	float Limit_MIN_ChargeCurrent=0;
-	float Limit_MIN_FullChargeCurrent=0;
-	int Limit_MAX_Charge_time=0;
-	int Limit_MIN_WaitToOutSwOff=0;
-	int Limit_MAX_WaitToOutSwOff=0;
-	int Limit_MIN_OutSwOff=0;
-	int Limit_MAX_OutSwOff=0;
-	float Limit_MAX_VCap_ShutdownVoltage=0;
-	float Limit_MIN_VCap_ShutdownVoltage=0;
+	//float Limit_MIN_ChargeCurrent=0;
+	//float Limit_MIN_FullChargeCurrent=0;
+	//int Limit_MAX_Charge_time=0;
+	//int Limit_MIN_WaitToOutSwOff=0;
+	//int Limit_MAX_WaitToOutSwOff=0;
+	//int Limit_MIN_OutSwOff=0;
+	//int Limit_MAX_OutSwOff=0;
+	//float Limit_MAX_VCap_ShutdownVoltage=0;
+	//float Limit_MIN_VCap_ShutdownVoltage=0;
 	int Board_MaxTemp85V=0;
     void clear(int _boardName){
 		Vout_SaveResult=0;Vin_SaveResult=0;
@@ -149,17 +149,17 @@ struct testResult{
 		VOut1=0;VOut2=0;
 		tempIC=0;
 		tempBatBank=0;//was Not in testrReset()
-		Limit_MIN_ChargeCurrent=0;
-		Limit_MIN_FullChargeCurrent=0;
-		Limit_MAX_Charge_time=0;
-		Limit_MIN_WaitToOutSwOff=0;
-		Limit_MAX_WaitToOutSwOff=0;		
-		Limit_MIN_OutSwOff=0;
-		Limit_MAX_OutSwOff=0;
-		Limit_MAX_VCap_ShutdownVoltage=0;
-		Limit_MIN_VCap_ShutdownVoltage=0;
+		//Limit_MIN_ChargeCurrent=0;
+		//Limit_MIN_FullChargeCurrent=0;
+		//Limit_MAX_Charge_time=0;
+		//Limit_MIN_WaitToOutSwOff=0;
+		//Limit_MAX_WaitToOutSwOff=0;		
+		//Limit_MIN_OutSwOff=0;
+		//Limit_MAX_OutSwOff=0;
+		//Limit_MAX_VCap_ShutdownVoltage=0;
+		//Limit_MIN_VCap_ShutdownVoltage=0;
 		Board_MaxTemp85V=0;//was Not in testrReset()
-		Load_Current=__const_LoadCurrent24V;
+		/*Load_Current=__const_LoadCurrent24V;
 		switch (_boardName){
 			case 2315:
 				Limit_MAX_Charge_time=__Limit_MAX_Charge_time_2315;
@@ -193,7 +193,7 @@ struct testResult{
 				break;
 			case 2510:
 				Load_Current=__const_LoadCurrent12V;
-				Limit_MAX_Charge_time=90;// __Limit_MAX_Charge_time_2405;
+				Limit_MAX_Charge_time= __Limit_MAX_Charge_time_2405;
 				Limit_MIN_ChargeCurrent=__Limit_MIN_ChargeCurrent_2510;
 				Limit_MIN_FullChargeCurrent=__Limit_MIN_FullChargeCurrent_2510;
 				Limit_MAX_WaitToOutSwOff=__Limit_MAX_WaitToOutSwOff_uC;
@@ -203,13 +203,13 @@ struct testResult{
 				Limit_MIN_VCap_ShutdownVoltage=__Limit_MIN_VCap_ShutdownVoltage_2510;
 				Limit_MAX_VCap_ShutdownVoltage=__Limit_MAX_VCap_ShutdownVoltage_2510;
 				break;
-
-		}
+		}*/
     }
 };
 extern testResult myTestResult;
 
 //RSL:runStepsList
+/*
 struct DUT_ID{
     enum ID{
         NoDUT=0
@@ -312,7 +312,7 @@ struct DUT_ID{
      }
      
 };
-
+*/
     
 
 #endif

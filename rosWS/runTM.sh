@@ -2,7 +2,7 @@
 cd ~/git_sasan/ICA_TM_V2/rosWS
 ./setGPIO.sh
 #export TM_WORKSPACE=~/git_sasan/TM_WorkSpace/
-export TM_WORKSPACE=~/git_sasan/ICA_TM_V2/
+export TM_WORKSPACE=~/git_sasan/ICA_TM_V2/tempTM_WorkSpace/
 #export TM_SOURCE=~/git_sasan/ICA_TM_V2
 
 export RCUTILS_CONSOLE_OUTPUT_FORMAT="[{severity}] [{name}]: {message}"

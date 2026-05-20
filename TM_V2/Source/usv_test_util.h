@@ -169,14 +169,13 @@ class USV_TEST_UTIL_V2{
             }
         } myTempVal;
         uint8_t Dongle=0;
-        std::string lastModifiedTime="2026.05.12";
-        
+        //std::string lastModifiedTime="2026.05.12";
         bool SelectBoard(uint8_t _dongle, float _version);
-        void ShowMyName(){
+        /*void ShowMyName(){
             char _str[32];
             sprintf(_str,"ICA USV Test.");myTestDevice.showOnLCD(1,_str);
             myTestDevice.showOnLCD(2,lastModifiedTime);
-        }
+        }*/
         std::string DongleNameStr(){
             std::stringstream ss;
                         
@@ -199,11 +198,12 @@ class USV_TEST_UTIL_V2{
         
         void showOnRun(uint8_t _menuNo);
         
-        void InformationMenu(void);
+        //void InformationMenu(void);
         uint8_t run_GPIO_Test(void);
         void waitToPressKey(){ while(myTestDevice.readKeys()==0) usleep(100000);}
     public:
         bool Init();
+        void showSelectedBoardInfo(void);        
         void showLog(std::string _str);
         void getArg(int argc, char* argv[]);
         void DongleCheck(void);
@@ -217,12 +217,12 @@ class USV_TEST_UTIL_V2{
         //void run_ManualTest(void);
         uint8_t showError(uint8_t _errorNo,__temp__register & _M2);
         void checkLabDevice(void);       
-        struct __constValue{
+        /*struct __constValue{
             float InCurrent_NoAR_MaxLimit=0.020;
             float InCurrent_AR_MinLimit=0.100;
             float VCC_minLimit=3.1;
             float VCC_maxLimit=3.6;
-
+            
             void setDefault( uint8_t __DUT_ID)
             {
                 switch(__DUT_ID){     
@@ -237,9 +237,9 @@ class USV_TEST_UTIL_V2{
                     break;
                 }
                 
-            }               
+            }              
         } constValue;
-        
+        */
         void run_Test_Func();
         void preLoopFunc(__temp__register & _M2);
         void postLoopFunc(void);

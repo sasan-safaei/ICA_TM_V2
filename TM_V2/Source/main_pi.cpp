@@ -13,7 +13,7 @@ LabDevice MyLabDevice;
 durationTimerClass myDurationTimer;
 testResult myTestResult;
 myNet myTcpUdpNet;
-std::string lastModifiedTime="19.05.2026";
+std::string lastModifiedTime="20.05.2026";
 //ConsoleKeyClass myCKey;
 #include "usv_test_util.h"
 //#include "./TestFunction/usv_test_util.h"
@@ -83,14 +83,17 @@ bool getConfig(){
 
 
 bool App_TM_V2::initialize(int argc, char* argv[]){
+
     std::cout << "TM_V2 Version: " << lastModifiedTime << std::endl;
+    myUSVTestV2.showLog("TM_V2 Version: " + lastModifiedTime);
     if (create_folder("./tmp") != 0) {
         return 1; // Handle error
     }
     myUSVTestV2.getArg(argc, argv);
     
     if (cfg.load(myUSVTestV2.myArg.workSpace+"config.cfg")) {
-        cfg.showAllConfig();
+        std::cout << "Config loaded successfully.\n";
+        //cfg.showAllConfig();
     }
     
     getConfig();
@@ -158,7 +161,7 @@ void App_TM_V2::taskLoop() {
         __str.erase(std::remove(__str.begin(), __str.end(), ' '), __str.end());
         myUSVTestV2.myArg.FileName_EUI = __str;
         myUSVTestV2.checkLabDevice();sleep(.5);   
-        myUSVTestV2.toDoList.clear();              
+        //myUSVTestV2.toDoList.clear();              
         //switch((uint8_t) myInterActReg.gui_CMD){
         //    case DUT_ID::ID::ICA2405: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2405; break;
         //    case DUT_ID::ID::ICA2315: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2315; break;
@@ -171,6 +174,8 @@ void App_TM_V2::taskLoop() {
         //        myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());
         //        break;
         //}
+        myUSVTestV2.DongleCheck();
+        myUSVTestV2.showSelectedBoardInfo();        
         if( myUSVTestV2.toDoList.size()>0) myUSVTestV2.run_Test_Func();
         myInterActReg.tm_state+=1;
         //std::cout << "Task running...\n";

@@ -53,6 +53,7 @@ struct struct_eepromData{
     uint8_t Temp85MaxV=0;
     uint8_t capacitorValue=0;
     float VshutDown=0,supperCapVoltage=0;
+    float cfgVshutDown=0;
     void clear(){
         type=struct_eepromType::Unknown;
         name[0] = '-'; name[1] = '-'; name[2] = '-';
@@ -68,7 +69,7 @@ struct struct_eepromData{
         CapType=0xff;
         Temp85MaxV=0;
         capacitorValue=0;
-        VshutDown=0;supperCapVoltage=0;
+        VshutDown=0;supperCapVoltage=0;//cfgVshutDown=0;
     }
     std::string getCapsKind(uint8_t _CapType ){
         char _result[128];
@@ -102,7 +103,7 @@ struct struct_eepromData{
             oss << "EUI : [" 
             << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             << std::setw(2) << static_cast<int>(EUI[1]) << "."
-            << std::setw(2) << static_cast<int>(EUI[2]) << "]"
+            << std::setw(2) << static_cast<int>(EUI[2]) << "] "
             << std::setw(2) << static_cast<int>(EUI[3]) << "."
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
@@ -113,7 +114,7 @@ struct struct_eepromData{
             oss << "EUI : [" 
             << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             << std::setw(2) << static_cast<int>(EUI[1]) << "."
-            << std::setw(2) << static_cast<int>(EUI[2]) << "]"
+            << std::setw(2) << static_cast<int>(EUI[2]) << "] "
             << std::setw(2) << static_cast<int>(EUI[3]) << "."
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
@@ -124,7 +125,7 @@ struct struct_eepromData{
         oss << "EUI : [" 
             << std::hex << std::uppercase <<std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             << std::setw(2) << static_cast<int>(EUI[1]) << "."
-            << std::setw(2) << static_cast<int>(EUI[2]) << "]"
+            << std::setw(2) << static_cast<int>(EUI[2]) << "] "
             << std::setw(2) << static_cast<int>(EUI[3]) << "."
             << std::setw(2) << static_cast<int>(EUI[4]) << "."
             << std::setw(2) << static_cast<int>(EUI[5]) << "."
@@ -140,8 +141,9 @@ struct struct_eepromData{
         oss << "| Data Struct (ver." << static_cast<int>(dataVersion) << "):\n";
         oss << "|  name: " << name[0] << name[1] << name[2] << "\n";
         //oss << "|  Board: " << boardType << " V " << std::setw(2) << std::setfill('0') << std::hex << boardVer << std::dec << "\n";
-        oss << "|  Board: " << boardType << " V "  << boardVer << "\n";
-        oss << "|  "<<getEUI_Str();
+        oss << "|  Board: " << boardType << " V "  << std::hex << std::uppercase << boardVer << "\n";
+        oss << "|  "<<getEUI_Str()<<"\n";
+        
             //<<"|  EUI : [" 
             //<< std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(EUI[0]) << "."
             //<< std::setw(2) << static_cast<int>(EUI[1]) << "."

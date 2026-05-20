@@ -69,6 +69,7 @@ struct boardInfo_struct{
         int Board_SupperCapSingleCap=0;
         int Board_SupperCapNum=0;
         int Board_SupperCapType=0;
+            std::string Board_SupperCapName;
         int Board_MaxTemp85V=0;
 		float Board_VShutdownVoltage=0;
         std::string toString() const {
@@ -82,9 +83,46 @@ struct boardInfo_struct{
             << "   B_SCapVoltage: " << Board_SupperCapVoltage << " V, \n"
             << "   B_SCapSingleCap: " << Board_SupperCapSingleCap << " F, \n"
             << "   B_SCapNum: "      << Board_SupperCapNum      << ", \n"
-            << "   B_SCapType: "     << Board_SupperCapType     << ", \n"
-            << "   B_MaxTemp85V: "       << Board_MaxTemp85V       << ", \n"
-            << "   B_VShutdown: " << Board_VShutdownVoltage << " V";
+                << "   B_SCapType: "     << Board_SupperCapType
+                << (Board_SupperCapName.empty() ? "" : (" (" + Board_SupperCapName + ")"))
+                << ", \n"
+            << "   B_MaxTemp85V: "       << (float)(Board_MaxTemp85V)/10       << ", \n"
+            << "   B_VShutdown: " << Board_VShutdownVoltage << " V\n";
+            return oss.str();
+        }
+};
+struct measurementPoint_struct{
+        float InCurrent_NoAR_MaxLimit=0.020;
+        float InCurrent_AR_MinLimit=0.100;
+        float VCC_minLimit=3.1;
+        float VCC_maxLimit=3.6;
+        float Load_Current=0;
+        float Limit_MIN_ChargeCurrent=0;
+        float Limit_MIN_FullChargeCurrent=0;
+        int Limit_MAX_Charge_time=0;
+        int Limit_MIN_WaitToOutSwOff=0;
+        int Limit_MAX_WaitToOutSwOff=0;
+        int Limit_MIN_OutSwOff=0;
+        int Limit_MAX_OutSwOff=0;
+        float Limit_MIN_VCap_ShutdownVoltage=0;
+        float Limit_MAX_VCap_ShutdownVoltage=0;
+        std::string toString() const {
+        std::ostringstream oss;
+        oss << "MeasurementPoint:\n"
+            << "   InCurrent_NoAR_MaxLimit: " << InCurrent_NoAR_MaxLimit << " A, \n"
+            << "   InCurrent_AR_MinLimit: " << InCurrent_AR_MinLimit << " A, \n"
+            << "   VCC_minLimit: " << VCC_minLimit << " V, \n"
+            << "   VCC_maxLimit: " << VCC_maxLimit << " V, \n"
+            << "   Load_Current: " << Load_Current << " A, \n"
+            << "   Limit_MIN_ChargeCurrent: " << Limit_MIN_ChargeCurrent << " A, \n"
+            << "   Limit_MIN_FullChargeCurrent: " << Limit_MIN_FullChargeCurrent << " A, \n"
+            << "   Limit_MAX_Charge_time: " << Limit_MAX_Charge_time << " sec, \n"
+            << "   Limit_MIN_WaitToOutSwOff: " << Limit_MIN_WaitToOutSwOff << " sec, \n"
+            << "   Limit_MAX_WaitToOutSwOff: " << Limit_MAX_WaitToOutSwOff << " sec, \n"
+            << "   Limit_MIN_OutSwOff: " << Limit_MIN_OutSwOff << " sec, \n"
+            << "   Limit_MAX_OutSwOff: " << Limit_MAX_OutSwOff << " sec, \n"
+            << "   Limit_MIN_VCap_ShutdownVoltage: " << Limit_MIN_VCap_ShutdownVoltage << " V, \n"
+            << "   Limit_MAX_VCap_ShutdownVoltage: " << Limit_MAX_VCap_ShutdownVoltage << " V";
             return oss.str();
         }
 };
@@ -92,8 +130,12 @@ struct DutEntry {
     int id = 0;         // e.g. 1
     std::string name;     // e.g. "ICA2405"
     std::string version;  // e.g. "1.61"
+    int EEPROM_BVer = 0;
+    bool hasEEPROM_BVer = false;
     std::string FullName; // e.g. "ICA2405A6-vishay"
+    std::string BoardKind; // e.g. "NT-CLX USV"
     boardInfo_struct boardInfo; 
+    measurementPoint_struct measurementPoint;
     std::vector<RSL_struct::RSL> toDoList;
 };
 
@@ -102,6 +144,8 @@ struct BasicConfig {
     // [TM_DEVICE]
     std::string devicePort;        // e.g. /dev/ttyAMA1
     std::string storeFolder;       // e.g. ./TestMachine001
+    // [CAPS_LIST]
+    std::map<int, std::string> capTypeNames; // e.g. 1 -> "2405-(MaxWell...)"
     // [DUT_LIST]
     std::vector<DutEntry> dutList;
 };
@@ -121,6 +165,7 @@ public:
     std::string getDevicePort()   const { return m_cfg.devicePort; }
     std::string getStoreFolder()  const { return m_cfg.storeFolder; }
     const std::vector<DutEntry>& getDutList() const { return m_cfg.dutList; }
+    std::string getCapTypeName(int capTypeId) const;
     void showAllConfig();
 private:
     BasicConfig m_cfg;
@@ -130,8 +175,10 @@ private:
     static std::vector<std::string> splitCsv(const std::string& s, char delim = ',');
     static bool parseRslStep(const std::string& token, RSL_struct::RSL& outStep);
     void parseDeviceLine(const std::string& line);
+    void parseCapsListLine(const std::string& line);
     void parseDutListLine(const std::string& line, int& nextDutId);
     void parseBoardInfoLine(const std::string& line, boardInfo_struct& info);
+    void parseMeasurementPointLine(const std::string& line, measurementPoint_struct& info);
     void parseToDoListLine(const std::string& line, std::vector<RSL_struct::RSL>& toDoList);
 };
 
