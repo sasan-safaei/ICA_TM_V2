@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include <iostream>
 struct RSL_struct{
     enum RSL {
     Init=0
@@ -49,9 +50,10 @@ struct RSL_struct{
             case DisChargeTest: return "DisChargeTest";                
             case EndSuccess: return "EndSuccess";                
             case EndFailed: return "EndFailed";                
+            case justOn: return "justOn";
             case Stop: return "Stop";                
             default:
-                return "";
+                return "XX";
         }
      }
 };
@@ -82,14 +84,15 @@ struct boardInfo_struct{
             << "   B_SCapNum: "      << Board_SupperCapNum      << ", \n"
             << "   B_SCapType: "     << Board_SupperCapType     << ", \n"
             << "   B_MaxTemp85V: "       << Board_MaxTemp85V       << ", \n"
-            << "   B_VShutdown: " << Board_VShutdownVoltage << " V\n";
+            << "   B_VShutdown: " << Board_VShutdownVoltage << " V";
             return oss.str();
         }
 };
 struct DutEntry {
+    int id = 0;         // e.g. 1
     std::string name;     // e.g. "ICA2405"
     std::string version;  // e.g. "1.61"
-    std::string displayName; // e.g. "ICA2405A6-vishay"
+    std::string FullName; // e.g. "ICA2405A6-vishay"
     boardInfo_struct boardInfo; 
     std::vector<RSL_struct::RSL> toDoList;
 };
@@ -118,7 +121,7 @@ public:
     std::string getDevicePort()   const { return m_cfg.devicePort; }
     std::string getStoreFolder()  const { return m_cfg.storeFolder; }
     const std::vector<DutEntry>& getDutList() const { return m_cfg.dutList; }
-
+    void showAllConfig();
 private:
     BasicConfig m_cfg;
 
@@ -127,7 +130,7 @@ private:
     static std::vector<std::string> splitCsv(const std::string& s, char delim = ',');
     static bool parseRslStep(const std::string& token, RSL_struct::RSL& outStep);
     void parseDeviceLine(const std::string& line);
-    void parseDutListLine(const std::string& line);
+    void parseDutListLine(const std::string& line, int& nextDutId);
     void parseBoardInfoLine(const std::string& line, boardInfo_struct& info);
     void parseToDoListLine(const std::string& line, std::vector<RSL_struct::RSL>& toDoList);
 };

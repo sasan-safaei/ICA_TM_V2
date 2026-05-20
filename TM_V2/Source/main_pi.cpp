@@ -90,19 +90,7 @@ bool App_TM_V2::initialize(int argc, char* argv[]){
     myUSVTestV2.getArg(argc, argv);
     
     if (cfg.load(myUSVTestV2.myArg.workSpace+"config.cfg")) {
-        for (const auto& dut : cfg.getDutList()) {
-            std::cout << dut.name << ", " << dut.version;
-            if (!dut.displayName.empty()) {
-                std::cout << ", " << dut.displayName;
-            }
-            std::cout << std::endl;
-            std::cout << dut.boardInfo.toString() << std::endl;
-            std::cout << "ToDo List: ";
-            for (const auto& task : dut.toDoList) {
-                std::cout << task << " ";
-            }
-            std::cout << std::endl;
-        }
+        cfg.showAllConfig();
     }
     
     getConfig();
@@ -171,19 +159,18 @@ void App_TM_V2::taskLoop() {
         myUSVTestV2.myArg.FileName_EUI = __str;
         myUSVTestV2.checkLabDevice();sleep(.5);   
         myUSVTestV2.toDoList.clear();              
-        switch((uint8_t) myInterActReg.gui_CMD){
-            case DUT_ID::ID::ICA2405: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2405; break;
-            case DUT_ID::ID::ICA2315: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2315; break;
-            case DUT_ID::ID::ICA2308: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2308; break;
-            case DUT_ID::ID::ICA2407: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2407; break;                
-            case DUT_ID::ID::ICA2506: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2506; break;
-            case DUT_ID::ID::ICA2510: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510; break;   
-            case DUT_ID::ID::ICA1234: myUSVTestV2.toDoList = myUSVTestV2.toDo_ICA1234; break;             
-            default:
-                myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());
-                break;
-
-        }
+        //switch((uint8_t) myInterActReg.gui_CMD){
+        //    case DUT_ID::ID::ICA2405: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2405; break;
+        //    case DUT_ID::ID::ICA2315: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2315; break;
+        //    case DUT_ID::ID::ICA2308: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2308; break;
+        //    case DUT_ID::ID::ICA2407: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2407; break;                
+        //    case DUT_ID::ID::ICA2506: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2506; break;
+        //    case DUT_ID::ID::ICA2510: myUSVTestV2.toDoList = myUSVTestV2.toDO_ICA2510; break;   
+        //    case DUT_ID::ID::ICA1234: myUSVTestV2.toDoList = myUSVTestV2.toDo_ICA1234; break;             
+        //    default:
+        //        myUSVTestV2.showLog((std::ostringstream{} << "unKnown Dongle Num (guiCMD)!!! (" << myInterActReg.gui_CMD << ")").str());
+        //        break;
+        //}
         if( myUSVTestV2.toDoList.size()>0) myUSVTestV2.run_Test_Func();
         myInterActReg.tm_state+=1;
         //std::cout << "Task running...\n";

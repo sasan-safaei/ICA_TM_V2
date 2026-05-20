@@ -29,15 +29,22 @@ bool CfgReader::load(const std::string& filePath)
     // Reset previous values
     m_cfg = BasicConfig{};
 
-    enum class Section { NONE, TM_DEVICE, EMAIL, DUT_LIST, DUT_SECTION, DUT_VERSION, BOARD_INFO, OTHER };
+    enum class Section { NONE, TM_DEVICE, EMAIL, DUT_LIST, DUT_DEFAULT, DUT_SECTION, DUT_VERSION, BOARD_INFO, OTHER };
     Section currentSection = Section::NONE;
+    Section boardInfoOwner = Section::NONE;
     std::string currentDutName;
     std::string currentDutVersion;
-    std::string currentDutDisplayName;
+    std::string currentDutFullName;
+    std::string defaultDutFullName;
     boardInfo_struct currentBoardInfo;
+    boardInfo_struct defaultBoardInfo;
+    bool hasDefaultBoardInfo = false;
+    bool hasDefaultFullName = false;
     bool boardInfoHasData = false;
     std::vector<RSL_struct::RSL> currentToDoList;
-    bool toDoListHasData = false;
+    std::vector<RSL_struct::RSL> defaultToDoList;
+    bool hasDefaultToDoList = false;
+    int nextDutId = 1;
 
     auto findDutEntry = [&](const std::string& name, const std::string& version) -> DutEntry* {
         for (auto& dut : m_cfg.dutList) {
@@ -64,6 +71,47 @@ bool CfgReader::load(const std::string& filePath)
         }
     };
 
+    auto applyFullNameToBaseDut = [&](const std::string& name, const std::string& FullName) {
+        for (auto& dut : m_cfg.dutList) {
+            if (dut.name == name) {
+                dut.FullName = FullName;
+            }
+        }
+    };
+
+    auto applyIdToBaseDut = [&](const std::string& name, int id) {
+        for (auto& dut : m_cfg.dutList) {
+            if (dut.name == name) {
+                dut.id = id;
+            }
+        }
+    };
+
+    auto applyDefaultsToEntry = [&](DutEntry& dut) {
+        if (hasDefaultFullName && dut.FullName.empty()) {
+            dut.FullName = defaultDutFullName;
+        }
+        if (hasDefaultBoardInfo) {
+            dut.boardInfo = defaultBoardInfo;
+        }
+        if (hasDefaultToDoList) {
+            dut.toDoList = defaultToDoList;
+        }
+    };
+
+    auto applyDefaultsToAllDuts = [&]() {
+        for (auto& dut : m_cfg.dutList) {
+            applyDefaultsToEntry(dut);
+        }
+    };
+
+    auto beginDutSection = [&](const std::string& dutName) {
+        currentDutName = trim(dutName);
+        currentDutVersion.clear();
+        currentDutFullName.clear();
+        currentSection = Section::DUT_SECTION;
+    };
+
     std::string line;
     while (std::getline(file, line)) {
         std::string s = trim(line);
@@ -72,23 +120,38 @@ bool CfgReader::load(const std::string& filePath)
         if (s.empty() || s[0] == '#')
             continue;
 
-        // Section header
-        if (s.front() == '[' && s.back() == ']') {
-            std::string sec = s.substr(1, s.size() - 2);
-            if      (sec == "TM_DEVICE") currentSection = Section::TM_DEVICE;
-            else if (sec == "DUT_LIST")  currentSection = Section::DUT_LIST;
-            else if (sec == "DUT_VERSION" || sec == "DUT_version" || sec == "DUT-version") {
-                currentSection = Section::DUT_VERSION;
-                currentDutVersion.clear();
-                currentDutDisplayName.clear();
+        // Section header. Supports both legacy "[ICA2405]" and new "[DUT]#ICA2405" forms.
+        if (s.front() == '[') {
+            std::size_t closePos = s.find(']');
+            if (closePos != std::string::npos) {
+                std::string sec = trim(s.substr(1, closePos - 1));
+                std::string tail = trim(s.substr(closePos + 1));
+
+                if      (sec == "TM_DEVICE") currentSection = Section::TM_DEVICE;
+                else if (sec == "EMAIL")     currentSection = Section::EMAIL;
+                else if (sec == "DUT_LIST")  currentSection = Section::DUT_LIST;
+                 else if (sec == "DUT_DEFAULT") currentSection = Section::DUT_DEFAULT;
+                else if (sec == "DUT_VERSION" || sec == "DUT_version" || sec == "DUT-version" ||
+                         sec == "DUT_ver" || sec == "DUT-Ver") {
+                    currentSection = Section::DUT_VERSION;
+                    currentDutVersion.clear();
+                    currentDutFullName.clear();
+                }
+                else if (sec == "DUT") {
+                    std::string dutName = tail;
+                    if (!dutName.empty() && dutName.front() == '#') {
+                        dutName.erase(dutName.begin());
+                    }
+                    beginDutSection(dutName);
+                }
+                else if (sec == "ALL") {
+                    currentSection = Section::OTHER;
+                }
+                else {
+                    beginDutSection(sec);
+                }
+                continue;
             }
-            else {
-                currentDutName = sec;
-                currentDutVersion.clear();
-                currentDutDisplayName.clear();
-                currentSection = Section::DUT_SECTION;
-            }
-            continue;
         }
 
         if (currentSection == Section::DUT_VERSION && s.rfind("BOARD_INFO={", 0) == 0) {
@@ -98,6 +161,7 @@ bool CfgReader::load(const std::string& filePath)
                 currentBoardInfo = boardInfo_struct{};
             }
             boardInfoHasData = true;
+            boardInfoOwner = currentSection;
             currentSection = Section::BOARD_INFO;
             std::string rest = trim(s.substr(std::string("BOARD_INFO={").size()));
             if (!rest.empty() && rest != "}") {
@@ -108,29 +172,28 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
-        if (currentSection == Section::DUT_SECTION && s.rfind("toDO_LIST=", 0) == 0) {
+        if ((currentSection == Section::DUT_SECTION || currentSection == Section::DUT_VERSION || currentSection == Section::DUT_DEFAULT) &&
+            s.rfind("toDO_LIST=", 0) == 0) {
             currentToDoList.clear();
-            toDoListHasData = true;
             std::string val = trim(s.substr(std::string("toDO_LIST=").size()));
             parseToDoListLine(val, currentToDoList);
-            applyToDoListToBaseDut(currentDutName, currentToDoList);
-            continue;
-        }
-
-        if (currentSection == Section::DUT_VERSION && s.rfind("toDO_LIST=", 0) == 0) {
-            currentToDoList.clear();
-            toDoListHasData = true;
-            std::string val = trim(s.substr(std::string("toDO_LIST=").size()));
-            parseToDoListLine(val, currentToDoList);
-            if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+            if (currentSection == Section::DUT_DEFAULT) {
+                defaultToDoList = currentToDoList;
+                hasDefaultToDoList = true;
+                applyDefaultsToAllDuts();
+            } else if (currentSection == Section::DUT_SECTION) {
+                applyToDoListToBaseDut(currentDutName, currentToDoList);
+            } else if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
                 dut->toDoList = currentToDoList;
             }
             continue;
         }
 
-        if (currentSection == Section::DUT_SECTION && s.rfind("BOARD_INFO={", 0) == 0) {
+        if ((currentSection == Section::DUT_SECTION || currentSection == Section::DUT_VERSION || currentSection == Section::DUT_DEFAULT) &&
+            s.rfind("BOARD_INFO={", 0) == 0) {
             currentBoardInfo = boardInfo_struct{};
             boardInfoHasData = true;
+            boardInfoOwner = currentSection;
             currentSection = Section::BOARD_INFO;
             std::string rest = trim(s.substr(std::string("BOARD_INFO={").size()));
             if (!rest.empty() && rest != "}") {
@@ -141,10 +204,45 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
-        if (currentSection == Section::DUT_VERSION && s.rfind("Name=", 0) == 0) {
-            currentDutDisplayName = trim(s.substr(5));
+        if (currentSection == Section::DUT_SECTION &&
+            (s.rfind("Name=", 0) == 0 || s.rfind("DUT-ID=", 0) == 0)) {
+            std::string val = trim(s.substr(s.find('=') + 1));
+            if (currentDutName.empty()) {
+                currentDutName = val;
+            }
+            continue;
+        }
+
+        if (currentSection == Section::DUT_SECTION && s.rfind("FullName=", 0) == 0) {
+            const std::string val = trim(s.substr(std::string("FullName=").size()));
+            applyFullNameToBaseDut(currentDutName, val);
+            continue;
+        }
+
+        if (currentSection == Section::DUT_DEFAULT &&
+            (s.rfind("FullName=", 0) == 0 || s.rfind("Name=", 0) == 0)) {
+            defaultDutFullName = trim(s.substr(s.find('=') + 1));
+            hasDefaultFullName = !defaultDutFullName.empty();
+            applyDefaultsToAllDuts();
+            continue;
+        }
+
+        if (currentSection == Section::DUT_SECTION && s.rfind("ID=", 0) == 0) {
+            try {
+                int id = std::stoi(trim(s.substr(3)));
+                applyIdToBaseDut(currentDutName, id);
+            } catch (...) {
+                // Ignore malformed IDs and keep existing values.
+            }
+            continue;
+        }
+
+        if (currentSection == Section::DUT_VERSION &&
+            (s.rfind("Name=", 0) == 0 || s.rfind("FullName=", 0) == 0)) {
+            std::string val = trim(s.substr(s.find('=') + 1));
+            currentDutFullName = val;
             if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
-                dut->displayName = currentDutDisplayName;
+                dut->FullName = currentDutFullName;
             }
             continue;
         }
@@ -152,16 +250,21 @@ bool CfgReader::load(const std::string& filePath)
         if (currentSection == Section::BOARD_INFO) {
             if (s == "}") {
                 if (boardInfoHasData) {
-                    if (currentSection == Section::BOARD_INFO && currentDutVersion.empty()) {
+                    if (boardInfoOwner == Section::DUT_DEFAULT) {
+                        defaultBoardInfo = currentBoardInfo;
+                        hasDefaultBoardInfo = true;
+                        applyDefaultsToAllDuts();
+                    } else if (boardInfoOwner == Section::DUT_SECTION && currentDutVersion.empty()) {
                         applyBoardInfoToBaseDut(currentDutName, currentBoardInfo);
                     } else if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
                         dut->boardInfo = currentBoardInfo;
-                        if (!currentDutDisplayName.empty()) {
-                            dut->displayName = currentDutDisplayName;
+                        if (!currentDutFullName.empty()) {
+                            dut->FullName = currentDutFullName;
                         }
                     }
                 }
-                currentSection = Section::DUT_SECTION;
+                currentSection = boardInfoOwner;
+                boardInfoOwner = Section::NONE;
                 continue;
             }
             std::string boardLine = s;
@@ -174,7 +277,14 @@ bool CfgReader::load(const std::string& filePath)
         switch (currentSection) {
 
         case Section::TM_DEVICE: parseDeviceLine(s); break;       
-        case Section::DUT_LIST: parseDutListLine(s); break;
+        case Section::DUT_LIST: {
+            const std::size_t beforeCount = m_cfg.dutList.size();
+            parseDutListLine(s, nextDutId);
+            for (std::size_t i = beforeCount; i < m_cfg.dutList.size(); ++i) {
+                applyDefaultsToEntry(m_cfg.dutList[i]);
+            }
+            break;
+        }
 
         case Section::DUT_VERSION: {
             auto eq = s.find('=');
@@ -183,10 +293,18 @@ bool CfgReader::load(const std::string& filePath)
                 std::string val = trim(s.substr(eq + 1));
                 if (key == "version") {
                     currentDutVersion = val;
+                } else if (key == "ID") {
+                    try {
+                        if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                            dut->id = std::stoi(val);
+                        }
+                    } catch (...) {
+                        // Ignore malformed IDs and keep existing values.
+                    }
                 } else if (key == "Name") {
-                    currentDutDisplayName = val;
+                    currentDutFullName = val;
                     if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
-                        dut->displayName = currentDutDisplayName;
+                        dut->FullName = currentDutFullName;
                     }
                 }
             }
@@ -216,7 +334,7 @@ void CfgReader::parseDeviceLine(const std::string& line)
     else if (key == "StoreFolder") m_cfg.storeFolder  = val;
 }
 // Parse  {NAME,ver1,ver2,...}  lines inside [DUT_LIST]
-void CfgReader::parseDutListLine(const std::string& line)
+void CfgReader::parseDutListLine(const std::string& line, int& nextDutId)
 {
     if (line.empty())
         return;
@@ -229,14 +347,22 @@ void CfgReader::parseDutListLine(const std::string& line)
     if (parts.size() < 2) return;
 
     std::string dutName = trim(parts[0]);
+    const int dutId = nextDutId;
+    bool addedAtLeastOneVersion = false;
     for (size_t i = 1; i < parts.size(); ++i) {
         std::string v = trim(parts[i]);
         if (!v.empty()) {
             DutEntry entry;
+            entry.id = dutId;
             entry.name = dutName;
             entry.version = v;
             m_cfg.dutList.push_back(entry);
+            addedAtLeastOneVersion = true;
         }
+    }
+
+    if (addedAtLeastOneVersion) {
+        ++nextDutId;
     }
 }
 
@@ -335,3 +461,28 @@ std::vector<std::string> CfgReader::splitCsv(const std::string& s, char delim)
         result.push_back(trim(token));
     return result;
 }
+
+void CfgReader::showAllConfig()
+{
+    std::cout << "Device Port: " << m_cfg.devicePort << "\n";
+    std::cout << "Store Folder: " << m_cfg.storeFolder << "\n";
+    std::cout << "DUT List:\n";
+    for (const auto& dut : m_cfg.dutList) {
+        std::cout <<"ID: " << dut.id << ", Name: " << dut.name << ", Version: " << dut.version;
+        if (!dut.FullName.empty()) {
+            std::cout << ", Full Name: " << dut.FullName;
+        }
+        std::cout << std::endl;
+        std::cout << dut.boardInfo.toString() << std::endl;
+        std::cout << "ToDo List: [";
+        
+        for (size_t i = 0; i < dut.toDoList.size(); ++i) {
+            std::cout << RSL_struct().getRSLStr(dut.toDoList[i]);
+            if (i + 1 < dut.toDoList.size())
+                std::cout << ", ";
+        }
+        std::cout << "]\n";
+        std::cout << "-----------------------" << std::endl;
+    }
+}
+
