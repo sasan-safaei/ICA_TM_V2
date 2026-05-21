@@ -233,9 +233,11 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     std::string _strDesc="--";
 
     myTestResult.ErrorNo=_errorNo;
-    _strError1="Error : "+std::to_string(_errorNo);
+    //_strError1="Err: "+std::to_string(_errorNo)+" RSL<"+_M2.current_RSL_Num_Str+">";
+    _strError1="Err: RSL["+_M2.current_RSL_Num_Str+"]";
     switch (_errorNo)
     {
+    case ERROR::TM_Failed:          _strError2="Test Machine Failed";_strDesc="Test Machine has some problem\n\t*check Test Machine and TM-Software"; break;
     case ERROR::Aufruesten:         _strError2="AR.Off Failed!"; _strDesc="there is voltage when AR is Disable\n\t*check optoCoupler";break;
     case ERROR::AufruestenOn:       _strError2="AR.On Failed"; _strDesc="No Voltage when AR is Enable\n\t*check AR-Fuse, eFuse, OptoCoupler, flyBack"; break;
     case ERROR::VCCIsLow:           _strError2="VCC is LOW";_strDesc="VCC is Lower then Min \n\t *check 24V and DC-DC convertor";break;
@@ -503,19 +505,20 @@ bool USV_TEST_UTIL_V2::LabelPrint(){
     }
 }
 
-uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){    
+
+
+uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){ 
     switch (_M2.m2State)
     {
     case 0://clear registers & reset Relays & Check for Lab-Device
     {
-        showLog("\nDo RSL_Init... ");
         myInterActReg.TR.DataClear();
         removeJPG_PFiles_Jobs();
         myTempVal.clear();
         myBoard.myEEPROM.clear_EEPROM_Buffer();
         myBoard.myEEPROM.myData.clear();
         //showLog("ICA2315/ICA2405/ICA2506/ICA2510 Testing Routine...");
-        showLog("Start: Reset Relays and Test start.");
+        showLog("\nStart: Reset Relays and Test start.");
         myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
         if(myArg.LabDevice_PS || myArg.LabDevice_Load){
             if(myArg.LabDevice_PS) 
@@ -528,15 +531,22 @@ uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){
             MyLabDevice.SetPSCurrent(__const_PSCurrent_NoCap_NoLoad);
             MyLabDevice.SetLoadCurrent(0);	
         }
-        _M2.m2State++;        
+        _M2.m2State++;    
+        _M2.dcnt100ms=5;//500mSec    
         _M2.__isSupperCapsOnBoard=false;
     }
     break;
     case 1://clear test result and show log
-    {                 
-        myTestResult.clear(myBoard.boardName);
-        showLog(" Ok.");
-        _M2.m2State++;
+    {    
+        if(_M2.dcnt100ms==0){
+            _M2.m2State=showError(ERROR::TM_Failed,_M2);
+        }
+        if(myTestDevice.setRelay(USV_Test_Interface::Relays::All,false)){
+            myTestResult.clear(myBoard.boardName);
+            showLog(" Ok.");
+            _M2.m2State++;
+        }
+        
     }
     break;
     case 2: return FuncStatus::success;
@@ -546,12 +556,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){
     
 }
 uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
-   
     switch(_M2.m2State){
             case 0: //set Power On *********************************************
             {   
-                myInterActReg.TR.currentTestNo=TestResult::T_AR_Off;             
-                showLog("\nDo RSL_AR_OFF TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                //myInterActReg.TR.currentTestNo=TestResult::T_AR_Off;                
+                showLog("\nTEST: AR_OFF ...");//+ std::to_string(myInterActReg.TR.currentTestNo));
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 _M2.dcnt100ms=5;//500mSec              
                 _M2.m2State++;
@@ -585,8 +594,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
                 if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);		            
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
                 //myDurationTimer.testTimeStartSec();//ChargeTime Start
-                myInterActReg.TR.currentTestNo=TestResult::T_AR_On;
-                showLog("\nDo RSL_AR_ON TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                //myInterActReg.TR.currentTestNo=TestResult::T_AR_On;
+                showLog("\nTEST: AR_ON ...");//+ std::to_string(myInterActReg.TR.currentTestNo));
                 //showLog("Test2: Turn On AufRuesten... ");                
                 _M2.dcnt100ms=10;//1Sec
                 _M2.m2State++;    
@@ -616,12 +625,13 @@ uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
     return FuncStatus::running;      
 }
 uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
-    myInterActReg.TR.currentTestNo=TestResult::T_VCC_Test;
+    
+    //myInterActReg.TR.currentTestNo=TestResult::T_VCC_Test;
     switch(_M2.m2State){
             case 0: //set Power On *********************************************
             {
                 
-                showLog("\nDo RSL_VCC_TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                //showLog("\nDo RSL_VCC_TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);     
                 myDurationTimer.testTimeStartSec();//ChargeTime Start           
@@ -634,12 +644,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
                 myTempVal.VCC = myTestDevice.getDUT_VCC();
                 myInterActReg.TR.Vvcc=myTempVal.VCC;
                 if(myTempVal.VCC> myBoard.constValue.VCC_minLimit && myTempVal.VCC< myBoard.constValue.VCC_maxLimit){                    
-                    showLog((std::ostringstream{} << "Test3: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());
+                    showLog((std::ostringstream{} << "\nTest: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());
                     showLog(" Ok.");                        
                     _M2.m2State++;
                 }else{
                     if(!(_M2.dcnt100ms==0)){
-                        showLog((std::ostringstream{} << "Test3: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());                    
+                        showLog((std::ostringstream{} << "\nTest: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());                    
                         showLog("Failed!");
                         if(myTempVal.VCC< 3.1)
                             return showError(ERROR::VCCIsLow,_M2);
@@ -655,7 +665,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
-    myInterActReg.TR.currentTestNo=TestResult::T_uC_Program;
+    //myInterActReg.TR.currentTestNo=TestResult::T_uC_Program;
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
     std::string binFileName = myInterActReg.Dongle+"_STM32.bin";    
     //std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
@@ -665,10 +675,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     case 0:// Compare uC-Flash with current firmware
     {
         //showLog("\nDo RSL_uC_Program... ");
-        showLog("\nDo RSL_uC_Program TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        //showLog("\nDo RSL_uC_Program TEST:"+ myInterActReg.TR.currentTestNoStr);
         std::filesystem::path firmwarePath = STM32Path + "/Firmware_Folder/" + binFileName;
         if (!std::filesystem::exists(firmwarePath)) {
-            showLog(std::string(" !!! Firmware file not found: !!!") + firmwarePath.string());
+            showLog(std::string("\n !!! Firmware file not found: !!!") + firmwarePath.string());
             return showError(ERROR::uCProgramFailed,_M2);            
         }
         int __ret = std::system(std::string(STM32Path + "/STM32ProgFunc --cmp " + firmwarePath.string()).c_str());
@@ -681,12 +691,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     break;
     case 1:// program uC with current firmware
     {
-        showLog("Programming uC with firmware... ");
+        showLog("\nProgramming uC with firmware... ");
         std::string __cmd = std::string(STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
         std::cout << __cmd<< std::endl;
         int __ret = std::system(__cmd.c_str());
-        if(__ret==0){ showLog("uC Program OK."); _M2.m2State++; }
-        else{ showLog("uC Program Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+        if(__ret==0){ showLog("Program OK."); _M2.m2State++; }
+        else{ showLog("Programming Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
     }    
     break;
     case 2:// Compare uC-Flash with current firmware
@@ -714,7 +724,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         std::string __result="";
         int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 56 52 50\"").c_str(),__result);
         if(__ret==0){ 
-            showLog("FirmWare:"); 
+            showLog("\nFirmWare:"); 
             {
                 size_t pos = __result.find('\n');
                 if (pos != std::string::npos && pos + 1 < __result.size())
@@ -730,7 +740,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     break;
     case 7://Read EUI with UART command
     {
-        myInterActReg.TR.currentTestNo=TestResult::T_Uart;
+        //myInterActReg.TR.currentTestNo=TestResult::T_Uart;
         //showLog("Read EUI OK.");
         if (myBoard.readEUI64(myBoard.myEEPROM.myData.EUI)){
             if(myBoard.myEEPROM.isKnownIC()){    
@@ -782,7 +792,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         //int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
         int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str(),__resualt);
         if(__ret==0){ 
-            showLog("Read current uC EEPROM value (UART) OK.");
+            showLog("\nRead current uC EEPROM value (UART) OK.");
             //showLog("EEPROM raw data: "+__resualt); 
             //std::cout<<"EEPROM:( "<< __resualt << " )"<<std::endl;
             //std::vector<uint8_t> byteArray;;
@@ -877,14 +887,14 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
 }
 uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     uint8_t __retValue=0;
-    myInterActReg.TR.currentTestNo=TestResult::T_Uart;
+    //myInterActReg.TR.currentTestNo=TestResult::T_Uart;
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
     //std::string eepromFileName = myInterActReg.Dongle+"_EEPROM.txt";
     switch (_M2.m2State)
     {
     case 0:
     {
-        showLog("\nDo RSL_uart TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        //showLog("\nDo RSL_uart TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
         //showLog("Test5: Board Connection... ");
         _M2.dcnt100ms=250;//25Sec
         _M2.m2State++;  
@@ -896,7 +906,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     {
         if(_M2.dcnt100ms>0){
             if(!myBoard.init(myArg.ttyName)){
-                showLog(" Failed to Serial Port Connection (INI)! \n");                         
+                //showLog(" Failed to Serial Port Connection (INI)! \n");                         
                 myInterActReg.TR.UART_Con=false;
             }else{
                 myBoard.GPIOResetAll();
@@ -972,12 +982,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
 }
 uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM_RTC_I2C(__temp__register & _M2){
     static ICA_justEUI myICA2308;
-    myInterActReg.TR.currentTestNo=TestResult::T_EEPROM_I2C;
+    //myInterActReg.TR.currentTestNo=TestResult::T_EEPROM_I2C;
     switch (_M2.m2State)
     {
         case 0:
         {
-            showLog("\nDo RSL_uart TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+            //showLog("\nDo RSL_uart TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
             _M2.dcnt100ms=5;
             _M2.m2State++;  
             myICA2308.clearEUIBuffer();
@@ -1017,11 +1027,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM_RTC_I2C(__temp__register & _M2){
 }
 uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
     // It Should first run RSL_AR_Test to active chargeing-timer
-    myInterActReg.TR.currentTestNo=TestResult::T_ChargeTest;
+    //myInterActReg.TR.currentTestNo=TestResult::T_ChargeTest;
     switch (_M2.m2State)
     {
     case 0:{//Start Charge Test
-        showLog("\nDo RSL_ChargeTest TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        //showLog("\nDo RSL_ChargeTest TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
         _M2.__isSupperCapsOnBoard=true;
         _M2.m2State++;
     }
@@ -1074,12 +1084,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
     
 }
 uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
-    myInterActReg.TR.currentTestNo=TestResult::T_FlyBackTest;
+    //myInterActReg.TR.currentTestNo=TestResult::T_FlyBackTest;
     
     switch (_M2.m2State){    
     case 0:
     {        
-        showLog("\nDo RSL_FlyBack Test:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        //showLog("\nDo RSL_FlyBack Test:"+ std::to_string(myInterActReg.TR.currentTestNo));
         myBoard.GPIOResetAll();
         _M2.m2State++;
         _M2.m2ErrorCntLimit=10;
@@ -1110,7 +1120,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
         break;
     case 3: //Set FlayBack Off.
-        myInterActReg.TR.currentTestNo=6;
+        //myInterActReg.TR.currentTestNo=6;
         showLog("Test6: FlyBack-Dis... ");
         _M2.dcnt100ms=20;
         _M2.m2State++;
@@ -1142,7 +1152,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;
         break;
     case 9: //Set FlyBack Enable
-        myInterActReg.TR.currentTestNo=7;
+        //myInterActReg.TR.currentTestNo=7;
         showLog("FlyBack-En... ");
         _M2.dcnt100ms=20; _M2.m2State++;
         break; 
@@ -1171,10 +1181,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
-    myInterActReg.TR.currentTestNo=TestResult::T_WaitToOutSWOffTest;
+    //myInterActReg.TR.currentTestNo=TestResult::T_WaitToOutSWOffTest;
     switch (_M2.m2State){        
     case 0:
-        showLog("\nDo RSL_WaitToOutSWOffTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        //showLog("\nDo RSL_WaitToOutSWOffTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
         myBoard.GPIOResetAll();
         _M2.m2State++;
     break;
@@ -1278,10 +1288,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
     static uint8_t __tempIC__error__cnt=0;
     static uint8_t __diffVcap__error__cnt=0;
     static uint8_t __tempBatBack__error__cnt=0;
-     myInterActReg.TR.currentTestNo=TestResult::T_DisChargeTest;
+     //myInterActReg.TR.currentTestNo=TestResult::T_DisChargeTest;
     switch (_M2.m2State){        
     case 0:
-        showLog("\nDo RSL_DisChargeTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
+        //showLog("\nDo RSL_DisChargeTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
         //__tempICtempVal=0.0;
         __tempIC__error__cnt=0;
         __diffVcap__error__cnt=0;
@@ -1305,7 +1315,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
     case 3:// TEST9 : Discharge *********************************************
     {
         showLog("Test9: wait to disCharge SCap");
-        myInterActReg.TR.currentTestNo=9;
+        //myInterActReg.TR.currentTestNo=9;
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
         if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);
         if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);                                
@@ -1377,11 +1387,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
 }
 uint8_t USV_TEST_UTIL_V2::RSL_UART_Save_EEPROM(__temp__register & _M2){
     uint8_t __retValue=0;
-    myInterActReg.TR.currentTestNo=TestResult::T_EEPROM_Uart_Save;
+    //myInterActReg.TR.currentTestNo=TestResult::T_EEPROM_Uart_Save;
     switch(_M2.m2State){        
         case 0:
         {
-            showLog("\nDo RSL_EEROM_Uart_Save TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
+            //showLog("\nDo RSL_EEROM_Uart_Save TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
             _M2.dcnt100ms=5;//25Sec
             _M2.m2State++;  
             std::cout<<"ttl Port: "<<myArg.ttyName<<std::endl;
@@ -1461,8 +1471,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_JUST_ON(__temp__register & _M2){
     switch(_M2.m2State){
             case 0: //set Power On *********************************************
             {   
-                myInterActReg.TR.currentTestNo=TestResult::T_Just_On;             
-                showLog("\nDo RSL_Just_On:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                //myInterActReg.TR.currentTestNo=TestResult::T_Just_On;             
+                //showLog("\nDo RSL_Just_On:"+ std::to_string(myInterActReg.TR.currentTestNo));
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
@@ -1473,9 +1483,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_JUST_ON(__temp__register & _M2){
     }
     return FuncStatus::running;
 }
+
 void USV_TEST_UTIL_V2::run_Test_Func(){
     //uint8_t _key=0;
     __temp__register __tr;
+
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
     std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
     //std::string uartFileName = myInterActReg.Dongle+"_EEPROM.txt";
@@ -1508,16 +1520,20 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     __tr.RSL_state=toDoList[__tr.RSL_Cnt];
     RSL_struct x1;
     uint8_t __cnt1=0;
-    uint8_t lCurrentTestNo=0xFF;
+    std::string lCurrentTestNoStr="";
     uint8_t lState=0xFF;
     uint8_t lRSLStatePre=RSL_struct::RSL::Stop;
     
-    while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (xrunning==true) ){
-        myInterActReg.TR.currentTestNoStr = x1.getRSLStr(__tr.RSL_state);
-        if(myInterActReg.TR.currentTestNo!=lCurrentTestNo || __tr.m2State!=lState){
-            std::cout << "... SM: RSL(" << std::to_string(myInterActReg.TR.currentTestNo)<<":" << std::to_string(__tr.m2State) << ")"
-                       << " - " << myInterActReg.TR.currentTestNoStr << std::endl;
-            lCurrentTestNo=myInterActReg.TR.currentTestNo;
+    while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) ){
+        
+        if(__tr.RSL_state!=RSL_struct::RSL::Stop){
+            myInterActReg.TR.currentTestNoStr = x1.getRSLStr(__tr.RSL_state)+":" + std::to_string(__tr.m2State);
+            myInterActReg.TR.currentTestNoX = __tr.RSL_state*1000+__tr.m2State;
+            __tr.current_RSL_Num_Str = std::to_string(__tr.RSL_state) + "-" + std::to_string(__tr.m2State);
+        }
+        if(myInterActReg.TR.currentTestNoStr  !=lCurrentTestNoStr || __tr.m2State!=lState){
+            std::cout << "... SM: RSL-" << myInterActReg.TR.currentTestNoStr << std::endl;
+            lCurrentTestNoStr=myInterActReg.TR.currentTestNoStr;
             lState=__tr.m2State;
             __tr.m2ErrorCnt=0;
             if(__tr.RSL_state!=lRSLStatePre){
@@ -1530,8 +1546,15 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         if (__tr.dcnt100ms>0) __tr.dcnt100ms--;        
         preLoopFunc(__tr);
         preLoopGetCaps(__tr);
-        __funcResualt=-1;        
-    
+        __funcResualt=-1;    
+        std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(__tr.RSL_state) + "("+ std::to_string(__tr.RSL_state) +")"); 
+
+        if (current_RSL_Name != __tmp_str){ 
+            
+            current_RSL_Name = __tmp_str;
+            showLog("\n"+current_RSL_Name);
+            std::cout << "\n" << current_RSL_Name << std::endl;
+        }
         switch(__tr.RSL_state){
             case RSL_struct::RSL::Init: __funcResualt= RSL_Init(__tr); break;
             case RSL_struct::RSL::AR_Test: __funcResualt = RSL_AR_Test(__tr); break;
@@ -1577,7 +1600,11 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                     __tr.m2ErrorCntLimit=0;
                     __tr.m2ErrorNo=0;
                 break;
-                case 2: showLog("failed!\n"); __tr.RSL_state=RSL_struct::RSL::EndFailed; break;
+                case 2: 
+                    std::cout << "\n\n\n RSL Failed on Test " << myInterActReg.TR.currentTestNoStr << std::endl;
+                    showLog("failed!\n!!!!!! "+myInterActReg.TR.currentTestNoStr+" !!!!!!\n"); 
+                    __tr.RSL_state=RSL_struct::RSL::EndFailed; 
+                break;
                 default: showLog("Unknown Error in RSL State Machine\n"); __tr.RSL_state=RSL_struct::RSL::Stop; break;
             }
         }
@@ -1586,6 +1613,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     }
     if (myTestResult.ErrorNo == 0) myInterActReg.resualtStatus='O'; else myInterActReg.resualtStatus='F';
     
+    std::cout<<"SAVE DATA...\n";
     showLog("SAVE DATA...");
     SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
     SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);

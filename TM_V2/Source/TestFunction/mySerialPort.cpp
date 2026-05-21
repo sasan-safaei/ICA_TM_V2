@@ -17,7 +17,7 @@ bool SerialPort::sp_open() {
    
     hSerial = open(tty_sp, O_RDWR | O_NOCTTY | O_NDELAY);
     if (hSerial < 0) {
-        std::cerr << "Error opening serial port." << std::endl;
+        //std::cerr << "Error opening serial port." << std::endl;
         return false;
     }
     if (tcgetattr(hSerial, &tty) != 0) {

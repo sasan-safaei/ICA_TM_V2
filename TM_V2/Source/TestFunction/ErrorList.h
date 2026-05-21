@@ -33,6 +33,7 @@
             ,I2CFailed
             ,uCProgramFailed
             ,ucUartFailed
+            ,TM_Failed
         };
     };
 

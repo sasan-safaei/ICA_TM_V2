@@ -84,7 +84,7 @@ bool getConfig(){
 
 bool App_TM_V2::initialize(int argc, char* argv[]){
 
-    std::cout << "TM_V2 Version: " << lastModifiedTime << std::endl;
+    std::cout << "\n>>> TM_V2 Version: " << lastModifiedTime <<" <<<\n" << std::endl;
     myUSVTestV2.showLog("TM_V2 Version: " + lastModifiedTime);
     if (create_folder("./tmp") != 0) {
         return 1; // Handle error
@@ -175,7 +175,7 @@ void App_TM_V2::taskLoop() {
         //        break;
         //}
         myUSVTestV2.DongleCheck();
-        myUSVTestV2.showSelectedBoardInfo();        
+        //myUSVTestV2.showSelectedBoardInfo();        
         if( myUSVTestV2.toDoList.size()>0) myUSVTestV2.run_Test_Func();
         myInterActReg.tm_state+=1;
         //std::cout << "Task running...\n";

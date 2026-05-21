@@ -44,6 +44,7 @@ void testrReset();
 
 
 struct __temp__register{
+    std::string current_RSL_Num_Str;
     uint8_t RSL_state=0;
     uint8_t RSL_Cnt=0;    
     uint8_t mState = 0;
@@ -94,7 +95,7 @@ enum FuncStatus {
 
 class USV_TEST_UTIL_V2{
     public:
-        
+        std::string current_RSL_Name;
         std::vector<uint8_t> toDoList={};
         bool xrunning;
         struct MYAruments{
@@ -112,7 +113,7 @@ class USV_TEST_UTIL_V2{
             std::string StoreFolderPath;
             std::string FileName_EUI;
             std::string FileName_Test;
-            std::string workSpace;
+            std::string workSpace;            
             void showHelp(){
                 printf("\033[2H");
                 printf("\033[2J");

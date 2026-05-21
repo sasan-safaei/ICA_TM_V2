@@ -32,7 +32,7 @@
 #include "unistd.h"
 #include "getBasic.h"
 struct _testResualtValue{
-    uint8_t currentTestNo;
+    uint16_t currentTestNoX;
     std::string currentTestNoStr; 
     int8_t AR_On,AR_Off,UART_Con,eeprom_status,FlyBackDis,FlayBackEn,OutSwOff;
     uint16_t CapChargeTime,CapDisChargeTime,OutSWOffTime,WaitToOutSWOffTime;
@@ -47,7 +47,7 @@ struct _testResualtValue{
     std::string errorStr2="";
     
     void DataClear(){        
-        currentTestNo=0;
+        currentTestNoX=0;
         AR_On=-1; AR_Off=-1;
         UART_Con=-1; eeprom_status=-1;
         FlyBackDis=-1; FlayBackEn=-1; OutSwOff=-1;
@@ -65,12 +65,12 @@ struct _testResualtValue{
     }
     std::string show_str(){
         std::ostringstream oss;
-        oss <<"TestNo:" << static_cast<int>(currentTestNo);
+        oss <<"TestNo:" << static_cast<int>(currentTestNoX);
         return oss.str();
     }
     std::string __show_str(){
         std::ostringstream oss;
-        oss <<"TestNo:" << static_cast<int>(currentTestNo) <<" ,"
+        oss <<"TestNo:" << static_cast<int>(currentTestNoX) <<" ,"
         <<"AR_On:"<<static_cast<int>(AR_On) <<" ,"
         <<"AR_Off:"<<static_cast<int>(AR_Off) <<" ,"
         <<"UART_Con:"<<static_cast<int>(UART_Con) <<" ,"
@@ -197,7 +197,7 @@ struct _interact_registers{
     }
     std::string getCurrentTestNoStr(){
         std::ostringstream oss;
-        oss << "TestNo:" << static_cast<int>(TR.currentTestNo);
+        oss << "TestNo:" << static_cast<int>(TR.currentTestNoX);
         return oss.str();
     }
 };

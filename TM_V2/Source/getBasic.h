@@ -48,8 +48,8 @@ struct RSL_struct{
             case FlyBackTest: return "FlyBackTest";
             case WaitToOutSWOffTest: return "WaitToOutSWOffTest";
             case DisChargeTest: return "DisChargeTest";                
-            case EndSuccess: return "EndSuccess";                
-            case EndFailed: return "EndFailed";                
+            case EndSuccess: return "End-Success";                
+            case EndFailed: return "End-Failed";                
             case justOn: return "justOn";
             case Stop: return "Stop";                
             default:

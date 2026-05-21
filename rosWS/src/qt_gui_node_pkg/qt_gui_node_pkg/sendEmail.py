@@ -23,6 +23,7 @@ def send_email(
     subject="info Mail",
     body="",
     attachment_path=None,
+    attachments=None,
     use_ssl=True
 ):
     """
@@ -69,22 +70,32 @@ def send_email(
         msg["Subject"] = subject
         msg.attach(MIMEText(body_with_device_info, "plain"))
 
-        # Attach file if provided
-        if attachment_path:
-            if os.path.exists(attachment_path):
-                with open(attachment_path, "rb") as attachment:
-                    part = MIMEBase("application", "octet-stream")
-                    part.set_payload(attachment.read())
-                
-                encoders.encode_base64(part)
-                part.add_header(
-                    "Content-Disposition",
-                    f"attachment; filename= {os.path.basename(attachment_path)}",
-                )
-                msg.attach(part)
-                print(f"Attached file: {attachment_path}")
+        # Attach files if provided (single path or list)
+        attach_list = []
+        if attachments:
+            attach_list = list(attachments)
+        elif attachment_path:
+            attach_list = [attachment_path]
+
+        for ap in attach_list:
+            if not ap:
+                continue
+            if os.path.exists(ap):
+                try:
+                    with open(ap, "rb") as attachment:
+                        part = MIMEBase("application", "octet-stream")
+                        part.set_payload(attachment.read())
+                    encoders.encode_base64(part)
+                    part.add_header(
+                        "Content-Disposition",
+                        f"attachment; filename= {os.path.basename(ap)}",
+                    )
+                    msg.attach(part)
+                    print(f"Attached file: {ap}")
+                except OSError as e:
+                    print(f"Warning: Could not attach {ap}: {e}")
             else:
-                print(f"Warning: File {attachment_path} not found. Sending email without attachment.")
+                print(f"Warning: File {ap} not found. Skipping attachment.")
 
         # Connect to server and send email
         if use_ssl:
@@ -101,7 +112,7 @@ def send_email(
         return True
     
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f"Failed to send email to {receiver_email}: {e}")
         return False
 
 

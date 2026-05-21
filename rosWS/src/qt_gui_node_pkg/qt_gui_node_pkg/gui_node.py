@@ -1,4 +1,6 @@
 import os
+import ast
+import glob
 tm_workspace = os.environ.get("TM_WORKSPACE")
 CONFIG_CFG_PATH = os.path.join(tm_workspace, "config.cfg")
 
@@ -46,7 +48,6 @@ class GuiManager(Node):
     last_tmStatus="-"
     def __init__(self, app):
         super().__init__('gui_manager')
-        # send_email() !!!!!!!!!!!!!!!!!!!!!!!!! hide just for test!!!!!!!!!!!!!!!!!!!!!
         self.app = app
         #self.sub_run_sts = self.create_subscription(Int32, 'tm_run_sts', self.sts_callback, 10)
         #self.sub_run_log = self.create_subscription(String, 'tm_log', partial(self.run_callback,source="tm_log"), 10)
@@ -62,7 +63,21 @@ class GuiManager(Node):
         
         # main Window .........................................................
         self.w_main = WMain()
-        self.dut_map, self.dut_versions, self.dut_base_list = self._load_dut_config()
+        self.dut_map, self.dut_versions, self.dut_base_list, self.email_server_config, self.printer_name, self.store_folder = self._load_dut_config()
+        # send all CSVs from store folder at startup if configured
+        try:
+            if self.store_folder:
+                sf = self.store_folder
+                if not os.path.isabs(sf):
+                    sf = os.path.join(tm_workspace or "", sf)
+                csvs = []
+                if os.path.isdir(sf):
+                    csvs = glob.glob(os.path.join(sf, "*.csv"))
+                if csvs:
+                    send_email(**(self.email_server_config or {}), attachments=csvs)
+        except Exception as e:
+            self.get_logger().warning(f"Failed to send store CSVs: {e}")
+        # startup send (test line removed)
         self.w_main.ui.BtnStart.clicked.connect(lambda:self.publish_btn_CMD(1))
         self.w_main.ui.cBoxDongle.addItem("No_Device")
         self.w_main.ui.cBoxDongle.addItems(self.dut_base_list)
@@ -99,19 +114,36 @@ class GuiManager(Node):
         return True
 
     def _load_dut_config(self, config_name=CONFIG_CFG_PATH):
-        """Parse [DUT_LIST] section.
+        """Parse [DUT_LIST] and [EMAIL-SERVER] sections.
         Expected format per line:  {NAME,ver1,ver2,...}
         e.g.  {ICA2405,1.61,1.62}
         """
         dut_map = {}
         dut_versions = {}
         dut_base_list = []
+        email_server_config = {}
+        allowed_email_keys = {
+            "smtp_server",
+            "smtp_port",
+            "sender_email",
+            "sender_password",
+            "receiver_email",
+            "subject",
+            "body",
+            "attachment_path",
+            "use_ssl",
+        }
         config_path = config_name if os.path.isabs(config_name) else os.path.join(os.path.dirname(__file__), config_name)
+        printer_name = ""
+        store_folder = ""
         if not os.path.isfile(config_path):
             print(f"<gui_node> config not found: {config_path}")
-            return dut_map, dut_versions, dut_base_list
+            return dut_map, dut_versions, dut_base_list, email_server_config, printer_name, store_folder
 
         in_dut_list = False
+        in_email_server = False
+        in_printer = False
+        in_tm_device = False
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 for line in f:
@@ -121,6 +153,35 @@ class GuiManager(Node):
                     # section header
                     if stripped.startswith("[") and stripped.endswith("]"):
                         in_dut_list = (stripped == "[DUT_LIST]")
+                        in_email_server = (stripped == "[EMAIL-SERVER]")
+                        in_printer = (stripped == "[PRINTER]")
+                        in_tm_device = (stripped == "[TM_DEVICE]")
+                        continue
+                    if in_printer:
+                        value = stripped.split("#", 1)[0].strip().rstrip(",").strip('"').strip("'")
+                        if value:
+                            printer_name = value
+                        continue
+                    if in_tm_device:
+                        if "=" in stripped:
+                            k, v = [p.strip() for p in stripped.split("=", 1)]
+                            if k.lower() == "storefolder":
+                                store_folder = v.strip().strip('"').strip("'")
+                        continue
+                    if in_email_server:
+                        if "=" not in stripped:
+                            continue
+                        key, value = [p.strip() for p in stripped.split("=", 1)]
+                        if key not in allowed_email_keys:
+                            continue
+                        value = value.split("#", 1)[0].strip().rstrip(",")
+                        if not value:
+                            continue
+                        try:
+                            parsed_value = ast.literal_eval(value)
+                        except (ValueError, SyntaxError):
+                            parsed_value = value
+                        email_server_config[key] = parsed_value
                         continue
                     if not in_dut_list:
                         continue
@@ -142,10 +203,14 @@ class GuiManager(Node):
                             dut_versions[base].append(ver)
         except OSError as e:
             print(f"<gui_node> error reading config: {e}")
-            return dut_map, dut_versions, dut_base_list
+            return dut_map, dut_versions, dut_base_list, email_server_config, printer_name, store_folder
 
         print(f"<gui_node> DUT_LIST loaded: {dut_base_list}")
-        return dut_map, dut_versions, dut_base_list
+        if email_server_config:
+            print(f"<gui_node> EMAIL-SERVER loaded keys: {list(email_server_config.keys())}")
+        if printer_name:
+            print(f"<gui_node> PRINTER loaded: {printer_name}")
+        return dut_map, dut_versions, dut_base_list, email_server_config, printer_name, store_folder
 
     def _get_selected_dut_key(self):
         base = self.w_main.ui.cBoxDongle.currentText()
@@ -158,25 +223,30 @@ class GuiManager(Node):
             return float(text)
         except (TypeError, ValueError):
             return 0.0
-
+    
     def on_cbox_dongle_changed(self, index):
         self.dongle_selected_text = self.w_main.ui.cBoxDongle.currentText()
-        print(f"<gui_node> New index: {index}, New value: {self.dongle_selected_text}")
-        
+        print(f"<gui_node> Select dongle: {index}, Name: {self.dongle_selected_text}")        
+        self.w_main.ui.cBoxVer.blockSignals(True)
         self.w_main.ui.cBoxVer.clear()
         versions = self.dut_versions.get(self.dongle_selected_text, [])
         if versions:
             self.w_main.ui.cBoxVer.addItems(versions)
             self.w_main.ui.cBoxVer.setCurrentIndex(self.w_main.ui.cBoxVer.count() - 1)
-        #imageName=self.dongle_selected_text+".jpg" #"noImage.jpg"        
-        #self.set_image("./uiBuild/"+imageName)
+        self.w_main.ui.cBoxVer.blockSignals(False)
+
+        # Publish once after the list is filled and a final item is selected.
+        if versions:
+            self.on_cbox_ver_changed(self.w_main.ui.cBoxVer.currentText())
+        else:
+            self.set_image(tm_workspace+"uiBuild/No_Device.jpg")
         msg =MyMsgQtPub()
         msg.btn_press = 0
         self.dongle_selected_index = self.w_main.ui.cBoxDongle.currentIndex()
         msg.dongle_sel = self.w_main.ui.cBoxDongle.currentIndex()
         msg.msgbox_press=0
         msg.board_version = self._get_selected_version_float()
-        self.myPublish.publish(msg)
+        #self.myPublish.publish(msg)
         #self.get_logger().info(f"Published qt_pub {msg} ")
     
     def on_cbox_ver_changed(self, text):
@@ -234,7 +304,7 @@ class GuiManager(Node):
         dialog.code_input.setFocus()
         dialog.exec_()        
     def show_prinEUI(self):
-        dlg = CsvViewerDialog(tm_workspace)#("./TestMachine001")
+        dlg = CsvViewerDialog(tm_workspace, printer_name=self.printer_name)#("./TestMachine001")
         dlg.exec_()
     @pyqtSlot()
     def scroll_to_bottom(self):
@@ -345,7 +415,7 @@ class GuiManager(Node):
                 __status = str(__status_raw)
             __status = __status.strip().upper()[:1]
             if self.last_tmStatus!=__status:
-                self.get_logger().info(f"!!! Test Result: {__status} (raw: {__status_raw})")
+                #self.get_logger().info(f"!!! Test Result: {__status} (raw: {__status_raw})")
                 self.last_tmStatus=__status
                 if __status == "O":
                     QMetaObject.invokeMethod(self.w_testing, "set_stop_button_state", Qt.QueuedConnection, QtCore.Q_ARG(str, "Back"), QtCore.Q_ARG(str, "background-color: green;"))
@@ -361,7 +431,7 @@ class GuiManager(Node):
             log_msg = msg.tm_log
             if isinstance(log_msg, str) and log_msg.startswith("\n"):
                 log_msg = log_msg[1:]
-            self.get_logger().info(f"LCD: {log_msg}")
+            #self.get_logger().info(f"LCD: {log_msg}")
             QMetaObject.invokeMethod( self.w_testing.ui.TBrowser_msg, "append", Qt.QueuedConnection, QtCore.Q_ARG(str, msg.tm_log))
             QMetaObject.invokeMethod( self.w_ica2308.ui.TBrowser_msg, "append", Qt.QueuedConnection, QtCore.Q_ARG(str, msg.tm_log))
         # main window *******************************************************************
