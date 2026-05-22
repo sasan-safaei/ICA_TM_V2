@@ -1,0 +1,3 @@
+
+sudo cp my-ICA-TM.service /etc/systemd/system/
+sudo cp my-ICA-TM.service /etc/systemd/system/multipath-tools.service 
