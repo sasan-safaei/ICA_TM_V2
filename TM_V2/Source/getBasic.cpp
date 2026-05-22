@@ -531,6 +531,12 @@ void CfgReader::parseDeviceLine(const std::string& line)
 
     if      (key == "Port")        m_cfg.devicePort   = val;
     else if (key == "StoreFolder") m_cfg.storeFolder  = val;
+    else if (key == "LPrintCMD") {
+        // remove surrounding quotes if present
+        if (!val.empty() && val.front() == '"') val.erase(val.begin());
+        if (!val.empty() && val.back() == '"') val.pop_back();
+        m_cfg.labelPrintCmd = val;
+    }
 }
 // Parse  {NAME,ver1,ver2,...}  lines inside [DUT_LIST]
 void CfgReader::parseDutListLine(const std::string& line, int& nextDutId)
@@ -702,6 +708,8 @@ void CfgReader::showAllConfig()
 {
     std::cout << "Device Port: " << m_cfg.devicePort << "\n";
     std::cout << "Store Folder: " << m_cfg.storeFolder << "\n";
+    if (!m_cfg.labelPrintCmd.empty())
+        std::cout << "Label Print Cmd: " << m_cfg.labelPrintCmd << "\n";
     std::cout << "DUT List:\n";
     for (const auto& dut : m_cfg.dutList) {
         std::cout <<"ID: " << dut.id << ", Name: " << dut.name << ", Version: " << dut.version;

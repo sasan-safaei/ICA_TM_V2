@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include "./../main_pi.h"
 
 #ifdef PrinterIncluded
 
@@ -181,7 +182,10 @@
         //std::string cmd = "lp -d " + std::string(printer) + " "+ std::string(options) + " " + std::string(file);
         //int result = std::system(cmd.c_str());
         std::system("convert ./tmp/resualt.jpg -rotate 90 ./tmp/resualtR.jpg");
-        int resualt = std::system("lp -d QL700 -o PageSize=12x38mm -o fit-to-page=off -o scaling=100 -o resolution=300x300dpi ./tmp/resualtR.jpg");    
+        std::string lpCmd = cfg.getLabelPrintCmd();
+        if (lpCmd.empty()) lpCmd = "lp -d QL700 -o PageSize=12x38mm -o fit-to-page=off -o scaling=100 -o resolution=300x300dpi";
+        std::string cmd = lpCmd + " ./tmp/resualtR.jpg";
+        int resualt = std::system(cmd.c_str());
         //std::cout << cmd.c_str()<<"\n";
         if (resualt == 0) {
             std::cout << "Print job sent successfully!\n";
@@ -245,7 +249,10 @@
         gdImageDestroy(img);
         
         std::system("convert ./tmp/error.jpg -rotate 90 ./tmp/errorR.jpg");
-        int resualt = std::system("lp -d QL700 -o PageSize=12x38mm -o fit-to-page=off -o scaling=100 -o resolution=300x300dpi ./tmp/errorR.jpg");    
+        std::string lpCmd = cfg.getLabelPrintCmd();
+        if (lpCmd.empty()) lpCmd = "lp -d QL700 -o PageSize=12x38mm -o fit-to-page=off -o scaling=100 -o resolution=300x300dpi";
+        std::string cmd = lpCmd + " ./tmp/errorR.jpg";
+        int resualt = std::system(cmd.c_str());
         if (resualt == 0) {
             std::cout << "Print job sent successfully!\n";
         } else {

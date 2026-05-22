@@ -177,7 +177,7 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         myTestResult.Board_MaxTemp85V = dut.boardInfo.Board_MaxTemp85V;
         myBoard.myEEPROM.myData.cfgVshutDown = dut.boardInfo.Board_VShutdownVoltage;
         // Keep legacy test-result limits in sync with cfg-driven measurement values.
-        myTestResult.Load_Current = myBoard.constValue.Load_Current;
+        myTestResult.Load_Current = 0;// myBoard.constValue.Load_Current;
         //myTestResult.Limit_MIN_ChargeCurrent = myBoard.constValue.Limit_MIN_ChargeCurrent;
         //myTestResult.Limit_MIN_FullChargeCurrent = myBoard.constValue.Limit_MIN_FullChargeCurrent;
         //myTestResult.Limit_MAX_Charge_time = myBoard.constValue.Limit_MAX_Charge_time;
@@ -717,9 +717,13 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     break;
     case 4:
     case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
         _M2.m2State++;
     break;
-    case 6://Get Firmware Version with UART command
+    case 10://Get Firmware Version with UART command
     {
         std::string __result="";
         int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 56 52 50\"").c_str(),__result);
@@ -738,7 +742,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         else{ showLog("uC reset Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
-    case 7://Read EUI with UART command
+    case 11://Read EUI with UART command
     {
         //myInterActReg.TR.currentTestNo=TestResult::T_Uart;
         //showLog("Read EUI OK.");
@@ -761,7 +765,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 8://Read UID with UART command
+    case 12://Read UID with UART command
     {
         std::string __resualt="";
         int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 55 50\"").c_str(),__resualt);
@@ -782,11 +786,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 9:
-    case 10:
+    case 13:
+    case 14:
         _M2.m2State++;
     break;
-    case 11://Read EEPROM Value with current EEPROM-Ver (Just For Test)
+    case 15://Read EEPROM Value with current EEPROM-Ver (Just For Test)
     {
         std::string __resualt="";
         //int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
@@ -830,7 +834,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;   
-    case 12://Ask user if EEPROM overwrite or not
+    case 16://Ask user if EEPROM overwrite or not
     {
         if(myInterActReg.msgBox.waitForUser("EEPROM Over write?","Yes","NO",10)){
                 showLog("Operator: YES");
@@ -844,7 +848,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
             }
     }
     break;
-    case 13://Update EEPROM value with current Board Info and write to uC EEPROM with UART
+    case 17://Update EEPROM value with current Board Info and write to uC EEPROM with UART
     {   
         showLog("Update EEPROM value with current Board Info... ");
         myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);
@@ -868,19 +872,19 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         _M2.m2State++;
     }
     break;
-    case 14:// Reset uC
+    case 18:// Reset uC
     {
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
         if(__ret==0){ showLog("uC reset OK."); _M2.m2State++; }
         else{ showLog("uC reset Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
-    case 15:
-    case 16:
-    case 17:
+    case 19:
+    case 20:
+    case 21:
         _M2.m2State++;
     break;
-    case 18: return FuncStatus::success;
+    case 22: return FuncStatus::success;
     default:return FuncStatus::failed;
     }
     return FuncStatus::running;
@@ -1363,7 +1367,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         //myTestResult.ErrorNo=0;
         usleep(100000);
         if(myTempVal.VCap>0) myTestResult.VCap_SWOff=myTempVal.VCap;
-
+        if( myTempVal.LoadCurrent > myTestResult.Load_Current) myTestResult.Load_Current = myTempVal.LoadCurrent;
         if ( myTempVal.LoadCurrent>-1 && myTempVal.LoadCurrent<0.05 ) {
             showLog("\n");
             myTestResult.time_DisCharge=myTempVal.DisChargeTime;

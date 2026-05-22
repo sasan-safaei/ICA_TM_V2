@@ -29,7 +29,7 @@ struct RSL_struct{
     ,ChargeTest
     ,FlyBackTest
     ,WaitToOutSWOffTest
-    ,DisChargeTest                
+    ,DisChargeTest  
     ,EndSuccess
     ,EndFailed
     ,justOn
@@ -144,6 +144,7 @@ struct BasicConfig {
     // [TM_DEVICE]
     std::string devicePort;        // e.g. /dev/ttyAMA1
     std::string storeFolder;       // e.g. ./TestMachine001
+    std::string labelPrintCmd;     // full lp command/options read from LPrintCMD
     // [CAPS_LIST]
     std::map<int, std::string> capTypeNames; // e.g. 1 -> "2405-(MaxWell...)"
     // [DUT_LIST]
@@ -165,6 +166,7 @@ public:
     std::string getDevicePort()   const { return m_cfg.devicePort; }
     std::string getStoreFolder()  const { return m_cfg.storeFolder; }
     const std::vector<DutEntry>& getDutList() const { return m_cfg.dutList; }
+    std::string getLabelPrintCmd() const { return m_cfg.labelPrintCmd; }
     std::string getCapTypeName(int capTypeId) const;
     void showAllConfig();
 private:
