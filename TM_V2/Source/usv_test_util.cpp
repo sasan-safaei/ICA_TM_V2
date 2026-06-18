@@ -3,6 +3,11 @@
 #include <filesystem>
 #include <cmath>
 #include <cctype>
+#include <termios.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <errno.h>
 
 #define __uart_ErrorCnt 3
 extern LabDevice MyLabDevice;
@@ -1013,7 +1018,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
     
     return FuncStatus::running;
 }
-uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM_RTC_I2C(__temp__register & _M2){
+uint8_t USV_TEST_UTIL_V2::RSL_EEPROM_RTC_I2C(__temp__register & _M2){
     static ICA_justEUI myICA2308;
     //myInterActReg.TR.currentTestNo=TestResult::T_EEPROM_I2C;
     switch (_M2.m2State)
@@ -1046,8 +1051,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM_RTC_I2C(__temp__register & _M2){
         break;
         case 2:
         {
+
             for(int i=0;i<8;i++)
                 myBoard.myEEPROM.myData.EUI[i]=myICA2308.EUI_Buffer[i];
+            myBoard.myEEPROM.isKnownIC();
             myBoard.myEEPROM.ShowEUI(); //just for test  
             myInterActReg.TR.EUI_str=myBoard.myEEPROM.myData.getEUI_Str();
             showLog(myInterActReg.TR.EUI_str+"\n");
@@ -1517,6 +1524,112 @@ uint8_t USV_TEST_UTIL_V2::RSL_JUST_ON(__temp__register & _M2){
     return FuncStatus::running;
 }
 
+uint8_t USV_TEST_UTIL_V2::RSL_POWER_ON(__temp__register & _M2){
+    switch(_M2.m2State){
+            case 0: //set Power On *********************************************
+            {   
+                //myInterActReg.TR.currentTestNo=TestResult::T_Just_On;             
+                //showLog("\nDo RSL_Just_On:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
+                myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);                
+                _M2.m2State++;
+            }     
+            break;
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+                _M2.m2State++;
+            break;    
+            default: return FuncStatus::success; 
+            
+    }
+    return FuncStatus::running;
+}
+uint8_t USV_TEST_UTIL_V2::RSL_IBIS_LoopBackCheck(__temp__register & _M2){
+    switch(_M2.m2State){
+        case 0:
+        {
+            const std::string tx = "ICA IBIS LoopBack\n";
+            int fd = open(myArg.ttyName, O_RDWR | O_NOCTTY | O_SYNC);
+            if (fd < 0) {
+                showLog(std::string("Open serial failed: ") + strerror(errno));
+                return showError(ERROR::ucUartFailed, _M2);
+            }
+            struct termios tty;
+            memset(&tty, 0, sizeof tty);
+            if (tcgetattr(fd, &tty) != 0) {
+                close(fd);
+                showLog(std::string("tcgetattr failed: ") + strerror(errno));
+                return showError(ERROR::ucUartFailed, _M2);
+            }
+            cfsetospeed(&tty, B9600);
+            cfsetispeed(&tty, B9600);
+            tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
+            tty.c_iflag &= ~IGNBRK; // disable break processing
+            tty.c_lflag = 0; // no signaling chars, no echo, no canonical processing
+            tty.c_oflag = 0; // no remapping, no delays
+            tty.c_cc[VMIN]  = 0; // non-blocking read
+            tty.c_cc[VTIME] = 20; // 2.0 seconds read timeout
+            tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+            tty.c_cflag |= (CLOCAL | CREAD);
+            tty.c_cflag &= ~(PARENB | PARODD);
+            tty.c_cflag &= ~CSTOPB;
+            tty.c_cflag &= ~CRTSCTS;
+            if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+                close(fd);
+                showLog(std::string("tcsetattr failed: ") + strerror(errno));
+                return showError(ERROR::ucUartFailed, _M2);
+            }
+
+            // flush
+            tcflush(fd, TCIOFLUSH);
+
+            ssize_t written = write(fd, tx.c_str(), tx.size());
+            fsync(fd);
+
+            std::string rx;
+            if (written > 0) {
+                // wait briefly and read what's available
+                fd_set rfds;
+                struct timeval tv;
+                tv.tv_sec = 1; tv.tv_usec = 0;
+                FD_ZERO(&rfds);
+                FD_SET(fd, &rfds);
+                int sel = select(fd+1, &rfds, NULL, NULL, &tv);
+                if (sel > 0 && FD_ISSET(fd, &rfds)) {
+                    char buf[256];
+                    ssize_t n = read(fd, buf, sizeof(buf));
+                    if (n > 0) rx.assign(buf, buf + n);
+                }
+            }
+            close(fd);
+
+            // strip CR/LF from rx
+            while (!rx.empty() && (rx.back() == '\r' || rx.back() == '\n')) rx.pop_back();
+
+            std::cout << "IBIS TX: '" << tx << "' RX: '" << rx << "'\n";
+            if (rx == tx) {
+                showLog("IBIS Loopback OK");
+                _M2.m2State++;
+            } else {
+                showLog("IBIS Loopback FAILED");
+                return showError(ERROR::ucUartFailed, _M2);
+            }
+        }
+        break;
+        case 1: return FuncStatus::success;    
+        default: return FuncStatus::failed;
+    }
+    return FuncStatus::running;
+}
+
 void USV_TEST_UTIL_V2::run_Test_Func(){
     //uint8_t _key=0;
     __temp__register __tr;
@@ -1594,7 +1707,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             case RSL_struct::RSL::VCC_Test: __funcResualt = RSL_VCC_Test(__tr); break;
             case RSL_struct::RSL::uC_Program: __funcResualt = RSL_uC_Program(__tr); break;
             case RSL_struct::RSL::Uart_EEPROM: __funcResualt = RSL_UART_EEPROM(__tr); break;            
-            case RSL_struct::RSL::uart_EEPROM_RTC_I2C: __funcResualt = RSL_UART_EEPROM_RTC_I2C(__tr); break;
+            case RSL_struct::RSL::EEPROM_RTC_I2C: __funcResualt = RSL_EEPROM_RTC_I2C(__tr); break;
             case RSL_struct::RSL::ChargeTest: __funcResualt = RSL_ChargeTest(__tr); break;
             case RSL_struct::RSL::FlyBackTest: __funcResualt = RSL_FlyBackTest(__tr); break;
             case RSL_struct::RSL::WaitToOutSWOffTest: __funcResualt = RSL_WaitToOutSWOffTest(__tr) ; break;
@@ -1605,10 +1718,10 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 LabelPrint();
                 __tr.RSL_state=RSL_struct::RSL::Stop; 
             }
-            case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr);
-            case RSL_struct::RSL::T_PowerOn
-            break;
+            case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr);break;
+            case RSL_struct::RSL::powerOn: __funcResualt = RSL_POWER_ON(__tr);break;        
             case RSL_struct::RSL::EndFailed: __tr.RSL_state=RSL_struct::RSL::Stop; break;
+            case RSL_struct::RSL::IBIS_LoopBackCheck: __funcResualt = RSL_IBIS_LoopBackCheck(__tr); break;
             default:
                 showLog("\nEND Wait to press Key.\n");        
                 __tr.RSL_state=RSL_struct::RSL::Stop;

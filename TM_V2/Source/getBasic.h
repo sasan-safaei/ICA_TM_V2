@@ -24,7 +24,7 @@ struct RSL_struct{
     ,VCC_Test
     ,uC_Program
     ,Uart_EEPROM
-    ,uart_EEPROM_RTC_I2C
+    ,EEPROM_RTC_I2C
     ,uart_EEPROM_Save
     ,ChargeTest
     ,FlyBackTest
@@ -33,6 +33,8 @@ struct RSL_struct{
     ,EndSuccess
     ,EndFailed
     ,justOn
+    ,powerOn
+    ,IBIS_LoopBackCheck
     ,Stop
     };
     std::string getRSLStr(uint8_t _step){
@@ -42,7 +44,7 @@ struct RSL_struct{
             case VCC_Test: return "VCC_Test";
             case uC_Program: return "uC_Program";
             case Uart_EEPROM: return "Uart_EEPROM";
-            case uart_EEPROM_RTC_I2C: return "uart_EEPROM_RTC_I2C";
+            case EEPROM_RTC_I2C: return "EEPROM_RTC_I2C";
             case uart_EEPROM_Save: return "uart_EEPROM_Save";
             case ChargeTest: return "ChargeTest";
             case FlyBackTest: return "FlyBackTest";
@@ -51,6 +53,8 @@ struct RSL_struct{
             case EndSuccess: return "End-Success";                
             case EndFailed: return "End-Failed";                
             case justOn: return "justOn";
+            case powerOn: return "powerOn";
+            case IBIS_LoopBackCheck: return "IBIS_LoopBackCheck";
             case Stop: return "Stop";                
             default:
                 return "XX";

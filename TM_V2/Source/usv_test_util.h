@@ -71,7 +71,7 @@ struct __temp__register{
     bool __isSupperCapsOnBoard=false;
  };
 
-enum TestResult{
+enum __TestResult{
     T_AR_Off=1
     ,T_AR_On
     ,T_VCC_Test
@@ -85,8 +85,6 @@ enum TestResult{
     ,T_DisChargeTest
     ,T_EEPROM_Uart_Save
     ,T_Just_On
-    ,T_PowerOn
-
 };
 
 enum FuncStatus {
@@ -257,14 +255,15 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_VCC_Test(__temp__register & _M2);
         uint8_t RSL_uC_Program(__temp__register & _M2);
         uint8_t RSL_UART_EEPROM(__temp__register & _M2);
-        uint8_t RSL_UART_EEPROM_RTC_I2C(__temp__register & _M2);
+        uint8_t RSL_EEPROM_RTC_I2C(__temp__register & _M2);
         uint8_t RSL_ChargeTest(__temp__register & _M2);
         uint8_t RSL_FlyBackTest(__temp__register & _M2);
         uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);
         uint8_t RSL_DisChargeTest(__temp__register & _M2);
         uint8_t RSL_UART_Save_EEPROM(__temp__register & _M2);
         uint8_t RSL_JUST_ON(__temp__register & _M2);
-        
+        uint8_t RSL_POWER_ON(__temp__register & _M2);
+        uint8_t RSL_IBIS_LoopBackCheck(__temp__register & _M2);
         
 
 };

@@ -669,7 +669,7 @@ bool CfgReader::parseRslStep(const std::string& token, RSL_struct::RSL& outStep)
     if (s == "VCC_Test") { outStep = RSL_struct::RSL::VCC_Test; return true; }
     if (s == "uC_Program") { outStep = RSL_struct::RSL::uC_Program; return true; }
     if (s == "Uart_EEPROM") { outStep = RSL_struct::RSL::Uart_EEPROM; return true; }
-    if (s == "uart_EEPROM_RTC_I2C") { outStep = RSL_struct::RSL::uart_EEPROM_RTC_I2C; return true; }
+    if (s == "EEPROM_RTC_I2C") { outStep = RSL_struct::RSL::EEPROM_RTC_I2C; return true; }
     if (s == "uart_EEPROM_Save") { outStep = RSL_struct::RSL::uart_EEPROM_Save; return true; }
     if (s == "ChargeTest") { outStep = RSL_struct::RSL::ChargeTest; return true; }
     if (s == "FlyBackTest") { outStep = RSL_struct::RSL::FlyBackTest; return true; }
@@ -678,6 +678,8 @@ bool CfgReader::parseRslStep(const std::string& token, RSL_struct::RSL& outStep)
     if (s == "EndSuccess") { outStep = RSL_struct::RSL::EndSuccess; return true; }
     if (s == "EndFailed") { outStep = RSL_struct::RSL::EndFailed; return true; }
     if (s == "justOn") { outStep = RSL_struct::RSL::justOn; return true; }
+    if (s== "powerOn") { outStep = RSL_struct::RSL::powerOn; return true; }
+    if (s== "IBIS_LoopBackCheck") { outStep = RSL_struct::RSL::IBIS_LoopBackCheck; return true; }
     if (s == "Stop") { outStep = RSL_struct::RSL::Stop; return true; }
     return false;
 }

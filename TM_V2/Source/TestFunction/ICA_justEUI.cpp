@@ -1,5 +1,9 @@
 #include "ICA_justEUI.h"
 bool ICA_justEUI::ReadEUI(){
+    if (myEEPROM.readBlock(0xF8, 8, EUI_Buffer))
+        return true;
+    //else
+    //    return false;
     if (rtc.readBlock(0xF0, 8, EUI_Buffer))
         return true;
     else
@@ -79,6 +83,7 @@ bool MCP79412::writeBlock(uint8_t startReg, const std::vector<uint8_t>& data) {
 bool EEPROM24xx256::readBlock(uint8_t startReg, uint8_t length, std::vector<uint8_t>& buffer) {
     buffer.clear();
     int file;
+    
     if (!openBus(file)) return false;
 
     if (write(file, &startReg, 1) != 1) {
