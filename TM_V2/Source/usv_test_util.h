@@ -85,6 +85,8 @@ enum TestResult{
     ,T_DisChargeTest
     ,T_EEPROM_Uart_Save
     ,T_Just_On
+    ,T_PowerOn
+
 };
 
 enum FuncStatus {

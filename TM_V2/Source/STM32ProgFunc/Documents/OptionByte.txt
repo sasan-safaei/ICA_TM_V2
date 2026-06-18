@@ -1,0 +1,18 @@
+STM32G030 OptionByte:
+
+Decoded OPTR (0xDEFFE1AA):
+RDP : 0xAA — Read‑out protection = 0xAA (Level 0). Flash is not protected; a debugger/OpenOCD can read the contents.
+BOR_LEV : 1 — Brown‑out reset level = 1 (selects a BOR trigger threshold). Causes reset when Vdd falls below the level; see the STM32G0 datasheet for exact voltages for level 1.
+nRST_STOP : 0 — nRST_STOP bit cleared. This bit controls NRST behaviour related to STOP mode; cleared = the configured STOP‑mode NRST behaviour is disabled/cleared. (Interpretation: consult the reference manual for precise effect on external NRST in STOP.)
+nRST_STDBY : 1 — nRST_STDBY set. Controls NRST behaviour in STANDBY mode; set = the configured NRST behaviour for STANDBY is enabled.
+nRST_SHDW : 1 — nRST_SHDW set. Controls NRST behaviour during SHUTDOWN/SHDW; set = enabled.
+IWDG_SW : 1 — Independent watchdog in software mode (IWDG software selection enabled).
+IWDG_STOP : 1 — IWDG runs/stays active in STOP mode.
+IWDG_STDBY : 1 — IWDG runs/stays active in STANDBY mode.
+WWDG_SW : 1 — Window watchdog is software‑selectable (software mode enabled).
+SRAM_PARITY : 1 — SRAM parity checking enabled.
+nBOOT0 : 0 — nBOOT0 cleared (active‑low); participates in selecting the boot source.
+nBOOT1 : 1 — nBOOT1 set. Together with nBOOT0 and nBOOT_SEL they determine the boot source (main flash, system memory, or SRAM).
+nBOOT_SEL : 1 — Boot selection bit set (affects how nBOOT0/nBOOT1 choose boot source).
+BOOT_LOCK : 1 — Boot configuration lock set (prevents modification of some boot option behaviour).
+

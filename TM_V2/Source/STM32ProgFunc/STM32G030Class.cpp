@@ -1068,7 +1068,7 @@ void PrintUsage(const char* prog) {
     std::cerr << "       " << prog << " --uart  <file/str> <filePath/\"HEX BYTES\"> [port] [baud] [idle_ms]\n";
     std::cerr << "Example: " << prog << " firmware.bin interface/stlink.cfg target/stm32g0x.cfg 0x08000000 1000\n";
     std::cerr << "Example: " << prog << " --ob interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
-    std::cerr << "Example: " << prog << " --write-ob 0x1FFEF8AA\n";
+    std::cerr << "Example: " << prog << " --write-ob 0xDEFFE1AA\n";
     std::cerr << "Example: " << prog << " --cmp firmware.bin interface/raspberrypi2-native.cfg target/stm32g0x.cfg 0x08000000 200\n";
     std::cerr << "Example: " << prog << " --erase interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";
     std::cerr << "Example: " << prog << " --reset interface/raspberrypi2-native.cfg target/stm32g0x.cfg 200\n";

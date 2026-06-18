@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cctype>
 
+#define __uart_ErrorCnt 3
 extern LabDevice MyLabDevice;
 extern durationTimerClass myDurationTimer;
 extern testResult myTestResult;
@@ -672,6 +673,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
 
     switch (_M2.m2State) //TEST4 : uC Program ********************************************* 
     {
+    
     case 0:// Compare uC-Flash with current firmware
     {
         //showLog("\nDo RSL_uC_Program... ");
@@ -706,7 +708,14 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         else{ showLog("uC cmp Program Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
-    case 3:// Reset uC
+    case 3:
+    {
+        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --write-ob 0xDEFFE1AA").c_str());
+        if(__ret==0){ showLog("uC write-ob OK."); _M2.m2State++; }
+        else{ showLog("uC write-ob Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+    }
+    break;
+    case 4:// Reset uC
     {
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
         if(__ret==0){ 
@@ -715,13 +724,12 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         else{ showLog("uC reset Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
-    case 4:
-    case 5:
+    case 5:        
     case 6:
     case 7:
-    case 8:
+    case 8:        
     case 9:
-        _M2.m2State++;
+        _M2.m2State++;    
     break;
     case 10://Get Firmware Version with UART command
     {
@@ -734,12 +742,24 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
                 if (pos != std::string::npos && pos + 1 < __result.size())
                     showLog(__result.substr(pos + 1));
                 else{
-                    showLog("Not Find!!!");
-                    return showError(ERROR::uCProgramFailed,_M2); 
+                    if(_M2.m2ErrorCnt>__uart_ErrorCnt){
+                        showLog("Not Find!!!");
+                        return showError(ERROR::uCProgramFailed,_M2); 
+                    }
+                    else
+                        std::cout << "Not Find!!! Try Again! ("<< (int)_M2.m2ErrorCnt <<")"<< std::endl;    
                 }
             }
-            _M2.m2State++; }
-        else{ showLog("uC reset Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+            _M2.m2State++; 
+        }
+        else{ 
+            if(_M2.m2ErrorCnt>__uart_ErrorCnt){
+                showLog("uC reset Failed!"); 
+                return showError(ERROR::uCProgramFailed,_M2); 
+            }
+            else
+                std::cout << "uC reset Failed! Try Again! ("<< (int)_M2.m2ErrorCnt <<")"<< std::endl;
+        }
     }
     break;
     case 11://Read EUI with UART command
@@ -753,15 +773,24 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
                 showLog(myInterActReg.TR.EUI_str);
                 _M2.m2State++;	                
             }
-            else {
-                    showLog("unKnown IC.");
-                    showLog("-- "+myInterActReg.TR.EUI_str);
-                    return showError(ERROR::ucUartFailed,_M2); 
+            else {                        
+                    if(_M2.m2ErrorCnt>__uart_ErrorCnt){
+                        showLog("unKnown IC.");
+                        showLog("-- "+myInterActReg.TR.EUI_str);
+                    
+                        return showError(ERROR::ucUartFailed,_M2); 
+                    }
+                    else
+                        std::cout << "unKnown IC. Try Again! ("<< (int)_M2.m2ErrorCnt <<")"<< std::endl;
             }   
         }
         else {
-            showLog("Read EUI Failed!"); 
-            return showError(ERROR::ucUartFailed,_M2); 
+            if(_M2.m2ErrorCnt>__uart_ErrorCnt){
+                showLog("Read EUI Failed!"); 
+                return showError(ERROR::ucUartFailed,_M2); 
+            }
+            else
+                std::cout << "Read EUI Failed! Try Again! ("<< (int)_M2.m2ErrorCnt <<")"<< std::endl;
         }
     }
     break;
@@ -1577,6 +1606,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 __tr.RSL_state=RSL_struct::RSL::Stop; 
             }
             case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr);
+            case RSL_struct::RSL::T_PowerOn
             break;
             case RSL_struct::RSL::EndFailed: __tr.RSL_state=RSL_struct::RSL::Stop; break;
             default:
