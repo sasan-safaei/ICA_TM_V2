@@ -13,18 +13,24 @@ except ImportError:
     from read_device_info import get_device_info
     from read_device_info import get_store_folder_file_list
 
+
+# Do not import `gui_node` here to avoid circular imports. Accept versions via
+# optional parameters to `send_email` instead.
+
     
 def send_email(
     smtp_server="sslout.de",
     smtp_port=465,
     sender_email="ica-tm1@ica-service.de",
     sender_password="Start%123",
-    receiver_email="sasan.safaei@ica.de",
+    receiver_email="",
     subject="info Mail",
     body="",
     attachment_path=None,
     attachments=None,
-    use_ssl=True
+    use_ssl=True,
+    gui_version=None,
+    tm_version=None,
 ):
     """
     Send an email with optional attachment.
@@ -43,8 +49,14 @@ def send_email(
     Returns:
         bool: True if email sent successfully, False otherwise
     """
+    if not receiver_email:
+        print("Error: Receiver email address is required.")
+        return False
     try:
         device_info = get_device_info()
+        # prefer values passed in; fall back to device_info or 'unknown'
+        gv = gui_version if gui_version is not None else device_info.get('gui_version') if device_info else None
+        tv = tm_version if tm_version is not None else (device_info.get('tm_version') if device_info else None)
         if device_info:
             device_info_text = (
                 "\n\nDevice info:\n"
@@ -52,7 +64,8 @@ def send_email(
                 f"Interface: {device_info.get('interface', 'Unknown')}\n"
                 f"IP Address: {device_info.get('ip') or 'Not assigned'}\n"
                 f"MAC Address: {device_info.get('mac') or 'Not found'}\n"
-                
+                f"GUI Version: {gv or 'unknown'}\n"
+                f"TM Version: {tv or 'unknown'}"
             )
         else:
             device_info_text = "\n\nDevice info: Not available"

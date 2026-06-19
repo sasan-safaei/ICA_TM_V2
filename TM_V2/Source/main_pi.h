@@ -161,7 +161,7 @@ struct _msg_box{
 };
 
 struct _interact_registers{
-    
+    std::string tmVersion="TM_V2";
     bool running_status = false;
     uint32_t gui_CMD=0;
     uint32_t tm_state =0;

@@ -1,6 +1,14 @@
 import os
 import ast
 import glob
+import threading
+import time
+#**********************************************************
+GUI_version = "1.0.0"
+# module-level TM version placeholder (filled by sts_callback)
+global TM_Version
+TM_Version = ""
+#**********************************************************
 tm_workspace = os.environ.get("TM_WORKSPACE")
 CONFIG_CFG_PATH = os.path.join(tm_workspace, "config.cfg")
 
@@ -64,19 +72,7 @@ class GuiManager(Node):
         # main Window .........................................................
         self.w_main = WMain()
         self.dut_map, self.dut_versions, self.dut_base_list, self.email_server_config, self.printer_name, self.store_folder = self._load_dut_config()
-        # send all CSVs from store folder at startup if configured
-        try:
-            if self.store_folder:
-                sf = self.store_folder
-                if not os.path.isabs(sf):
-                    sf = os.path.join(tm_workspace or "", sf)
-                csvs = []
-                if os.path.isdir(sf):
-                    csvs = glob.glob(os.path.join(sf, "*.csv"))
-                if csvs:
-                    send_email(**(self.email_server_config or {}), attachments=csvs)
-        except Exception as e:
-            self.get_logger().warning(f"Failed to send store CSVs: {e}")
+        # send all CSVs from store folder at startup if configured        
         # startup send (test line removed)
         self.w_main.ui.BtnStart.clicked.connect(lambda:self.publish_btn_CMD(1))
         self.w_main.ui.cBoxDongle.addItem("No_Device")
@@ -105,6 +101,43 @@ class GuiManager(Node):
         self.w_ica2308.show()
         self.w_testing.show()
         self.w_main.show()
+        
+        # attempt to send stored CSVs after TM_Version is available (max wait 10s)
+        try:
+            if self.store_folder:
+                sf = self.store_folder
+                if not os.path.isabs(sf):
+                    sf = os.path.join(tm_workspace or "", sf)
+                csvs = []
+                if os.path.isdir(sf):
+                    csvs = glob.glob(os.path.join(sf, "*.csv"))
+                if csvs:                    
+                    threading.Thread(target=self._delayed_send_store_csvs, args=(csvs,), daemon=True).start()
+        except Exception as e:
+            self.get_logger().warning(f"Failed to schedule store CSVs send: {e}")
+
+    def _delayed_send_store_csvs(self, csvs, timeout=10.0, interval=0.5):
+        """Wait up to `timeout` seconds for module-level `TM_Version` to be non-empty,
+        then call send_email with the stored CSV attachments.
+        """
+        start = time.time()
+        try:
+            while time.time() - start < timeout:
+                try:
+                    global TM_Version
+                    if TM_Version:
+                        break
+                except NameError:
+                    # TM_Version not defined yet; keep waiting
+                    pass
+                time.sleep(interval)
+            try:
+                send_email(**(self.email_server_config or {}), attachments=csvs, gui_version=GUI_version, tm_version= TM_Version)
+            except Exception as e:
+                self.get_logger().warning(f"Failed to send store CSVs: {e}")
+        except Exception as e:
+            self.get_logger().warning(f"_delayed_send_store_csvs error: {e}")
+
     def set_image(self, path):
         pixmap = QPixmap(path)
         if pixmap.isNull():
@@ -122,6 +155,7 @@ class GuiManager(Node):
         dut_versions = {}
         dut_base_list = []
         email_server_config = {}
+        email_recipients = []
         allowed_email_keys = {
             "smtp_server",
             "smtp_port",
@@ -142,6 +176,7 @@ class GuiManager(Node):
 
         in_dut_list = False
         in_email_server = False
+        in_email = False
         in_printer = False
         in_tm_device = False
         try:
@@ -154,8 +189,15 @@ class GuiManager(Node):
                     if stripped.startswith("[") and stripped.endswith("]"):
                         in_dut_list = (stripped == "[DUT_LIST]")
                         in_email_server = (stripped == "[EMAIL-SERVER]")
+                        in_email = (stripped == "[EMAIL]")
                         in_printer = (stripped == "[PRINTER]")
                         in_tm_device = (stripped == "[TM_DEVICE]")
+                        continue
+                    if in_email:
+                        # each non-empty line in [EMAIL] is treated as a recipient
+                        value = stripped.split("#", 1)[0].strip().rstrip(",").strip('"').strip("'")
+                        if value:
+                            email_recipients.append(value)
                         continue
                     if in_printer:
                         value = stripped.split("#", 1)[0].strip().rstrip(",").strip('"').strip("'")
@@ -208,6 +250,10 @@ class GuiManager(Node):
         print(f"<gui_node> DUT_LIST loaded: {dut_base_list}")
         if email_server_config:
             print(f"<gui_node> EMAIL-SERVER loaded keys: {list(email_server_config.keys())}")
+        if email_recipients:
+            # prefer explicit EMAIL section recipients for sends
+            email_server_config["receiver_email"] = ", ".join(email_recipients)
+            print(f"<gui_node> EMAIL recipients loaded: {email_recipients}")
         if printer_name:
             print(f"<gui_node> PRINTER loaded: {printer_name}")
         return dut_map, dut_versions, dut_base_list, email_server_config, printer_name, store_folder
@@ -427,6 +473,9 @@ class GuiManager(Node):
                     
     def sts_callback(self, msg, source):
         #  testing & 2308 log textbox update *******************************************
+        global TM_Version
+        TM_Version = msg.tm_version
+        
         if msg.tm_log!="":        
             log_msg = msg.tm_log
             if isinstance(log_msg, str) and log_msg.startswith("\n"):

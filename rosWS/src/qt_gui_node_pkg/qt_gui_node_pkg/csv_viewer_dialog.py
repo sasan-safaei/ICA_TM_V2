@@ -272,6 +272,16 @@ class CsvViewerDialog(QDialog):
             kwargs["receiver_email"] = ", ".join(email_recipients)
         # prefer attachments list
         kwargs["attachments"] = [attachment_path] if attachment_path else []
+        # try to include GUI/TM versions from gui_node if available
+        try:
+            try:
+                from . import gui_node as _gn
+            except Exception:
+                import gui_node as _gn
+            kwargs["gui_version"] = getattr(_gn, "GUI_version", None)
+            kwargs["tm_version"] = getattr(_gn, "TM_Version", None)
+        except Exception:
+            pass
         if send_email(**kwargs):
             return True, "Email sent successfully."
         return False, "Email send failed. Check SMTP settings in [EMAIL-SERVER]."

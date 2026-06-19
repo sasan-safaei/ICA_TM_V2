@@ -1556,7 +1556,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_IBIS_LoopBackCheck(__temp__register & _M2){
     switch(_M2.m2State){
         case 0:
         {
-            const std::string tx = "ICA IBIS LoopBack\n";
+            const std::string tx = "*** ICA IBIS LoopBack ***";
             int fd = open(myArg.ttyName, O_RDWR | O_NOCTTY | O_SYNC);
             if (fd < 0) {
                 showLog(std::string("Open serial failed: ") + strerror(errno));
@@ -1593,20 +1593,29 @@ uint8_t USV_TEST_UTIL_V2::RSL_IBIS_LoopBackCheck(__temp__register & _M2){
 
             ssize_t written = write(fd, tx.c_str(), tx.size());
             fsync(fd);
+            tcdrain(fd); // ensure all data transmitted
 
             std::string rx;
             if (written > 0) {
-                // wait briefly and read what's available
                 fd_set rfds;
                 struct timeval tv;
-                tv.tv_sec = 1; tv.tv_usec = 0;
+                // initial wait up to 2s for first data
+                tv.tv_sec = 2; tv.tv_usec = 0;
                 FD_ZERO(&rfds);
                 FD_SET(fd, &rfds);
                 int sel = select(fd+1, &rfds, NULL, NULL, &tv);
                 if (sel > 0 && FD_ISSET(fd, &rfds)) {
                     char buf[256];
-                    ssize_t n = read(fd, buf, sizeof(buf));
-                    if (n > 0) rx.assign(buf, buf + n);
+                    ssize_t n;
+                    // read loop: accumulate while more data arrives (200ms inter-read timeout)
+                    do {
+                        n = read(fd, buf, sizeof(buf));
+                        if (n > 0) rx.append(buf, buf + n);
+                        FD_ZERO(&rfds);
+                        FD_SET(fd, &rfds);
+                        tv.tv_sec = 0; tv.tv_usec = 200000; // 200ms
+                        sel = select(fd+1, &rfds, NULL, NULL, &tv);
+                    } while (sel > 0);
                 }
             }
             close(fd);

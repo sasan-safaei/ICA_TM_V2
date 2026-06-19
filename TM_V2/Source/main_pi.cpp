@@ -1,4 +1,9 @@
 #include "main_pi.h"
+
+//****************************************************
+std::string AppVersion="V2.0.1 - 19.06.2026";
+//**************************************************** */
+
 _interact_registers myInterActReg;
 App_TM_V2 myApp;
 #include "./TestFunction/Hardware/LabDevice.h"
@@ -13,7 +18,7 @@ LabDevice MyLabDevice;
 durationTimerClass myDurationTimer;
 testResult myTestResult;
 myNet myTcpUdpNet;
-std::string lastModifiedTime="20.05.2026";
+
 //ConsoleKeyClass myCKey;
 #include "usv_test_util.h"
 //#include "./TestFunction/usv_test_util.h"
@@ -84,8 +89,9 @@ bool getConfig(){
 
 bool App_TM_V2::initialize(int argc, char* argv[]){
 
-    std::cout << "\n>>> TM_V2 Version: " << lastModifiedTime <<" <<<\n" << std::endl;
-    myUSVTestV2.showLog("TM_V2 Version: " + lastModifiedTime);
+    std::cout << "\n>>> TM_V2 Version: " << AppVersion <<" <<<\n" << std::endl;
+    myUSVTestV2.showLog("TM_V2 Version: " + AppVersion);
+    myInterActReg.tmVersion=AppVersion;
     if (create_folder("./tmp") != 0) {
         return 1; // Handle error
     }
@@ -134,6 +140,7 @@ void App_TM_V2::stop() {
 }
 void App_TM_V2::pre_Check() {           
     myUSVTestV2.DongleCheck();
+    myInterActReg.tmVersion=AppVersion;
 
 }
 

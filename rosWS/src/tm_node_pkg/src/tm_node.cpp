@@ -102,7 +102,7 @@ private:
         tm_res_msg.vout=myLastInterActReg.TR.VOut;
         tm_res_msg.in_current=myLastInterActReg.TR.InCurrent;
         tm_res_msg.load_current=myLastInterActReg.TR.LoadCurrent;
-        tm_res_msg.current_test_no=myLastInterActReg.TR.currentTestNo;
+        tm_res_msg.current_test_no=myLastInterActReg.TR.currentTestNoX;
         tm_res_msg.flyback_dis=myLastInterActReg.TR.FlyBackDis;
         tm_res_msg.flyback_en=myLastInterActReg.TR.FlayBackEn;
         tm_res_msg.out_sw_off=myLastInterActReg.TR.OutSwOff;
@@ -117,7 +117,7 @@ private:
                 tm_msg_box_msg.tm_msg_show_time= myInterActReg.msgBox.timeOutCnt;  
                 tm_msg_box_msg.tm_msg= myInterActReg.msgBox.msg;  
                 tm_msg_box_msg.tm_btn_yes= myInterActReg.msgBox.btnYesTxt;  
-                tm_msg_box_msg.tm_btn_no= myInterActReg.msgBox.btnNoTxt;                                      
+                tm_msg_box_msg.tm_btn_no= myInterActReg.msgBox.btnNoTxt;                                                      
                 tm_run_msgbox->publish(tm_msg_box_msg);
             }
        
@@ -131,6 +131,7 @@ private:
         //if(myLastInterActReg.Dongle!=myInterActReg.Dongle){log_msg.data=myInterActReg.Dongle; tm_run_Dongle_->publish(log_msg);}
         tm_sts_msg.tm_log=csLogTemp;
         tm_sts_msg.tm_dongle=myInterActReg.Dongle.c_str();
+        tm_sts_msg.tm_version = myInterActReg.tmVersion;
         tm_run_status->publish(tm_sts_msg);
         
         

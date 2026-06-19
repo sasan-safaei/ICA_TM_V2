@@ -1,2 +1,2 @@
 Num,EUI-M,EUI,Device,Date,Time,Status,Description
-0001,0004A3,0B012FE3DE,2407V1.0,2026-06-18,15:48:15,Defected,Ok_was_on_2026-06-18_15:28:24
+0001,0004A3,0B012FE3DE,2407V1.0,2026-06-19,12:36:22,Repaired,Ok_was_on_2026-06-18_15:28:24,Defected_was_on_2026-06-18_15:48:15,Repaired_was_on_2026-06-19_12:15:31,Defected_was_on_2026-06-19_12:30:25,Repaired_was_on_2026-06-19_12:33:04,Defected_was_on_2026-06-19_12:34:03
