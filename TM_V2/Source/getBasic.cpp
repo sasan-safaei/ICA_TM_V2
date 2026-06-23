@@ -40,6 +40,7 @@ bool CfgReader::load(const std::string& filePath)
     std::string defaultDutFullName;
     std::string defaultDutBoardKind;
     int defaultDutEEPROM_BVer = 0;
+    int defaultDutLabelPrintNumber = 0;
     boardInfo_struct currentBoardInfo;
     boardInfo_struct defaultBoardInfo;
     measurementPoint_struct currentMeasurementPoint;
@@ -49,6 +50,7 @@ bool CfgReader::load(const std::string& filePath)
     bool hasDefaultFullName = false;
     bool hasDefaultBoardKind = false;
     bool hasDefaultEEPROM_BVer = false;
+    bool hasDefaultLabelPrintNumber = false;
     bool boardInfoHasData = false;
     std::vector<RSL_struct::RSL> currentToDoList;
     std::vector<RSL_struct::RSL> defaultToDoList;
@@ -121,6 +123,14 @@ bool CfgReader::load(const std::string& filePath)
         }
     };
 
+    auto applyLabelPrintNumberToBaseDut = [&](const std::string& name, int num) {        
+        for (auto& dut : m_cfg.dutList) {
+            if (dut.name == name) {
+                dut.labelPrintNumber = num;                
+            }
+        }
+    };
+
     auto applyDefaultsToEntry = [&](DutEntry& dut) {
         if (hasDefaultFullName && dut.FullName.empty()) {
             dut.FullName = defaultDutFullName;
@@ -140,6 +150,9 @@ bool CfgReader::load(const std::string& filePath)
         }
         if (hasDefaultToDoList) {
             dut.toDoList = defaultToDoList;
+        }
+        if (hasDefaultLabelPrintNumber ) {
+            dut.labelPrintNumber = defaultDutLabelPrintNumber;
         }
     };
 
@@ -291,6 +304,16 @@ bool CfgReader::load(const std::string& filePath)
             continue;
         }
 
+        if (currentSection == Section::DUT_SECTION && s.rfind("labelPrintNumber=", 0) == 0) {
+            try {
+                int num = std::stoi(trim(s.substr(std::string("labelPrintNumber=").size())), nullptr, 0);
+                applyLabelPrintNumberToBaseDut(currentDutName,num);
+            } catch (...) {
+                // ignore malformed
+            }
+            continue;
+        }
+
         if (currentSection == Section::DUT_SECTION && s.rfind("FullName=", 0) == 0) {
             const std::string val = trim(s.substr(std::string("FullName=").size()));
             applyFullNameToBaseDut(currentDutName, val);
@@ -325,6 +348,17 @@ bool CfgReader::load(const std::string& filePath)
                 applyDefaultsToAllDuts();
             } catch (...) {
                 // Ignore malformed EEPROM_BVer and keep existing values.
+            }
+            continue;
+        }
+
+        if (currentSection == Section::DUT_DEFAULT && s.rfind("labelPrintNumber=", 0) == 0) {
+            try {
+                defaultDutLabelPrintNumber = std::stoi(trim(s.substr(std::string("labelPrintNumber=").size())), nullptr, 0);
+                hasDefaultLabelPrintNumber = true;
+                applyDefaultsToAllDuts();
+            } catch (...) {
+                // ignore malformed
             }
             continue;
         }
@@ -467,6 +501,14 @@ bool CfgReader::load(const std::string& filePath)
                     currentDutBoardKind = val;
                     if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
                         dut->BoardKind = currentDutBoardKind;
+                    }
+                } else if (key == "labelPrintNumber") {
+                    try {
+                        if (auto* dut = findDutEntry(currentDutName, currentDutVersion)) {
+                            dut->labelPrintNumber = std::stoi(val, nullptr, 0);                    
+                        }
+                    } catch (...) {
+                        // ignore malformed
                     }
                 }
             }
@@ -737,6 +779,9 @@ void CfgReader::showAllConfig()
             std::cout << " (ID: " << dut.boardInfo.Board_SupperCapType << ")\n";
         }
         std::cout << dut.measurementPoint.toString() << std::endl;
+        if (dut.labelPrintNumber != 0) {
+            std::cout << "Label Print Number (per-DUT): " << dut.labelPrintNumber << std::endl;
+        }
         std::cout << "ToDo List: [";
         
         for (size_t i = 0; i < dut.toDoList.size(); ++i) {

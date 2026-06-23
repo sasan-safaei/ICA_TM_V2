@@ -144,7 +144,7 @@ void USV_TEST_UTIL_V2::showSelectedBoardInfo(){
     std::cout << "Selected Board: " << myBoard.boardName_str << "\n";
     std::cout << "  Type: " << myBoard.boardKind_str << "\n";
     std::cout << "  Version: " <<std::hex << myBoard.boardVer / 16 << "." << (myBoard.boardVer % 16) << "\n";
-    
+    std::cout << "LabelPrintNum: " <<  myBoard.LabelPrintNumber << std::endl;        
     std::cout << "  Info: \n" << myBoard.myBoardInfo.toString();
     std::cout << myBoard.constValue.toString() << "\n";
     std::cout << "ToDo:\n";
@@ -164,6 +164,7 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         if (dut.id != _dongle || !versionMatches(dut.version, _version)) {
             continue;
         }
+        myBoard.LabelPrintNumber=dut.labelPrintNumber;
         myBoard.myBoardInfo = dut.boardInfo;
         myBoard.myBoardInfo.Board_SupperCapName = cfg.getCapTypeName(myBoard.myBoardInfo.Board_SupperCapType);
         myBoard.constValue.InCurrent_NoAR_MaxLimit = dut.measurementPoint.InCurrent_NoAR_MaxLimit;
@@ -498,7 +499,17 @@ bool USV_TEST_UTIL_V2::LabelPrint(){
     //myBoard.updateBoardNameStr();
     sprintf(tmp1,"S-Nr:%s",myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str());
     sprintf(tmp2,"ICA%s",myBoard.boardName_str);
-    qrcode_jpeg_output(myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str(),myBoard.boardKind_str,tmp2,tmp1);                
+    qrcode_jpeg_output(myBoard.myEEPROM.myData.getEUI5Byte_Str().c_str(),myBoard.boardKind_str,tmp2,tmp1);
+    int num = myBoard.LabelPrintNumber;
+    for(int i=0;i<num;i++){
+        if(QL700_Print()!=0){
+            showLog("Error in Printing! \n");
+            return false;
+        }
+    }
+    showLog(" Ok.\n");
+    return true;
+    /*
     int __ret = QL700_Print();
     if(__ret==0){  
         //QL700_Print();
@@ -509,6 +520,7 @@ bool USV_TEST_UTIL_V2::LabelPrint(){
         showLog(" Error.\n");
         return false;
     }
+    */
 }
 
 

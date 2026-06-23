@@ -67,7 +67,7 @@ public:
     int boardName=-1;
     int boardType=-1;
     int boardVer=-1;
-    
+    int LabelPrintNumber=0;
     float boardVerDec=-1;
     char boardName_str[25];
     char boardKind_str[25];

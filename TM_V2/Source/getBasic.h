@@ -141,6 +141,7 @@ struct DutEntry {
     boardInfo_struct boardInfo; 
     measurementPoint_struct measurementPoint;
     std::vector<RSL_struct::RSL> toDoList;
+    int labelPrintNumber = 0; // per-DUT label print count (overrides global if non-zero)
 };
 
 // ---- all settings loaded from one config.cfg ---------------------------
@@ -149,6 +150,7 @@ struct BasicConfig {
     std::string devicePort;        // e.g. /dev/ttyAMA1
     std::string storeFolder;       // e.g. ./TestMachine001
     std::string labelPrintCmd;     // full lp command/options read from LPrintCMD
+    //int labelPrintNumber = 0;      // optional global label print count (can be overridden per-DUT)
     // [CAPS_LIST]
     std::map<int, std::string> capTypeNames; // e.g. 1 -> "2405-(MaxWell...)"
     // [DUT_LIST]
@@ -171,6 +173,7 @@ public:
     std::string getStoreFolder()  const { return m_cfg.storeFolder; }
     const std::vector<DutEntry>& getDutList() const { return m_cfg.dutList; }
     std::string getLabelPrintCmd() const { return m_cfg.labelPrintCmd; }
+    //int getLabelPrintNumber() const { return m_cfg.labelPrintNumber; }
     std::string getCapTypeName(int capTypeId) const;
     void showAllConfig();
 private:
