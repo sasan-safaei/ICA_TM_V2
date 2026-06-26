@@ -1,6 +1,7 @@
 [Unit]
 Description=ICA: Fix GPIO sysfs base permissions
-After=multi-user.target systemd-udev-settle.service
+Before=my-ICA-TM.service
+After=systemd-udev-settle.service
 Wants=systemd-udev-settle.service
 
 [Service]
@@ -9,4 +10,3 @@ ExecStart=/bin/sh -c 'chgrp gpio /sys/class/gpio && chmod 0770 /sys/class/gpio &
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target

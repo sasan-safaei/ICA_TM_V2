@@ -13,8 +13,8 @@ unset COLCON_PREFIX_PATH
 source /opt/ros/humble/setup.bash
 
 # Build native library required by tm_node_pkg.
-make -C "$PROJECT_ROOT/TM_V2" clean
-make -C "$PROJECT_ROOT/TM_V2"
+# make -C "$PROJECT_ROOT/TM_V2" clean
+# make -C "$PROJECT_ROOT/TM_V2"
 
 rm -rf build/ log/ install/
 

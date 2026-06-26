@@ -1,15 +1,16 @@
 [Unit]
 Description=ICA_TM_SERVICE
-After=network.target
+After=network.target ICA-gpio-sysfs-fix.service
+Requires=ICA-gpio-sysfs-fix.service
 
 [Service]
 Type=simple
 User=ica
 Environment=QT_QPA_PLATFORM=linuxfb
-ExecStart=/home/ica/git_sasan/ICA_TM_V2/rosWS/runTM.sh
+ExecStart=/home/ica/ICA_TM_V2/rosWS/runTM.sh
 Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-
 
