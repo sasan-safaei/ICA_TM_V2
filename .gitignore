@@ -2,8 +2,12 @@
 rosWS/log/*
 rosWS/build/*
 rosWS/install/*
+rosWS/tmp/*
 TM_V2/build/*
 _tmp/*
 /TM_WorkSpace/tmp/*
+TM_WorkSpace/TestMachine001_old/*
+TM_WorkSpace/TestMachine001/*
+
 
 
