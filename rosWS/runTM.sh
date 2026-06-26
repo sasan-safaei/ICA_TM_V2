@@ -1,25 +1,38 @@
 #!/bin/bash
-cd ~/git_sasan/ICA_TM_V2/rosWS
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$SCRIPT_DIR"
 
 
 #./setGPIO.sh
+setup_gpio() {
+	local gpio="$1"
+	local direction="$2"
+	local value="$3"
+	local gpio_path="/sys/class/gpio/gpio${gpio}"
+
+	# Export only when missing; ignore races where another process exports it first.
+	if [[ ! -d "$gpio_path" ]]; then
+		echo "$gpio" > /sys/class/gpio/export 2>/dev/null || true
+		sleep 0.1
+	fi
+
+	echo "$direction" > "$gpio_path/direction"
+	echo "$value" > "$gpio_path/value"
+}
+
 # SWD-uC-RESET (High)
-echo 26 > /sys/class/gpio/export
-# wait for sysfs to create the gpio folder
-sleep 0.1
-echo out > /sys/class/gpio/gpio26/direction
-echo 0 > /sys/class/gpio/gpio26/value
+setup_gpio 26 out 0
 # UART-Tx-Active (High)
-echo 19 > /sys/class/gpio/export
-# wait for sysfs to create the gpio folder
-sleep 0.1
-echo out > /sys/class/gpio/gpio19/direction
-echo 1 > /sys/class/gpio/gpio19/value
+setup_gpio 19 out 1
 
 
-export TM_WORKSPACE=~/git_sasan/ICA_TM_V2/TM_WorkSpace/
+export TM_WORKSPACE="$PROJECT_ROOT/TM_WorkSpace/"
 
 export RCUTILS_CONSOLE_OUTPUT_FORMAT="[{severity}] [{name}]: {message}"
+source /opt/ros/humble/setup.bash
 source install/setup.bash
 export ROS_DOMAIN_ID=1
 #QT_QPA_PLATFORM=linuxfb ros2 run qt_gui_node_pkg gui_node tm_node_pkg tm_node

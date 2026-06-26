@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(tm_node_pkg)
 
-set(TM_V2_DIR "$ENV{HOME}/git_sasan/ICA_TM_V2/TM_V2")
+get_filename_component(TM_V2_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../TM_V2" ABSOLUTE)
 set(CMAKE_BUILD_RPATH "${TM_V2_DIR}")
 set(CMAKE_INSTALL_RPATH "${TM_V2_DIR}")
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
