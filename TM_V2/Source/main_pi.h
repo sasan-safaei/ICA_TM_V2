@@ -137,14 +137,14 @@ struct _msg_box{
         return false;
     }
     void waitForUser_JShow(std::string _msg,std::string _yesTxt,std::string _noTxt, uint16_t _timeOutSec){
-        uint16_t ms100=0;
+        //uint16_t ms100=0;
         timeOutCnt=60*60;        
         msg=_msg;
         btnYesTxt=_yesTxt;
         btnNoTxt=_noTxt;
         resualt=0;
         if(_timeOutSec>0) timeOutCnt=_timeOutSec;
-        ms100=0;
+        //ms100=0;
         counter++;
     }
     bool waiting(void){
