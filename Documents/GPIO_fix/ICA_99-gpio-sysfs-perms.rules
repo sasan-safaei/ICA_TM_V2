@@ -1,0 +1,1 @@
+ACTION=="add|change", SUBSYSTEM=="gpio", KERNEL=="gpio[0-9]*", RUN+="/usr/local/sbin/ICA_fix-gpio-perms.sh %k"
