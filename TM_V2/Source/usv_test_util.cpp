@@ -653,7 +653,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);     
                 myDurationTimer.testTimeStartSec();//ChargeTime Start           
-                _M2.dcnt100ms=2;//500ms
+                _M2.dcnt100ms=10;//500ms
                 _M2.m2State++;
             }     
             break; 
