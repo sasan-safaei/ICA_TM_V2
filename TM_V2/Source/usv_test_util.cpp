@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #define __uart_ErrorCnt 3
+#define __uCProgram_ErrorCnt 5
 extern LabDevice MyLabDevice;
 extern durationTimerClass myDurationTimer;
 extern testResult myTestResult;
@@ -702,10 +703,14 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
         int __ret = std::system(std::string(STM32Path + "/STM32ProgFunc --cmp " + firmwarePath.string()).c_str());
         std::cout<< "Flash Compare Result: "<< __ret << std::endl;
-        if(__ret==0){ showLog("Flash matches firmware."); _M2.m2State+=3; }
-        if(__ret==0x200){ showLog("Flash is empty."); _M2.m2State++; }
-        if(__ret==0x300){ showLog("Flash programmed with different firmware."); _M2.m2State++; }
-        if (__ret!=0 && __ret!=0x200 && __ret!=0x300){ showLog((std::ostringstream{} << "Flash compare failed " << __ret).str()); return showError(ERROR::uCProgramFailed,_M2); }
+        if(__ret==0x400){ showLog("Flash matches firmware."); _M2.m2State+=3;_M2.m2ErrorCnt=0; }
+        if(__ret==0x200){ showLog("Flash is empty."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        if(__ret==0x300){ showLog("Flash programmed with different firmware."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        if (__ret!=0x400 && __ret!=0x200 && __ret!=0x300){ 
+            showLog((std::ostringstream{} << "Flash compare failed " << __ret).str()); 
+            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            if(_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
+        }
     }
     break;
     case 1:// program uC with current firmware
@@ -714,22 +719,34 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         std::string __cmd = std::string(STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
         std::cout << __cmd<< std::endl;
         int __ret = std::system(__cmd.c_str());
-        if(__ret==0){ showLog("Program OK."); _M2.m2State++; }
-        else{ showLog("Programming Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+        if(__ret==0){ showLog("Program OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        else{ 
+            showLog("Programming Failed!"); 
+            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            if (_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
+        }
     }    
     break;
     case 2:// Compare uC-Flash with current firmware
     {
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
-        if(__ret==0){ showLog("uC cmp Program OK."); _M2.m2State++; }
-        else{ showLog("uC cmp Program Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+        if(__ret==0x400){ showLog("uC cmp Program OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        else{ 
+            showLog("uC cmp Program Failed!"); 
+            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            if (_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
+        }
     }
     break;
     case 3:
     {
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --write-ob 0xDEFFE1AA").c_str());
-        if(__ret==0){ showLog("uC write-ob OK."); _M2.m2State++; }
-        else{ showLog("uC write-ob Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+        if(__ret==0){ showLog("uC write-ob OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        else{ 
+            showLog("uC write-ob Failed!"); 
+            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            if (_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
+        }
     }
     break;
     case 4:// Reset uC
@@ -737,11 +754,18 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
         if(__ret==0){ 
             showLog("uC reset OK."); 
-            _M2.m2State++; }
-        else{ showLog("uC reset Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
+            _M2.m2State++;
+            _M2.m2ErrorCnt=0;
+            _M2.dcnt100ms=10;//1Sec
+        }
+        else{ showLog("uC reset Failed!"); if(_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
     case 5:        
+        if(_M2.dcnt100ms==0){
+            _M2.m2State++;
+        }
+    break;
     case 6:
     case 7:
     case 8:        

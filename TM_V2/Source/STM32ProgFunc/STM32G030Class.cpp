@@ -176,25 +176,42 @@ FlashCompareResult STM32G030F6_Class::Verify(const std::string& binPath) {
 }
 
 // Read and display option bytes (boot mode configuration)
-bool STM32G030F6_Class::BootMode() {
+bool STM32G030F6_Class::ReadAll_ob() {
 	if (!CommandAvailable("openocd")) {
-		fprintf(stderr, "BootMode: openocd not found in PATH\n");
+		fprintf(stderr, "ReadAll_ob: openocd not found in PATH\n");
 		return false;
 	}
 
+	const std::string gpioBase = "/sys/class/gpio";
+	const std::string gpioPath = gpioBase + "/gpio" + std::to_string(kRpiNresetGpio);
+	std::system(("echo " + std::to_string(kRpiNresetGpio) + " > " + gpioBase + "/export 2>/dev/null || true").c_str());
+	std::system(("echo out > " + gpioPath + "/direction 2>/dev/null || true").c_str());
+	std::system(("echo 1 > " + gpioPath + "/value 2>/dev/null || true").c_str()); // HIGH → MOSFET ON → NRST LOW
+	
 	std::ostringstream cmd;
 	cmd << "openocd";
 	AppendInterfaceConfig(cmd, interfaceCfg_);
 	cmd << " -c \"set WORKAREASIZE 0x" << std::hex << kRpiWorkAreaSize << "\""
 		<< " -f " << targetCfg_
+		<< " -c \"reset_config none\""   // We own the reset pin; OpenOCD must not touch it
 		<< " -c \"adapter speed " << std::dec << adapterKhz_ << "\""
 		<< " -c \"init\""
-		<< " -c \"reset halt\""
+		<< " -c \"mww 0xe000edfc 0x01000001\""  // DEMCR: TRCENA | VC_CORERESET
+		<< " -c \"exec sh -c {echo 0 > /sys/class/gpio/gpio" << kRpiNresetGpio << "/value}\""
+		<< " -c \"wait_halt 2000\""      // Wait up to 2 s for core to halt at reset vector		
+		<< " -c \"mww 0xe000edfc 0x01000000\""  // Clear VC_CORERESET (keep TRCENA)
+		//<< " -c \"reset halt\""
 		<< " -c \"mdw 0x" << std::hex << kOptionBytesAddr << " " << std::dec << kOptionBytesWords << "\""
 		<< " -c \"shutdown\"";
 
 	std::string output;
 	const int status = RunCommandCapture(cmd.str() + " 2>&1", output);
+
+	std::system(("echo 1 > /sys/class/gpio/gpio" + std::to_string(kRpiNresetGpio) + "/value 2>/dev/null || true").c_str()); 
+	usleep(100000); // 100 ms delay to ensure the target sees the reset pulse
+	std::system(("echo 0 > /sys/class/gpio/gpio" + std::to_string(kRpiNresetGpio) + "/value 2>/dev/null || true").c_str()); 
+	usleep(50000); // 100 ms delay to ensure the target sees the reset pulse	
+
 
 	std::vector<std::pair<uint32_t, uint32_t>> words;
 	std::istringstream iss(output);
@@ -222,7 +239,7 @@ bool STM32G030F6_Class::BootMode() {
 	}
 
 	if (status != 0) {
-		fprintf(stderr, "BootMode: openocd exited with status %d\n", status);
+		fprintf(stderr, "ReadAll_ob: openocd exited with status %d\n", status);
 	}
 
 	PrintOptionBytesDecode(words);
@@ -374,6 +391,12 @@ uint32_t STM32G030F6_Class::BuildOPTR(uint8_t rdp, uint8_t bor_lev, bool nrst_st
 
 // Reset the microcontroller
 bool STM32G030F6_Class::Reset() {
+	std::system((std::string("echo 1 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value").c_str());// 2>/dev/null || true").c_str());
+	usleep(100000);
+	std::system((std::string("echo 0 > /sys/class/gpio/gpio") + std::to_string(kRpiNresetGpio) + "/value").c_str());// 2>/dev/null || true").c_str());
+	usleep(50000);
+	return true;
+
 	if (!CommandAvailable("openocd")) {
 		fprintf(stderr, "Reset: openocd not found in PATH\n");
 		return false;
@@ -1122,7 +1145,7 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
     if (std::string(argv[1]) == "--ob") {
         if (argc == 2) {
             //STM32G030F6_Class stm32;
-            const bool ok = BootMode();
+            const bool ok = ReadAll_ob();
             return ok ? 0 : 1;
         }
         if (argc < 5) {
@@ -1139,7 +1162,7 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
         interfaceCfg_ = interfaceCfg;
         targetCfg_ = targetCfg;
         adapterKhz_ = adapterKhz;
-        const bool ok = BootMode();
+        const bool ok = ReadAll_ob();
         return ok ? 0 : 1;
     }
 
@@ -1191,7 +1214,7 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
             }
             if (res == FlashCompareResult::Same) {
                 std::cout << "Flash matches firmware" << std::endl;
-                return 0;
+                return 4;
             }
             if (res == FlashCompareResult::Different) {
                 std::cout << "Flash programmed with different firmware" << std::endl;
@@ -1202,7 +1225,7 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
         }
         if (argc < 7) {
             PrintUsage(argv[0]);
-            return 2;
+            return 1;
         }
 
         const std::string binPath = argv[2];
@@ -1212,13 +1235,13 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
         uint32_t address = 0;
         if (!ParseHex(argv[5], address)) {
             std::cerr << "Invalid address: " << argv[5] << "\n";
-            return 2;
+            return 1;
         }
 
         const int adapterKhz = std::atoi(argv[6]);
         if (adapterKhz <= 0) {
             std::cerr << "Invalid adapter_khz: " << argv[6] << "\n";
-            return 2;
+            return 1;
         }
         interfaceCfg_ = interfaceCfg;
         targetCfg_ = targetCfg;
@@ -1227,15 +1250,15 @@ int STM32G030F6_Class::Flash_Func(int argc, char* argv[]){
         const FlashCompareResult res = Verify(binPath);
         if (res == FlashCompareResult::Empty) {
             std::cout << "Flash is empty" << std::endl;
-            return 0;
+            return 2;
         }
         if (res == FlashCompareResult::Same) {
             std::cout << "Flash matches firmware" << std::endl;
-            return 0;
+            return 4;
         }
         if (res == FlashCompareResult::Different) {
             std::cout << "Flash programmed with different firmware" << std::endl;
-            return 0;
+            return 3;
         }
         std::cerr << "Flash compare failed" << std::endl;
         return 1;

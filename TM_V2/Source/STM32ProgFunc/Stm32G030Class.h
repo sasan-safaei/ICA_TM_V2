@@ -70,8 +70,8 @@ private:
 	FlashCompareResult Verify(const std::string& binPath);
 	
 	// Read and display option bytes (boot mode configuration)
-	bool BootMode();
-	
+	//bool BootMode();
+	bool ReadAll_ob();
 	// Read option bytes and return OPTR value
 	bool ReadOptionBytes(uint32_t& optrValue);
 	
