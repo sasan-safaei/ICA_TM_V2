@@ -807,6 +807,17 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     {
         //myInterActReg.TR.currentTestNo=TestResult::T_Uart;
         //showLog("Read EUI OK.");
+        if(!myBoard.init(myArg.ttyName)){
+            if(_M2.m2ErrorCnt>__uart_ErrorCnt){
+                showLog("UART re-init Failed!");
+                return showError(ERROR::ucUartFailed,_M2);
+            }
+            else{
+                std::cout << "UART re-init Failed! Try Again! ("<< (int)_M2.m2ErrorCnt <<")"<< std::endl;
+                break;
+            }
+        }
+        myBoard.GPIOResetAll();
         if (myBoard.readEUI64(myBoard.myEEPROM.myData.EUI)){
             if(myBoard.myEEPROM.isKnownIC()){    
                 //showLog(" Known IC.");
@@ -1802,6 +1813,13 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         }
         myTempVal.result=__tr.RSL_state; 
         postLoopFunc();        
+    }
+    if(!xrunning){
+        showLog("Test stopped by operator. Reinitializing UART/MCU interface...");
+        std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
+        if(myBoard.init(myArg.ttyName)){
+            myBoard.GPIOResetAll();
+        }
     }
     if (myTestResult.ErrorNo == 0) myInterActReg.resualtStatus='O'; else myInterActReg.resualtStatus='F';
     
