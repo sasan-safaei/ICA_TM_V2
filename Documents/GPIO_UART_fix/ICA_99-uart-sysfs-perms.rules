@@ -1,0 +1,1 @@
+KERNEL=="ttyAMA0", MODE="0660", GROUP="dialout"

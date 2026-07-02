@@ -1,11 +1,12 @@
 # GPIO sysfs Permission Fix (ICA)
 
-This folder contains everything needed to fix sysfs GPIO permission issues on a target device.
+This folder contains everything needed to fix sysfs GPIO and uart permission issues on a target device.
 
 ## Files in This Folder
 
 - `ICA_fix-gpio-perms.sh`: Fixes owner/group/mode for one exported gpioN node.
 - `ICA_99-gpio-sysfs-perms.rules`: udev rule to run the fix script when gpioN appears.
+- `ICA_99-uart-sysfs-perms.rules`: udev rule to run the fix script for UART.
 - `ICA_gpio-sysfs-fix.service`: systemd oneshot service for base sysfs GPIO paths.
 - `ICA_install_gpio_fix.sh`: Installs all files into system locations.
 
@@ -55,6 +56,7 @@ This does:
 
 1. Installs script to `/usr/local/sbin/ICA_fix-gpio-perms.sh`.
 2. Installs udev rule to `/etc/udev/rules.d/ICA_99-gpio-sysfs-perms.rules`.
+   Installs udev rule to `/etc/udev/rules.d/ICA_99-uart-sysfs-perms.rules`.
 3. Installs service to `/etc/systemd/system/ICA-gpio-sysfs-fix.service`.
 4. Reloads systemd and udev.
 5. Enables and starts the service.
@@ -64,6 +66,7 @@ This does:
 ```bash
 sudo install -o root -g root -m 0755 ICA_fix-gpio-perms.sh /usr/local/sbin/ICA_fix-gpio-perms.sh
 sudo install -o root -g root -m 0644 ICA_99-gpio-sysfs-perms.rules /etc/udev/rules.d/ICA_99-gpio-sysfs-perms.rules
+sudo install -o root -g root -m 0644 ICA_99-uart-sysfs-perms.rules /etc/udev/rules.d/ICA_99-uart-sysfs-perms.rules
 sudo install -o root -g root -m 0644 ICA_gpio-sysfs-fix.service /etc/systemd/system/ICA-gpio-sysfs-fix.service
 
 sudo systemctl daemon-reload

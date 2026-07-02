@@ -7,6 +7,7 @@ echo "Installing ICA GPIO permission fix files..."
 
 install -o root -g root -m 0755 "$SRC_DIR/ICA_fix-gpio-perms.sh" /usr/local/sbin/ICA_fix-gpio-perms.sh
 install -o root -g root -m 0644 "$SRC_DIR/ICA_99-gpio-sysfs-perms.rules" /etc/udev/rules.d/ICA_99-gpio-sysfs-perms.rules
+install -o root -g root -m 0644 "$SRC_DIR/ICA_99-uart-sysfs-perms.rules" /etc/udev/rules.d/ICA_99-uart-sysfs-perms.rules
 install -o root -g root -m 0644 "$SRC_DIR/ICA_gpio-sysfs-fix.service" /etc/systemd/system/ICA-gpio-sysfs-fix.service
 
 systemctl daemon-reload
