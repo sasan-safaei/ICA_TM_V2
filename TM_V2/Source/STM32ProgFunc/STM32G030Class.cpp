@@ -77,8 +77,8 @@ bool STM32G030F6_Class::Flash(const std::string& binPath) {
 	std::system((std::string("echo out > ") + gpioPath + "/direction 2>/dev/null || true").c_str());
 	// Assert gate (drive high) to hold reset (MOSFET inverts this)
 	std::system((std::string("echo 0 > ") + gpioPath + "/value 2>/dev/null || true").c_str());
-	*/
-	std::ostringstream cmd;
+	*/	
+	std::ostringstream cmd;	
 	cmd << "openocd";
 	AppendInterfaceConfig(cmd, interfaceCfg_);
 	cmd << " -c \"set WORKAREASIZE 0x" << std::hex << kRpiWorkAreaSize << "\""
@@ -161,10 +161,40 @@ FlashCompareResult STM32G030F6_Class::Verify(const std::string& binPath) {
 	const std::string dumpPath = tmpTemplate;
 
 	std::string output;
-	const bool ok = DumpFlashImage(dumpPath, flashAddress_, binSize, output);
+	bool ok = false;
+	std::string lastOutput;
+	const int originalAdapterKhz = adapterKhz_;
+	const int fallbackSpeeds[] = {originalAdapterKhz};// {originalAdapterKhz,50, 25, 20, 5};
+
+	for (int speed : fallbackSpeeds) {
+		if (speed <= 0 || speed == adapterKhz_) {
+			// Skip invalid and duplicate speed attempts.
+			if (speed <= 0) {
+				continue;
+			}
+		}
+		adapterKhz_ = speed;
+
+		for (int attempt = 0; attempt < 2; ++attempt) {
+			output.clear();
+			ok = DumpFlashImage(dumpPath, flashAddress_, binSize, output);
+			if (ok) {
+				break;
+			}
+			lastOutput = output;
+			Reset();
+			usleep(150000);
+		}
+
+		if (ok) {
+			break;
+		}
+	}
+
+	adapterKhz_ = originalAdapterKhz;
 	if (!ok) {
 		fprintf(stderr, "Verify: openocd dump failed\n");
-		fprintf(stderr, "%s\n", output.c_str());
+		fprintf(stderr, "%s\n", lastOutput.empty() ? output.c_str() : lastOutput.c_str());
 		std::remove(dumpPath.c_str());
 		return FlashCompareResult::Error;
 	}
@@ -895,6 +925,12 @@ bool STM32G030F6_Class::DumpFlashImage(const std::string& outPath, uint32_t addr
 	std::system(("echo out > " + gpioPath + "/direction 2>/dev/null || true").c_str());
 	std::system(("echo 1 > " + gpioPath + "/value 2>/dev/null || true").c_str()); // HIGH → MOSFET ON → NRST LOW
 
+	std::system(("echo " + std::to_string(kRpiSwclkGpio) + " > " + gpioBase + "/export 2>/dev/null || true").c_str());
+	std::system(("echo out > " + gpioPath + "/direction 2>/dev/null || true").c_str());
+	std::system(("echo 1 > " + gpioPath + "/value 2>/dev/null || true").c_str()); // HIGH → MOSFET ON → NRST LOW
+	std::system(("echo " + std::to_string(kRpiSwclkGpio) + " > " + gpioBase + "/unexport 2>/dev/null || true").c_str());
+	
+	
 	std::ostringstream cmd;
 	cmd << "openocd";
 	AppendInterfaceConfig(cmd, interfaceCfg_);
@@ -908,6 +944,7 @@ bool STM32G030F6_Class::DumpFlashImage(const std::string& outPath, uint32_t addr
 		<< " -c \"exec sh -c {echo 0 > /sys/class/gpio/gpio" << kRpiNresetGpio << "/value}\""
 		<< " -c \"wait_halt 2000\""      // Wait up to 2 s for core to halt at reset vector
 		<< " -c \"mww 0xe000edfc 0x01000000\""  // Clear VC_CORERESET (keep TRCENA)
+		<< " -c \"halt\""                // Ensure target is halted before flash reads
 		<< " -c \"dump_image " << outPath << " 0x" << std::hex << address
 		<< " 0x" << std::hex << size << "\""
 		<< " -c \"shutdown\"";

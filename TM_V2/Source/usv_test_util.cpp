@@ -1,12 +1,12 @@
 #include "usv_test_util.h"
 #include "./TestFunction/ICA_justEUI.h"
-#include <filesystem>
 #include <cmath>
 #include <cctype>
 #include <termios.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <errno.h>
 
 #define __uart_ErrorCnt 3
@@ -76,6 +76,25 @@ int encodeBoardVersion(const std::string& versionText)
     const int major = std::stoi(majorDigits);
     const int minor = minorDigits.empty() ? 0 : (minorDigits[0] - '0');
     return major * 16 + minor;
+}
+
+int runCommandExitCode(const std::string& cmd, int* rawStatusOut)
+{
+    const int rawStatus = std::system(cmd.c_str());
+    if (rawStatusOut) {
+        *rawStatusOut = rawStatus;
+    }
+
+    if (rawStatus == -1) {
+        return -1;
+    }
+    if (WIFEXITED(rawStatus)) {
+        return WEXITSTATUS(rawStatus);
+    }
+    if (WIFSIGNALED(rawStatus)) {
+        return 128 + WTERMSIG(rawStatus);
+    }
+    return -1;
 }
 
 }
@@ -541,9 +560,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){
         myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
         if(myArg.LabDevice_PS || myArg.LabDevice_Load){
             if(myArg.LabDevice_PS) 
-                if (MyLabDevice.ReadPSCurrent()==-1){ showError(ERROR::LabPSNoAnswer,_M2);break; }
+                if (MyLabDevice.ReadPSCurrent()==-1){ return showError(ERROR::LabPSNoAnswer,_M2); }
             if(myArg.LabDevice_Load) 
-                if(MyLabDevice.ReadLoadVoltage()==-1){ showError(ERROR::LabLoadNoAnswer,_M2);break; }                    
+                if(MyLabDevice.ReadLoadVoltage()==-1){ return showError(ERROR::LabLoadNoAnswer,_M2); }                    
             if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
             MyLabDevice.SetPSEnable(true);
             MyLabDevice.SetPSVoltage(__const_PSVoltage);
@@ -558,7 +577,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){
     case 1://clear test result and show log
     {    
         if(_M2.dcnt100ms==0){
-            _M2.m2State=showError(ERROR::TM_Failed,_M2);
+            //_M2.m2State=showError(ERROR::TM_Failed,_M2);
+            return showError(ERROR::TM_Failed,_M2);
         }
         if(myTestDevice.setRelay(USV_Test_Interface::Relays::All,false)){
             myTestResult.clear(myBoard.boardName);
@@ -696,19 +716,27 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     {
         //showLog("\nDo RSL_uC_Program... ");
         //showLog("\nDo RSL_uC_Program TEST:"+ myInterActReg.TR.currentTestNoStr);
-        std::filesystem::path firmwarePath = STM32Path + "/Firmware_Folder/" + binFileName;
-        if (!std::filesystem::exists(firmwarePath)) {
-            showLog(std::string("\n !!! Firmware file not found: !!!") + firmwarePath.string());
+        const std::string firmwarePath = STM32Path + "/Firmware_Folder/" + binFileName;
+        if (access(firmwarePath.c_str(), F_OK) != 0) {
+            showLog(std::string("\n !!! Firmware file not found: !!!") + firmwarePath);
             return showError(ERROR::uCProgramFailed,_M2);            
         }
-        int __ret = std::system(std::string(STM32Path + "/STM32ProgFunc --cmp " + firmwarePath.string()).c_str());
-        std::cout<< "Flash Compare Result: "<< __ret << std::endl;
-        if(__ret==0x400){ showLog("Flash matches firmware."); _M2.m2State+=3;_M2.m2ErrorCnt=0; }
-        if(__ret==0x200){ showLog("Flash is empty."); _M2.m2State++;_M2.m2ErrorCnt=0; }
-        if(__ret==0x300){ showLog("Flash programmed with different firmware."); _M2.m2State++;_M2.m2ErrorCnt=0; }
-        if (__ret!=0x400 && __ret!=0x200 && __ret!=0x300){ 
-            showLog((std::ostringstream{} << "Flash compare failed " << __ret).str()); 
-            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+        int rawStatus = 0;
+        int cmpExit = runCommandExitCode(STM32Path + "/STM32ProgFunc --cmp " + firmwarePath, &rawStatus);
+        if (cmpExit != 4 && cmpExit != 2 && cmpExit != 3) {
+            // Compare can fail transiently when the target is not yet in a stable debug state.
+            runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
+            usleep(150000);
+            cmpExit = runCommandExitCode(STM32Path + "/STM32ProgFunc --cmp " + firmwarePath, &rawStatus);
+        }
+
+        std::cout << "Flash Compare Result: exit=" << cmpExit << " raw=" << rawStatus << std::endl;
+        if(cmpExit==4){ showLog("Flash matches firmware."); _M2.m2State+=3;_M2.m2ErrorCnt=0; }
+        if(cmpExit==2){ showLog("Flash is empty."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        if(cmpExit==3){ showLog("Flash programmed with different firmware."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        if (cmpExit!=4 && cmpExit!=2 && cmpExit!=3){ 
+            showLog((std::ostringstream{} << "Flash compare failed (exit=" << cmpExit << ", raw=" << rawStatus << ")").str()); 
+            runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
             if(_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
         }
     }
@@ -716,42 +744,48 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
     case 1:// program uC with current firmware
     {
         showLog("\nProgramming uC with firmware... ");
-        std::string __cmd = std::string(STM32Path+ "/STM32ProgFunc "+STM32Path+"/Firmware_Folder/"+binFileName);
-        std::cout << __cmd<< std::endl;
-        int __ret = std::system(__cmd.c_str());
+        const std::string args = std::string(STM32Path+"/Firmware_Folder/")+binFileName;
+        std::cout << STM32Path+ "/STM32ProgFunc " + args << std::endl;
+        int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc " + args, NULL);
         if(__ret==0){ showLog("Program OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
         else{ 
             showLog("Programming Failed!"); 
-            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
             if (_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
         }
     }    
     break;
     case 2:// Compare uC-Flash with current firmware
     {
-        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --cmp "+STM32Path+"/Firmware_Folder/"+binFileName).c_str());
-        if(__ret==0x400){ showLog("uC cmp Program OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
+        int rawStatus = 0;
+        int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --cmp " + STM32Path+"/Firmware_Folder/"+binFileName, &rawStatus);
+        if (__ret != 4) {
+            runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
+            usleep(150000);
+            __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --cmp " + STM32Path+"/Firmware_Folder/"+binFileName, &rawStatus);
+        }
+        if(__ret==4){ showLog("uC cmp Program OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
         else{ 
-            showLog("uC cmp Program Failed!"); 
-            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            showLog((std::ostringstream{} << "uC cmp Program Failed! (exit=" << __ret << ", raw=" << rawStatus << ")").str()); 
+            runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
             if (_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
         }
     }
     break;
     case 3:
     {
-        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --write-ob 0xDEFFE1AA").c_str());
+        int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --write-ob 0xDEFFE1AA", NULL);
         if(__ret==0){ showLog("uC write-ob OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
         else{ 
             showLog("uC write-ob Failed!"); 
-            std::system(std::string(STM32Path + "/STM32ProgFunc --reset ").c_str());
+            runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
             if (_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); 
         }
     }
     break;
     case 4:// Reset uC
     {
-        int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
+        int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
         if(__ret==0){ 
             showLog("uC reset OK."); 
             _M2.m2State++;
@@ -1141,7 +1175,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
                 else{
                     std::cout << "\n failed !!!Current read Error!!! (Value:" << std::fixed << std::setprecision(2) << myTempVal.InCurrent << ")" << std::endl;
                     showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
-                    if (_M2.__error_cnt++>3) showError(ERROR::ChargeDuration,_M2);
+                    if (_M2.__error_cnt++>3) return showError(ERROR::ChargeDuration,_M2);
                 }                
                 if ((myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time) & (myTempVal.InCurrent > myBoard.constValue.Limit_MIN_ChargeCurrent)) {
                     showLog((std::ostringstream{} << "\nTEST5.Error!!!  Time (" 
@@ -1149,14 +1183,14 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
                         << ") Current (" 
                         << myTempVal.InCurrent << " > " << myBoard.constValue.Limit_MIN_ChargeCurrent 
                         << ")\n").str());
-                    showError(ERROR::ChargeDuration,_M2);
+                    return showError(ERROR::ChargeDuration,_M2);
                 }
                 if (myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
                     showLog((std::ostringstream{}<< "\nTEST5.Error!!!  Time ("
                         << myTempVal.chargeTime << " > "
                         << (myBoard.constValue.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
                         << ")\n" ).str());
-                    showError(ERROR::ChargeDuration,_M2);
+                    return showError(ERROR::ChargeDuration,_M2);
                 }
                 if(myTempVal.InCurrent < myBoard.constValue.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
                     myTestResult.time_charge=myTempVal.chargeTime;
@@ -1260,10 +1294,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     }
     if(_M2.m2ErrorCntLimit!=0 && _M2.m2ErrorCnt>_M2.m2ErrorCntLimit){
         if(_M2.m2State< 5 )
-            showError(ERROR::FlyBackdis,_M2);
+            return showError(ERROR::FlyBackdis,_M2);
         else
-            showError(ERROR::FlyBackEn,_M2);
-        return FuncStatus::failed;
+            return showError(ERROR::FlyBackEn,_M2);
     }   
     return FuncStatus::running;
 }
@@ -1430,7 +1463,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         if(!CheckCapsVoltageDiff()){
             myTempVal.VCap=0;
             if(__diffVcap__error__cnt++>5)
-                showError(ERROR::VCapsNotSame,_M2);//testr.ErrorNo=ERROR::VCapsNotSame;
+                return showError(ERROR::VCapsNotSame,_M2);//testr.ErrorNo=ERROR::VCapsNotSame;
         }else {_M2.__diffVcap__error__cnt=0;}
 
         if(myTestResult.tempIC>__Limit_MAX_IC_Temp || myTestResult.tempIC==-273) {
@@ -1443,7 +1476,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         //if(!myBoard.GetBatBankTemp(&myTestResult.tempBatBank,false) || (myTestResult.tempBatBank>__Limit_MAX_BatBank_Temp)) 
         if(myTestResult.tempBatBank>__Limit_MAX_BatBank_Temp) 
         {
-            if(__tempBatBack__error__cnt++>5) showError(ERROR::TempSensor_CapBank,_M2);//testr.ErrorNo=ERROR::TempSensor;                
+            if(__tempBatBack__error__cnt++>5) return showError(ERROR::TempSensor_CapBank,_M2);//testr.ErrorNo=ERROR::TempSensor;                
         }
                 _M2.file << myTempVal.DisChargeTime<<","<< std::fixed
             <<std::setprecision(1)<<myTempVal.VCap << std::endl;
@@ -1456,7 +1489,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
             myTestResult.time_DisCharge=myTempVal.DisChargeTime;
             if(myTestResult.VCap_SWOff < myBoard.constValue.Limit_MIN_VCap_ShutdownVoltage || myTestResult.VCap_SWOff > myBoard.constValue.Limit_MAX_VCap_ShutdownVoltage){
                 showLog((std::ostringstream{} << "Vcap on Shut Down is:" << std::fixed << std::setprecision(2) << myTestResult.VCap_SWOff << "V").str());                            
-                showError(ERROR::VCapShutDownOutOfRange,_M2);//testr.ErrorNo=ERROR::VCapOutOfRange;
+                return showError(ERROR::VCapShutDownOutOfRange,_M2);//testr.ErrorNo=ERROR::VCapOutOfRange;
             }
             else{
             _M2.m2State++;
@@ -1769,13 +1802,9 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             case RSL_struct::RSL::WaitToOutSWOffTest: __funcResualt = RSL_WaitToOutSWOffTest(__tr) ; break;
             case RSL_struct::RSL::DisChargeTest: __funcResualt = RSL_DisChargeTest(__tr); break;
             case RSL_struct::RSL::uart_EEPROM_Save: __funcResualt = RSL_UART_Save_EEPROM(__tr) ; break;
-            case RSL_struct::RSL::EndSuccess: //Label Print if Test Success
-            {   
-                LabelPrint();
-                __tr.RSL_state=RSL_struct::RSL::Stop; 
-            }
-            case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr);break;
-            case RSL_struct::RSL::powerOn: __funcResualt = RSL_POWER_ON(__tr);break;        
+            case RSL_struct::RSL::EndSuccess: LabelPrint(); __tr.RSL_state=RSL_struct::RSL::Stop; break;
+            case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr); break;
+            case RSL_struct::RSL::powerOn: __funcResualt = RSL_POWER_ON(__tr); break;        
             case RSL_struct::RSL::EndFailed: __tr.RSL_state=RSL_struct::RSL::Stop; break;
             case RSL_struct::RSL::IBIS_LoopBackCheck: __funcResualt = RSL_IBIS_LoopBackCheck(__tr); break;
             default:

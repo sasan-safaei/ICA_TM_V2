@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     std::string cfg_target = exeDir + "/OpenOCD_CFG/stm32g0x.cfg";
 
     STM32G030F6_Class stm32(cfg_interface.c_str(), cfg_target.c_str(), 
-                                0x08000000, 50, "/dev/ttyAMA1", 9600);
+                                0x08000000, 100, "/dev/ttyAMA1", 9600);
     
     //STM32G030F6_Class stm32("interface/raspberrypi2-native.cfg", "target/stm32g0x.cfg", 
     //                            0x08000000, 50, "/dev/ttyAMA1", 9600);
