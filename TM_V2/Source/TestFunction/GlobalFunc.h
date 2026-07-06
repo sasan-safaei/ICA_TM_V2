@@ -94,11 +94,36 @@ time_t convert_BytesToTime(uint8_t* buff);
 
 // Duration Timer
 class durationTimerClass{
-        private:
+        private:            
             struct timespec StartTime;
+            struct timespec PauseTime;
+            enum statusType {running, pause};
+            statusType status;
         public:
+        durationTimerClass() : status(pause) {}
         void testTimeStartSec(){
             clock_gettime(CLOCK_MONOTONIC, &StartTime);
+            status=running;
+        }
+        
+        void testTimePauseSec(){
+            if(status==running){
+                struct timespec __now;
+                clock_gettime(CLOCK_MONOTONIC, &PauseTime);
+                status=pause;
+            }             
+        }
+        void testTimeContinue(){  
+            if (status==running) return;
+            struct timespec __now;
+            clock_gettime(CLOCK_MONOTONIC, &__now);
+            StartTime.tv_sec += (__now.tv_sec - PauseTime.tv_sec);
+            StartTime.tv_nsec += (__now.tv_nsec - PauseTime.tv_nsec);
+            if(StartTime.tv_nsec < 0){
+                StartTime.tv_sec -= 1;
+                StartTime.tv_nsec += 1000000000;
+            }
+            status=running;
         }
         uint16_t TestTimeSec(){
             struct timespec __now;

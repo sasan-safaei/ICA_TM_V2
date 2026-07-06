@@ -720,6 +720,7 @@ bool CfgReader::parseRslStep(const std::string& token, RSL_struct::RSL& outStep)
     if (s == "EndSuccess") { outStep = RSL_struct::RSL::EndSuccess; return true; }
     if (s == "EndFailed") { outStep = RSL_struct::RSL::EndFailed; return true; }
     if (s == "justOn") { outStep = RSL_struct::RSL::justOn; return true; }
+    if (s == "justOff") { outStep = RSL_struct::RSL::justOff; return true; }
     if (s== "powerOn") { outStep = RSL_struct::RSL::powerOn; return true; }
     if (s== "IBIS_LoopBackCheck") { outStep = RSL_struct::RSL::IBIS_LoopBackCheck; return true; }
     if (s == "Stop") { outStep = RSL_struct::RSL::Stop; return true; }

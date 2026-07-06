@@ -80,6 +80,7 @@ int encodeBoardVersion(const std::string& versionText)
 
 int runCommandExitCode(const std::string& cmd, int* rawStatusOut)
 {
+    std::cout << "*** !!! *** Running command: " << cmd << std::endl;
     const int rawStatus = std::system(cmd.c_str());
     if (rawStatusOut) {
         *rawStatusOut = rawStatus;
@@ -711,8 +712,19 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
 
     switch (_M2.m2State) //TEST4 : uC Program ********************************************* 
     {
-    
-    case 0:// Compare uC-Flash with current firmware
+    case 0: //wait for 10sec
+        if (myDurationTimer.TestTimeSec() > 5) {
+            showLog("\nDo RSL_uC_Program... ");
+            showLog("\nDo RSL_uC_Program TEST:"+ myInterActReg.TR.currentTestNoStr);
+            _M2.m2State++;
+        }   
+    break;
+    case 1: 
+        myDurationTimer.testTimePauseSec();
+        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
+        _M2.m2State++;
+    break;
+    case 2:// Compare uC-Flash with current firmware
     {
         //showLog("\nDo RSL_uC_Program... ");
         //showLog("\nDo RSL_uC_Program TEST:"+ myInterActReg.TR.currentTestNoStr);
@@ -741,7 +753,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 1:// program uC with current firmware
+    case 3:// program uC with current firmware
     {
         showLog("\nProgramming uC with firmware... ");
         const std::string args = std::string(STM32Path+"/Firmware_Folder/")+binFileName;
@@ -755,7 +767,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }    
     break;
-    case 2:// Compare uC-Flash with current firmware
+    case 4:// Compare uC-Flash with current firmware
     {
         int rawStatus = 0;
         int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --cmp " + STM32Path+"/Firmware_Folder/"+binFileName, &rawStatus);
@@ -772,7 +784,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 3:
+    case 5:
     {
         int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --write-ob 0xDEFFE1AA", NULL);
         if(__ret==0){ showLog("uC write-ob OK."); _M2.m2State++;_M2.m2ErrorCnt=0; }
@@ -783,7 +795,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 4:// Reset uC
+    case 6:// Reset uC
     {
         int __ret = runCommandExitCode(STM32Path + "/STM32ProgFunc --reset", NULL);
         if(__ret==0){ 
@@ -791,22 +803,27 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
             _M2.m2State++;
             _M2.m2ErrorCnt=0;
             _M2.dcnt100ms=10;//1Sec
+
         }
         else{ showLog("uC reset Failed!"); if(_M2.m2ErrorCnt>__uCProgram_ErrorCnt) return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
-    case 5:        
+    case 7:      
+        myDurationTimer.testTimeContinue();
+        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);          
+        _M2.m2State++;
+    break;
+    case 8:
         if(_M2.dcnt100ms==0){
             _M2.m2State++;
         }
     break;
-    case 6:
-    case 7:
-    case 8:        
     case 9:
+    case 10:        
+    case 11:
         _M2.m2State++;    
     break;
-    case 10://Get Firmware Version with UART command
+    case 12://Get Firmware Version with UART command
     {
         std::string __result="";
         int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 56 52 50\"").c_str(),__result);
@@ -837,7 +854,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 11://Read EUI with UART command
+    case 13://Read EUI with UART command
     {
         //myInterActReg.TR.currentTestNo=TestResult::T_Uart;
         //showLog("Read EUI OK.");
@@ -880,7 +897,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 12://Read UID with UART command
+    case 14://Read UID with UART command
     {
         std::string __resualt="";
         int __ret = runSTM32ProgFunc(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 55 50\"").c_str(),__resualt);
@@ -901,11 +918,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;
-    case 13:
-    case 14:
+    case 15:
+    case 16:
         _M2.m2State++;
     break;
-    case 15://Read EEPROM Value with current EEPROM-Ver (Just For Test)
+    case 17://Read EEPROM Value with current EEPROM-Ver (Just For Test)
     {
         std::string __resualt="";
         //int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --uart STR \"55 43 52 50\"").c_str());
@@ -949,7 +966,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         }
     }
     break;   
-    case 16://Ask user if EEPROM overwrite or not
+    case 18://Ask user if EEPROM overwrite or not
     {
         if(myInterActReg.msgBox.waitForUser("EEPROM Over write?","Yes","NO",10)){
                 showLog("Operator: YES");
@@ -963,7 +980,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
             }
     }
     break;
-    case 17://Update EEPROM value with current Board Info and write to uC EEPROM with UART
+    case 19://Update EEPROM value with current Board Info and write to uC EEPROM with UART
     {   
         showLog("Update EEPROM value with current Board Info... ");
         myBoard.myEEPROM.updateBoardInfo(myBoard.boardName,myBoard.boardVer,myBoard.myBoardInfo,myTestResult);
@@ -987,19 +1004,19 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
         _M2.m2State++;
     }
     break;
-    case 18:// Reset uC
+    case 20:// Reset uC
     {
         int __ret = std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
         if(__ret==0){ showLog("uC reset OK."); _M2.m2State++; }
         else{ showLog("uC reset Failed!"); return showError(ERROR::uCProgramFailed,_M2); }
     }
     break;
-    case 19:
-    case 20:
     case 21:
+    case 22:
+    case 23:
         _M2.m2State++;
     break;
-    case 22: return FuncStatus::success;
+    case 24: return FuncStatus::success;
     default:return FuncStatus::failed;
     }
     return FuncStatus::running;
@@ -1593,9 +1610,26 @@ uint8_t USV_TEST_UTIL_V2::RSL_JUST_ON(__temp__register & _M2){
             {   
                 //myInterActReg.TR.currentTestNo=TestResult::T_Just_On;             
                 //showLog("\nDo RSL_Just_On:"+ std::to_string(myInterActReg.TR.currentTestNo));
+                
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
+                _M2.m2State++;
+            }     
+            break;      
+            
+    }
+    return FuncStatus::running;
+}
+uint8_t USV_TEST_UTIL_V2::RSL_JUST_OFF(__temp__register & _M2){
+    switch(_M2.m2State){
+            case 0: //set Power On *********************************************
+            {   
+                myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+                //myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
+                //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
+                myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
+                
                 _M2.m2State++;
             }     
             break;      
@@ -1778,9 +1812,10 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         }   
         usleep(100000);
         __tr.m2ErrorCnt++;
-        if (__tr.dcnt100ms>0) __tr.dcnt100ms--;        
+        if (__tr.dcnt100ms>0) __tr.dcnt100ms--;     
         preLoopFunc(__tr);
         preLoopGetCaps(__tr);
+        
         __funcResualt=-1;    
         std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(__tr.RSL_state) + "("+ std::to_string(__tr.RSL_state) +")"); 
 
@@ -1804,6 +1839,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             case RSL_struct::RSL::uart_EEPROM_Save: __funcResualt = RSL_UART_Save_EEPROM(__tr) ; break;
             case RSL_struct::RSL::EndSuccess: LabelPrint(); __tr.RSL_state=RSL_struct::RSL::Stop; break;
             case RSL_struct::RSL::justOn: __funcResualt = RSL_JUST_ON(__tr); break;
+            case RSL_struct::RSL::justOff: __funcResualt = RSL_JUST_OFF(__tr); break;            
             case RSL_struct::RSL::powerOn: __funcResualt = RSL_POWER_ON(__tr); break;        
             case RSL_struct::RSL::EndFailed: __tr.RSL_state=RSL_struct::RSL::Stop; break;
             case RSL_struct::RSL::IBIS_LoopBackCheck: __funcResualt = RSL_IBIS_LoopBackCheck(__tr); break;

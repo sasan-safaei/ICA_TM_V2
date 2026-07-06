@@ -262,6 +262,7 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_DisChargeTest(__temp__register & _M2);
         uint8_t RSL_UART_Save_EEPROM(__temp__register & _M2);
         uint8_t RSL_JUST_ON(__temp__register & _M2);
+        uint8_t RSL_JUST_OFF(__temp__register & _M2);
         uint8_t RSL_POWER_ON(__temp__register & _M2);
         uint8_t RSL_IBIS_LoopBackCheck(__temp__register & _M2);
         

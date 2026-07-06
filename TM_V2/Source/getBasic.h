@@ -33,6 +33,7 @@ struct RSL_struct{
     ,EndSuccess
     ,EndFailed
     ,justOn
+    ,justOff
     ,powerOn
     ,IBIS_LoopBackCheck
     ,Stop
@@ -53,7 +54,9 @@ struct RSL_struct{
             case EndSuccess: return "End-Success";                
             case EndFailed: return "End-Failed";                
             case justOn: return "justOn";
+            case justOff: return "justOff";
             case powerOn: return "powerOn";
+            
             case IBIS_LoopBackCheck: return "IBIS_LoopBackCheck";
             case Stop: return "Stop";                
             default:
