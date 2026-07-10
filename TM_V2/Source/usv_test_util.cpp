@@ -675,7 +675,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);     
                 myDurationTimer.testTimeStartSec();//ChargeTime Start           
-                _M2.dcnt100ms=10;//500ms
+                _M2.dcnt100ms=20;//500ms
                 _M2.m2State++;
             }     
             break; 
@@ -688,14 +688,14 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
                     showLog(" Ok.");                        
                     _M2.m2State++;
                 }else{
-                    if(!(_M2.dcnt100ms==0)){
+                    if(_M2.dcnt100ms==0){
                         showLog((std::ostringstream{} << "\nTest: VCC test (" << myBoard.constValue.VCC_minLimit << "V < DUT[" << std::fixed << std::setprecision(2) << myTempVal.VCC << "V] < " << myBoard.constValue.VCC_maxLimit << "V)").str());                    
                         showLog("Failed!");
                         if(myTempVal.VCC< 3.1)
                             return showError(ERROR::VCCIsLow,_M2);
                         else
                             return showError(ERROR::VCCIsOver,_M2);
-                    }                    
+                    }                   
                 }                            
             }
             break;
@@ -1247,8 +1247,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
             std::cout << "start... " << myTestDevice.readRelay() << std::endl;             
         }
         else{
-            _M2.m2State++;            
-            _M2.dcnt100ms=5;             
+            _M2.m2State++;
+            _M2.m2ErrorCntLimit=10;
+            //_M2.dcnt100ms=5;             
         }            
     }
     break;
@@ -1260,7 +1261,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     case 3: //Set FlayBack Off.
         //myInterActReg.TR.currentTestNo=6;
         showLog("Test6: FlyBack-Dis... ");
-        _M2.dcnt100ms=20;
+        //_M2.dcnt100ms=20;
+        _M2.m2ErrorCntLimit=10;
         _M2.m2State++;
         break;
     case 4:  // check FlyBack Dis...
@@ -1274,15 +1276,19 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         //sprintf(_str,"T6 Ok.");
         showLog("Ok.\n");
         myInterActReg.TR.FlyBackDis=true;
-        _M2.dcnt100ms=20;_M2.m2State++;
+        //_M2.dcnt100ms=20;
+        _M2.m2State++;
+        _M2.m2ErrorCntLimit=10;
         break;        
     case 6:  // check FlyBack reset
         //sprintf(_str,"S2 INAmp:%.3fA",myTempVal.InCurrent);
+        
         if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
         myBoard.GPIOResetAll();
         break;
     case 7:  //trun off Aufruesten
-        _M2.dcnt100ms=20; 
+        //_M2.dcnt100ms=20; 
+        _M2.m2ErrorCntLimit=10;
         _M2.m2State++;
         break;
     case 8: //wait to Power Current less then 500mA
@@ -1292,7 +1298,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     case 9: //Set FlyBack Enable
         //myInterActReg.TR.currentTestNo=7;
         showLog("FlyBack-En... ");
-        _M2.dcnt100ms=20; _M2.m2State++;
+        //_M2.dcnt100ms=20; 
+        _M2.m2State++;
+        _M2.m2ErrorCntLimit=10;
         break; 
     case 10: //wait to Power Current More then 500mA
         myBoard.FlyBackEn();
@@ -1302,7 +1310,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         showLog("Ok.\n");
         myInterActReg.TR.FlayBackEn=true;            
         myBoard.GPIOResetAll();
-        _M2.dcnt100ms=20; 
+        //_M2.dcnt100ms=20; 
         _M2.m2State++;
         break;
     break;
@@ -1344,7 +1352,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
     case 3: 
         showLog("Output-SW ... ");
         myBoard.OutPUT_Off();
-        _M2.dcnt100ms=150;
+        //_M2.dcnt100ms=150;
+        _M2.m2ErrorCntLimit=150;
         myDurationTimer.testTimeStartSec();            
         _M2.m2State++;
         break;
@@ -1356,8 +1365,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
             //showLog(_str);
             if(myTempVal.WaitToOutSWOffTime >= myBoard.constValue.Limit_MIN_WaitToOutSwOff && myTempVal.WaitToOutSWOffTime <= myBoard.constValue.Limit_MAX_WaitToOutSwOff){
                 showLog((std::ostringstream{} << "WaitTime:" << myBoard.constValue.Limit_MIN_WaitToOutSwOff << " < (" 
-                    << myTempVal.WaitToOutSWOffTime << "sec) < " << myBoard.constValue.Limit_MAX_WaitToOutSwOff).str());        
-                myDurationTimer.testTimeStartSec();
+                    << myTempVal.WaitToOutSWOffTime << "sec) < " << myBoard.constValue.Limit_MAX_WaitToOutSwOff).str());                        
                 _M2.m2State++; 
             }
             else{
@@ -1371,9 +1379,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
     case 5: 
         //sprintf(_str,"T8 Ok");
         showLog("Ok.\n"); 
+        myDurationTimer.testTimeStartSec();
         myInterActReg.TR.OutSwOff=true;            
         //myBoard.GPIOResetAll();  
-        _M2.dcnt100ms=150; 
+        //_M2.dcnt100ms=150; 
+        _M2.m2ErrorCntLimit=150;
         _M2.m2State++;
     break;
     case 6:
@@ -1510,7 +1520,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
             }
             else{
             _M2.m2State++;
-            _M2.dcnt100ms=50;
+            //_M2.dcnt100ms=50;
             }
             
         }	
@@ -1543,9 +1553,10 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_Save_EEPROM(__temp__register & _M2){
                 showLog(myBoard.myEEPROM.myData.getAll_StrExpress());
                 checkForOldTestingData(myArg.StoreFolderPath+myArg.FileName_EUI);                    
             }
-            else
-            {
-                _M2.dcnt100ms++;
+            else 
+            { 
+                _M2.m2State++;
+                //_M2.dcnt100ms++; 
             }
             _M2.m2State++;
         break;
@@ -1576,7 +1587,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_Save_EEPROM(__temp__register & _M2){
             _M2.dcnt100ms=10;
         break;
         case 5:            
-            if(_M2.dcnt100ms-->0){
+            if(_M2.dcnt100ms>0){
                 if(!myBoard.init(myArg.ttyName)){
                     showLog(" Failed to Serial Port Connection (INI)! \n"); 
                     myInterActReg.TR.UART_Con=false;
