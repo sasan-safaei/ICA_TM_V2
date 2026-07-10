@@ -42,9 +42,9 @@ from PyQt5.QtGui import QGuiApplication, QPixmap
 #from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QAction
 from qt_gui_node_pkg.gui_code_dialog import CodeDialog  # Import the dialog
 try:
-    from .sendEmail import send_email
+    from .sendEmail import send_email_with_retry
 except ImportError:
-    from sendEmail import send_email
+    from sendEmail import send_email_with_retry
 
 
 
@@ -118,7 +118,8 @@ class GuiManager(Node):
 
     def _delayed_send_store_csvs(self, csvs, timeout=10.0, interval=0.5):
         """Wait up to `timeout` seconds for module-level `TM_Version` to be non-empty,
-        then call send_email with the stored CSV attachments.
+        then send stored CSV attachments. If send fails (e.g. network down),
+        retry every 2 minutes until success.
         """
         start = time.time()
         try:
@@ -132,7 +133,14 @@ class GuiManager(Node):
                     pass
                 time.sleep(interval)
             try:
-                send_email(**(self.email_server_config or {}), attachments=csvs, gui_version=GUI_version, tm_version= TM_Version)
+                send_email_with_retry(
+                    retry_interval_seconds=120,
+                    log_func=self.get_logger().warning,
+                    **(self.email_server_config or {}),
+                    attachments=csvs,
+                    gui_version=GUI_version,
+                    tm_version=TM_Version,
+                )
             except Exception as e:
                 self.get_logger().warning(f"Failed to send store CSVs: {e}")
         except Exception as e:

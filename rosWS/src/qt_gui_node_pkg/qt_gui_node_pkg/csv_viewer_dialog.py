@@ -2,6 +2,7 @@
 import os
 import csv
 import ast
+import threading
 from datetime import datetime
 
 import pandas as pd
@@ -15,7 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from qt_gui_node_pkg.csvToPDF import csv_to_pdf_with_qr
-from qt_gui_node_pkg.sendEmail import send_email
+from qt_gui_node_pkg.sendEmail import send_email, send_email_with_retry
 # Example usage:
 # csv_to_pdf_with_qr("/path/to/your.csv", "/home/ica/PDF/with_qr.pdf")
 import os
@@ -27,6 +28,7 @@ class CsvViewerDialog(QDialog):
         super().__init__(parent)
         self.workspace=folder_path        
         self.printer_name = (printer_name or "").strip()
+        self._pending_email_retry_keys = set()
         self.setWindowTitle("CSV Viewer")
         self.setFixedSize(800, 460)
         main_layout = QVBoxLayout(self)
@@ -284,7 +286,34 @@ class CsvViewerDialog(QDialog):
             pass
         if send_email(**kwargs):
             return True, "Email sent successfully."
-        return False, "Email send failed. Check SMTP settings in [EMAIL-SERVER]."
+
+        retry_key = (
+            kwargs.get("receiver_email", ""),
+            kwargs.get("subject", ""),
+            tuple(kwargs.get("attachments") or []),
+        )
+        if retry_key not in self._pending_email_retry_keys:
+            self._pending_email_retry_keys.add(retry_key)
+            threading.Thread(
+                target=self._retry_email_worker,
+                args=(retry_key, kwargs),
+                daemon=True,
+            ).start()
+            return (
+                False,
+                "Email send failed now. Auto-retry scheduled every 2 minute until success.",
+            )
+
+        return False, "Email send failed. A 1-minute retry job is already running for this email."
+
+    def _retry_email_worker(self, retry_key, kwargs):
+        try:
+            send_email_with_retry(
+                retry_interval_seconds=120,
+                **kwargs,
+            )
+        finally:
+            self._pending_email_retry_keys.discard(retry_key)
 
     def _send_to_printer(self, pdf_file_path):
         printer_addr = self._get_printer_name()

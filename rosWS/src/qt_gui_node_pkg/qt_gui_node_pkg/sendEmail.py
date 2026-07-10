@@ -1,5 +1,6 @@
 import argparse
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -127,6 +128,70 @@ def send_email(
     except Exception as e:
         print(f"Failed to send email to {receiver_email}: {e}")
         return False
+
+
+def send_email_with_retry(
+    retry_interval_seconds=60,
+    max_retries=None,
+    stop_event=None,
+    log_func=None,
+    **send_kwargs,
+):
+    """Send email and retry every `retry_interval_seconds` until success.
+
+    Args:
+        retry_interval_seconds (int): Wait time between retries in seconds.
+        max_retries (int|None): Optional retry limit. None means retry forever.
+        stop_event (threading.Event|None): Optional stop signal.
+        log_func (callable|None): Optional logger callback accepting one string.
+        **send_kwargs: Arguments forwarded to `send_email`.
+
+    Returns:
+        tuple[bool, int]: (success, attempts)
+    """
+    attempts = 0
+    interval = max(1, int(retry_interval_seconds or 60))
+
+    if not (send_kwargs.get("receiver_email") or "").strip():
+        msg = "Email retry aborted: receiver_email is empty."
+        print(msg)
+        if callable(log_func):
+            log_func(msg)
+        return False, attempts
+
+    while True:
+        if stop_event is not None and stop_event.is_set():
+            return False, attempts
+
+        attempts += 1
+        if send_email(**send_kwargs):
+            if attempts > 1:
+                msg = f"Email sent successfully after {attempts} attempts."
+                print(msg)
+                if callable(log_func):
+                    log_func(msg)
+            return True, attempts
+
+        if max_retries is not None and attempts >= int(max_retries):
+            msg = f"Email send failed after {attempts} attempts (max retries reached)."
+            print(msg)
+            if callable(log_func):
+                log_func(msg)
+            return False, attempts
+
+        msg = (
+            f"Email send failed on attempt {attempts}. "
+            f"Retrying in {interval} seconds..."
+        )
+        print(msg)
+        if callable(log_func):
+            log_func(msg)
+
+        if stop_event is not None:
+            if stop_event.wait(interval):
+                return False, attempts
+        else:
+            time.sleep(interval)
 
 
 def _build_arg_parser():
