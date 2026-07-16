@@ -1767,7 +1767,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_IBIS_LoopBackCheck(__temp__register & _M2){
 void USV_TEST_UTIL_V2::run_Test_Func(){
     //uint8_t _key=0;
     __temp__register __tr;
-
+    ERROR myError;
     std::string STM32Path="../TM_V2/Source/STM32ProgFunc";     
     std::string binFileName = myInterActReg.Dongle+"_STM32.bin";
     //std::string uartFileName = myInterActReg.Dongle+"_EEPROM.txt";
@@ -1899,6 +1899,9 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     }
     if (myTestResult.ErrorNo == 0) myInterActReg.resualtStatus='O'; else myInterActReg.resualtStatus='F';
     
+    myTestResult.error_No_str = myError.toString(static_cast<ERROR::N>(myTestResult.ErrorNo));
+    myTestResult.error_step_str = myInterActReg.TR.currentTestNoStr;
+
     std::cout<<"SAVE DATA...\n";
     showLog("SAVE DATA...");
     SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);

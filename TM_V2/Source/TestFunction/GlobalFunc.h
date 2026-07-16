@@ -140,6 +140,8 @@ class durationTimerClass{
 struct testResult{
 	uint8_t ErrorNo=0;
 	uint8_t EEPROM_Status=0;
+    std::string error_No_str;
+    std::string error_step_str;    
 	char Logstr='0';
 	uint8_t repaired_NoCap=0,repaired_Cap=0;
 	uint8_t time_charge=0,time_DisCharge=0,time_OutSwOff=0,time_WaitToOutSwOff=0;
@@ -164,6 +166,9 @@ struct testResult{
 		Vout_SaveResult=0;Vin_SaveResult=0;
 		ErrorNo=0;
 		EEPROM_Status=0;
+        error_step_str="";
+        error_No_str="";
+
 		Logstr='0';
 		repaired_NoCap=0;repaired_Cap=0;
 		time_charge=0;time_DisCharge=0;time_OutSwOff=0;

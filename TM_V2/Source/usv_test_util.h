@@ -38,6 +38,7 @@
 #include "./TestFunction/Hardware/LabDevice.h"
 #include "./TestFunction/ConsoleKeyBoard.h"
 #include "./TestFunction/eeprom.h"
+#include "./TestFunction/ErrorList.h"
 #include "main_pi.h"
 // === ICA ===========================================================================================
 void testrReset();

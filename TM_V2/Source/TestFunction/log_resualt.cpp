@@ -1,4 +1,5 @@
 #include"log_resualt.h"
+#include "ErrorList.h"
 //File saving
 int getColumnInt(char* sline, int cNum ){
 	char *token;
@@ -230,7 +231,7 @@ int SaveEUI(std::string _fileNameEUI,bool testResualt){
 		if (testResualt)
 			sprintf(&file_stream[strlen(file_stream)], "Ok\n");
 		else 
-			sprintf(&file_stream[strlen(file_stream)], "Defected\n");
+			sprintf(&file_stream[strlen(file_stream)], "Defected (%s-%s)\n",myTestResult.error_No_str.c_str(), myTestResult.error_step_str.c_str());
 		
 		bool __saveData=true;
 		if(EUI[0]==0 && EUI[1]==0 && EUI[2]==0 && EUI[3]==0 && EUI[4]==0 && EUI[5]==0 && EUI[6]==0 && EUI[7]==0)
@@ -265,7 +266,7 @@ int SaveResult(std::string _fileNameTest){
     if (file == NULL) {
         file = fopen(cFileName.c_str(), "w+");
         if (file == NULL) { perror("Error creating file"); return EXIT_FAILURE; }
-		sprintf(file_stream, "NUM,EUI-M,EUI,Device,Date,Time,VCapMaxs,VCapCut,T.charge,T.DisCharge,T.WaitToSWoff,T.SWOff,Load,VIn,VOut,IC-Temp,Repaired_NoCap,Repaird_Cap,Desc\n");
+		sprintf(file_stream, "NUM,EUI-M,EUI,Device,Date,Time,VCapMaxs,VCapCut,T.charge,T.DisCharge,T.WaitToSWoff,T.SWOff,Load,VIn,VOut,IC-Temp,Repaired_NoCap,Repaird_Cap,Error,state\n");
 		fprintf(file, "%s", file_stream);
         printf("The file was not found, so a new file has been created.\n");
     }
@@ -291,12 +292,13 @@ int SaveResult(std::string _fileNameTest){
 				,EUI[0],EUI[1],EUI[2],EUI[3],EUI[4],EUI[5],EUI[6],EUI[7]
 				,myBoard.boardName_str
 				,SaveTime->tm_year%100,SaveTime->tm_mon+1,SaveTime->tm_mday,SaveTime->tm_hour,SaveTime->tm_min,SaveTime->tm_sec);
-	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1f°C,_,%d,%d\n", 
+	sprintf(&file_stream[strlen(file_stream)], ",%.1fV,%.1fV,%dsec,%dsec,%dsec,%dsec,%.3fA,%.1fV,%.1fV,%.1f°C,_,%d,%s,%s\n", 
 				myTestResult.Vcap_Max, myTestResult.VCap_SWOff, 
 				myTestResult.time_charge, myTestResult.time_DisCharge,myTestResult.time_WaitToOutSwOff, myTestResult.time_OutSwOff, 
 				myTestResult.Load_Current, myTestResult.Vin_SaveResult, myTestResult.Vout_SaveResult, 
 				myTestResult.tempIC,
-				myTestResult.repaired_Cap,myTestResult.ErrorNo);
+				myTestResult.repaired_Cap,
+				myTestResult.error_No_str.c_str(),myTestResult.error_step_str.c_str());
 
 	fprintf(file, "%s", file_stream);
 	// Close the file	
