@@ -7,7 +7,7 @@ Requires=ICA-gpio-sysfs-fix.service
 Type=simple
 User=ica
 Environment=QT_QPA_PLATFORM=linuxfb
-ExecStart=/home/ica/ICA_TM_V2/rosWS/runTM.sh
+ExecStart=/home/ica/git_sasan/ICA_TM_V2/rosWS/runTM.sh
 Restart=on-failure
 RestartSec=10
 

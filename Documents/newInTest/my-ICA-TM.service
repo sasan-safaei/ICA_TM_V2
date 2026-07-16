@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=ica
-StandardOutput=null
-StandardError=null
+StandardOutput=journal
+StandardError=journal
 Environment=DISPLAY=:0
 Environment=QT_QPA_PLATFORM=linuxfb
 ExecStart=/home/ica/ICA-TM-V2/rosWS/runTM.sh
