@@ -7,7 +7,7 @@ This folder contains everything needed to fix sysfs GPIO and uart permission iss
 - `ICA_fix-gpio-perms.sh`: Fixes owner/group/mode for one exported gpioN node.
 - `ICA_99-gpio-sysfs-perms.rules`: udev rule to run the fix script when gpioN appears.
 - `ICA_99-uart-sysfs-perms.rules`: udev rule to run the fix script for UART.
-- `ICA_gpio-sysfs-fix.service`: systemd oneshot service for base sysfs GPIO paths.
+- `my-ICA-gpio-sysfs-fix.service`: systemd oneshot service for base sysfs GPIO paths.
 - `ICA_install_gpio_fix.sh`: Installs all files into system locations.
 
 ## Problem This Solves
@@ -67,7 +67,7 @@ This does:
 sudo install -o root -g root -m 0755 ICA_fix-gpio-perms.sh /usr/local/sbin/ICA_fix-gpio-perms.sh
 sudo install -o root -g root -m 0644 ICA_99-gpio-sysfs-perms.rules /etc/udev/rules.d/ICA_99-gpio-sysfs-perms.rules
 sudo install -o root -g root -m 0644 ICA_99-uart-sysfs-perms.rules /etc/udev/rules.d/ICA_99-uart-sysfs-perms.rules
-sudo install -o root -g root -m 0644 ICA_gpio-sysfs-fix.service /etc/systemd/system/ICA-gpio-sysfs-fix.service
+sudo install -o root -g root -m 0644 my-ICA-gpio-sysfs-fix.service /etc/systemd/system/ICA-gpio-sysfs-fix.service
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now ICA-gpio-sysfs-fix.service

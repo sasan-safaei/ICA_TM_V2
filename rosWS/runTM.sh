@@ -6,7 +6,7 @@ if command -v systemd-cat >/dev/null 2>&1; then
 	exec > >(systemd-cat -t runTM -p info) 2> >(systemd-cat -t runTM -p err)
 fi
 
-echo "Starting runTM.sh"
+echo "Start runTM.sh"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -41,6 +41,18 @@ export TM_WORKSPACE="$PROJECT_ROOT/TM_WorkSpace/"
 export RCUTILS_CONSOLE_OUTPUT_FORMAT="[{severity}] [{name}]: {message}"
 # Avoid loading ~/.local Python packages that can conflict with ROS/apt packages.
 export PYTHONNOUSERSITE=1
+
+# Default to kiosk framebuffer mode on server installs, but allow override from service env.
+: "${QT_QPA_PLATFORM:=linuxfb}"
+export QT_QPA_PLATFORM
+
+# Ensure Qt has a runtime directory when running without a desktop session.
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+	export XDG_RUNTIME_DIR="/tmp/runtime-${USER}"
+	mkdir -p "$XDG_RUNTIME_DIR"
+	chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+fi
+
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 
@@ -70,8 +82,8 @@ fi
 
 if ! pgrep -f "qt_gui_node_pkg gui_node" > /dev/null; then
 	while true; do
-		echo "$(date): Starting gui_node" #>> /tmp/gui_node.log
-		QT_QPA_PLATFORM=linuxfb ros2 run qt_gui_node_pkg gui_node #\
+		echo "Start gui_node" #>> /tmp/gui_node.log
+		ros2 run qt_gui_node_pkg gui_node #\
 			#>> /tmp/gui_node.log 2>&1
 
 		echo "$(date): gui_node stopped. Restarting..." #>> /tmp/gui_node.log

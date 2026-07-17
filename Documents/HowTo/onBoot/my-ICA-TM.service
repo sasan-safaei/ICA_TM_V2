@@ -1,7 +1,7 @@
 [Unit]
 Description=ICA_TM_SERVICE
-After=network.target ICA-gpio-sysfs-fix.service
-Requires=ICA-gpio-sysfs-fix.service
+After=network.target my-ICA-gpio-sysfs-fix.service
+Requires=my-ICA-gpio-sysfs-fix.service
 
 [Service]
 Type=simple
