@@ -292,8 +292,10 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     
     default: {
         std::ostringstream _oss;
-        _oss << "RSL" << static_cast<int>(_M2.RSL_state) << "-S" << static_cast<int>(_M2.m2State);
-        _strError2 = _oss.str();
+
+        _strError2= myInterActReg.TR.currentTestNoStr;
+        //_oss << "RSL" << static_cast<int>(_M2.RSL_state) << "-S" << static_cast<int>(_M2.m2State);
+        //_strError2 = _oss.str();
         break;
     }
     }    
@@ -1861,10 +1863,10 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         }
         if(__tr.m2ErrorCntLimit!=0 && __tr.m2ErrorCnt>__tr.m2ErrorCntLimit){
             if(__tr.m2ErrorNo!=0)
-                showError(__tr.m2ErrorNo,__tr);        
-            else
-
+                showError(__tr.m2ErrorNo,__tr);                        
+            if(myTestResult.ErrorNo==0) showError(ERROR::timeLimit,__tr);
             __funcResualt = FuncStatus::failed;
+                
         }   
         if(__tr.RSL_state!=RSL_struct::RSL::Stop){
             switch(__funcResualt){
@@ -1883,6 +1885,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                     std::cout << "\n\n\n RSL Failed on Test " << myInterActReg.TR.currentTestNoStr << std::endl;
                     showLog("failed!\n!!!!!! "+myInterActReg.TR.currentTestNoStr+" !!!!!!\n"); 
                     __tr.RSL_state=RSL_struct::RSL::EndFailed; 
+                    if (myTestResult.ErrorNo==0 ) showError(ERROR::unKnown,__tr);
                 break;
                 default: showLog("Unknown Error in RSL State Machine\n"); __tr.RSL_state=RSL_struct::RSL::Stop; break;
             }

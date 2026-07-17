@@ -35,6 +35,8 @@
             ,uCProgramFailed
             ,ucUartFailed
             ,TM_Failed
+            ,timeLimit
+            ,unKnown
         };
         std::string toString(N error) { 
             switch (error) {
@@ -63,6 +65,7 @@
                 case uCProgramFailed: return "uCProgramFailed";
                 case ucUartFailed: return "ucUartFailed";
                 case TM_Failed: return "TM_Failed";
+                case timeLimit: return "timeLimit";
                 default: return "UnknownError!!!";
             }
         }
