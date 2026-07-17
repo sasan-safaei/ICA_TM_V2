@@ -1069,8 +1069,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
         _M2.m2ErrorCntLimit=10; 
     break;
     case 6:
-    {
-        if (myBoard.readEUI64(myBoard.myEEPROM.myData.EUI)){
+    {        
+        if (myBoard.readEUI64(myBoard.myEEPROM.myData.EUI)){                        
             if(myBoard.myEEPROM.isKnownIC()){    
                 showLog(" Known IC.");
                 myInterActReg.TR.EUI_str=myBoard.myEEPROM.myData.getEUI_Str();
@@ -1093,7 +1093,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
         }
         else {
             showLog(" Failed to read EUI from Board! \n");
-            _M2.m2ErrorNo=ERROR::BoardConnection3; 
+            //_M2.m2ErrorNo=ERROR::BoardConnection3; 
         }
     }
     break;
