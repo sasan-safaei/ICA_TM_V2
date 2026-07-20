@@ -148,18 +148,20 @@ class USV_TEST_UTIL_V2{
             float LoadCurrent=0.0;
             float VOut=0.0;
             float VIn=0.0;
+            float VIn_LTC3350=0.0;
             float VCap=0.0;
             float VCC=0.0;
             uint16_t time_mess=0;
             uint16_t ltime_mess=0;
             uint16_t chargeTime,DisChargeTime,WaitToOutSWOffTime,OutSWOffTime;
-
+            bool chargingTestProgress=false;
             void clear(){
                 result=0;
                 InCurrent=0.0;
                 LoadCurrent=0.0;
                 VOut=0.0;
                 VIn=0.0;
+                VIn_LTC3350=0.0;
                 VCap=0.0;
                 VCC=0.0;
                 time_mess=0;
@@ -168,6 +170,7 @@ class USV_TEST_UTIL_V2{
                 DisChargeTime=0;
                 OutSWOffTime=0;
                 WaitToOutSWOffTime=0;
+                chargingTestProgress=false;
             }
         } myTempVal;
         uint8_t Dongle=0;
@@ -258,6 +261,7 @@ class USV_TEST_UTIL_V2{
         uint8_t RSL_UART_EEPROM(__temp__register & _M2);
         uint8_t RSL_EEPROM_RTC_I2C(__temp__register & _M2);
         uint8_t RSL_ChargeTest(__temp__register & _M2);
+        uint8_t RSL_InChargeWait(__temp__register & _M2);
         uint8_t RSL_FlyBackTest(__temp__register & _M2);
         uint8_t RSL_WaitToOutSWOffTest(__temp__register & _M2);
         uint8_t RSL_DisChargeTest(__temp__register & _M2);

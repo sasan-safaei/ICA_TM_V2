@@ -193,6 +193,8 @@ bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
         myBoard.constValue.VCC_minLimit = dut.measurementPoint.VCC_minLimit;
         myBoard.constValue.VCC_maxLimit = dut.measurementPoint.VCC_maxLimit;
         myBoard.constValue.Load_Current = dut.measurementPoint.Load_Current;
+        myBoard.constValue.V_maxFlyBack = dut.measurementPoint.V_maxFlyBack;
+        myBoard.constValue.Limit_MAX_ChargeCurrent = dut.measurementPoint.Limit_MAX_ChargeCurrent;
         myBoard.constValue.Limit_MIN_ChargeCurrent = dut.measurementPoint.Limit_MIN_ChargeCurrent;
         myBoard.constValue.Limit_MIN_FullChargeCurrent = dut.measurementPoint.Limit_MIN_FullChargeCurrent;
         myBoard.constValue.Limit_MAX_Charge_time = dut.measurementPoint.Limit_MAX_Charge_time;
@@ -275,6 +277,7 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     case ERROR::BoardConnection2:   _strError2="EEPROM not Matched";_strDesc="Wrong EUI value (it is not Micro chip Fammily)"; break;
     case ERROR::BoardConnection3:   _strError2="EEPROM Read-Err";_strDesc="EEPROM read Error\n\t * check EEPROM IC and I2c Connection"; break;
     case ERROR::ChargeDuration:     _strError2="Charge Time Err";_strDesc="Long SCaps charge Time"; break;//EEPROM Read Failed!
+    case ERROR::ChargeMaxLimit:     _strError2="Charge Max Limit Err";_strDesc="Charge Current Exceeds Max Limit"; break;
     //case ERROR::GPIO:               sprintf(_str2,"GPIO failed!    ");break;
     case ERROR::FlyBackdis:         _strError2="FlyBack-Dis!";_strDesc="FlyBack not disable with UART Command";break;
     case ERROR::FlyBackEn:          _strError2="FlyBack En.!";_strDesc="flyBack not enable again with UART Command";break;
@@ -405,6 +408,7 @@ void USV_TEST_UTIL_V2::preLoopFunc(__temp__register & _M2){
         myTempVal.LoadCurrent  = MyLabDevice.ReadLoadCurrent(); 
     }
     if(myTempVal.VOut> myTestResult.Vout_SaveResult) myTestResult.Vout_SaveResult=myTempVal.VOut;
+    myTempVal.VIn_LTC3350 =myBoard.getInputVoltage();
     if(_M2.__isSupperCapsOnBoard){
         myBoard.GetBatBankTemp(&myTestResult.tempBatBank,false);        
         float __tmpFloat=0;
@@ -435,7 +439,7 @@ void USV_TEST_UTIL_V2::postLoopFunc(){
     myInterActReg.TR.CapChargeTime=myTempVal.chargeTime;
     myInterActReg.TR.CapDisChargeTime=myTempVal.DisChargeTime;
     myInterActReg.TR.OutSWOffTime=myTempVal.OutSWOffTime;  
-    myInterActReg.TR.TempScapsBank=myTestResult.tempBatBank;
+    myInterActReg.TR.TempScapsBank= myTempVal.VIn_LTC3350;// JUST FOR TEST myTestResult.tempBatBank;
     myInterActReg.TR.TempIC=myTestResult.tempIC;
 }
 bool USV_TEST_UTIL_V2::CheckCapsVoltageDiff(void){
@@ -661,6 +665,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_AR_Test(__temp__register & _M2){
             break;              
             case 5: 
                 myDurationTimer.testTimeStartSec();//ChargeTime Start
+                myTempVal.chargingTestProgress=true;
                 return FuncStatus::success;
             default: return FuncStatus::failed;
         }
@@ -1180,49 +1185,78 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
         //preLoopFunc if(myArg.LabDevice_PS) myTempVal.InCurrent= MyLabDevice.ReadPSCurrent();
             myTempVal.chargeTime=myDurationTimer.TestTimeSec();                
             if(myTempVal.chargeTime!=myTempVal.ltime_mess){
-                    //myTempVal.VCap=myBoard.GetVCap(0);                
-                    _M2.file << myTempVal.chargeTime<<","<< std::fixed
-						<<std::setprecision(1)<<myTempVal.VCap <<","
-						<<std::setprecision(3)<< myTempVal.InCurrent<< std::endl;
-                    myTempVal.ltime_mess=myTempVal.chargeTime;
-                }
-                if(myTempVal.InCurrent!=-1){    
-                    myTestResult.Vcap_Max=myTempVal.VCap;
-                    //PreLoopFunc myBoard.CheckCapsVoltage(&myTestResult.Vcap_Max);
-                    _M2.__error_cnt=0;
-                }
-                else{
-                    std::cout << "\n failed !!!Current read Error!!! (Value:" << std::fixed << std::setprecision(2) << myTempVal.InCurrent << ")" << std::endl;
-                    showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
-                    if (_M2.__error_cnt++>3) return showError(ERROR::ChargeDuration,_M2);
-                }                
-                if ((myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time) & (myTempVal.InCurrent > myBoard.constValue.Limit_MIN_ChargeCurrent)) {
-                    showLog((std::ostringstream{} << "\nTEST5.Error!!!  Time (" 
-                        << myTempVal.chargeTime << " > " << myBoard.constValue.Limit_MAX_Charge_time 
-                        << ") Current (" 
-                        << myTempVal.InCurrent << " > " << myBoard.constValue.Limit_MIN_ChargeCurrent 
-                        << ")\n").str());
-                    return showError(ERROR::ChargeDuration,_M2);
-                }
-                if (myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
-                    showLog((std::ostringstream{}<< "\nTEST5.Error!!!  Time ("
-                        << myTempVal.chargeTime << " > "
-                        << (myBoard.constValue.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
-                        << ")\n" ).str());
-                    return showError(ERROR::ChargeDuration,_M2);
-                }
-                if(myTempVal.InCurrent < myBoard.constValue.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
-                    myTestResult.time_charge=myTempVal.chargeTime;
-                    _M2.m2State++;
-                }	
+                //myTempVal.VCap=myBoard.GetVCap(0);                
+                _M2.file << myTempVal.chargeTime<<","<< std::fixed
+                    <<std::setprecision(1)<<myTempVal.VCap <<","
+                    <<std::setprecision(3)<< myTempVal.InCurrent<< std::endl;
+                myTempVal.ltime_mess=myTempVal.chargeTime;
+            }
+            if(myTempVal.InCurrent!=-1){    
+                myTestResult.Vcap_Max=myTempVal.VCap;
+                //PreLoopFunc myBoard.CheckCapsVoltage(&myTestResult.Vcap_Max);
+                _M2.__error_cnt=0;
+            }
+            else{
+                std::cout << "\n failed !!!Current read Error!!! (Value:" << std::fixed << std::setprecision(2) << myTempVal.InCurrent << ")" << std::endl;
+                showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
+                if (_M2.__error_cnt++>3) return showError(ERROR::ChargeDuration,_M2);
+            }   
+                
+            if ((myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time) & (myTempVal.InCurrent > myBoard.constValue.Limit_MIN_ChargeCurrent)) {
+                showLog((std::ostringstream{} << "\nTEST5.Error!!!  Time (" 
+                    << myTempVal.chargeTime << " > " << myBoard.constValue.Limit_MAX_Charge_time 
+                    << ") Current (" 
+                    << myTempVal.InCurrent << " > " << myBoard.constValue.Limit_MIN_ChargeCurrent 
+                    << ")\n").str());
+                return showError(ERROR::ChargeDuration,_M2);
+            }
+            if (myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
+                showLog((std::ostringstream{}<< "\nTEST5.Error!!!  Time ("
+                    << myTempVal.chargeTime << " > "
+                    << (myBoard.constValue.Limit_MAX_Charge_time)// + __Limit_MAX_ExtendChargeTime)
+                    << ")\n" ).str());
+                return showError(ERROR::ChargeDuration,_M2);
+            }
+            if(myTempVal.InCurrent < myBoard.constValue.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
+                myTestResult.time_charge=myTempVal.chargeTime;
+                _M2.m2State++;
+            }	
     }
     break;    
-    case 2: return FuncStatus::success;    
+    case 2: myTempVal.chargingTestProgress=false; return FuncStatus::success;    
     default: return FuncStatus::failed;
     }
     return FuncStatus::running;
     
 }
+uint8_t USV_TEST_UTIL_V2::RSL_InChargeWait(__temp__register & _M2){
+    //myInterActReg.TR.currentTestNo=TestResult::T_FlyBackTest;
+    
+    switch (_M2.m2State){    
+    case 0:
+    {        
+        myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
+        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);     
+        myDurationTimer.testTimeStartSec();//ChargeTime Start           
+        _M2.dcnt100ms=100;
+        _M2.m2State++;        
+    }
+    break;    
+    case 1: 
+        if (_M2.dcnt100ms<=0) _M2.m2State++;
+        if(myTempVal.VIn_LTC3350 > myBoard.constValue.V_maxFlyBack) {
+            showLog((std::ostringstream{} << "VFlyBack=" << std::fixed << std::setprecision(3)
+            << myTempVal.VIn_LTC3350 << "V, > " << myBoard.constValue.V_maxFlyBack << "V").str());
+            return showError(ERROR::InChargeOverVoltage,_M2);
+        }
+        break;
+    
+    case 2: return FuncStatus::success;
+    default: return FuncStatus::failed;
+    }    
+    return FuncStatus::running;
+}
+
 uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
     //myInterActReg.TR.currentTestNo=TestResult::T_FlyBackTest;
     
@@ -1233,6 +1267,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         myBoard.GPIOResetAll();
         _M2.m2State++;
         _M2.m2ErrorCntLimit=10;
+        _M2.m2ErrorCnt=0;
         _M2.m2ErrorNo=0;
     }
     break;
@@ -1250,7 +1285,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         }
         else{
             _M2.m2State++;
-            _M2.m2ErrorCntLimit=10;
+            _M2.m2ErrorCntLimit=20;
+            _M2.m2ErrorCnt=0;
             //_M2.dcnt100ms=5;             
         }            
     }
@@ -1262,53 +1298,64 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         break;
     case 3: //Set FlayBack Off.
         //myInterActReg.TR.currentTestNo=6;
-        showLog("Test6: FlyBack-Dis... ");
+        showLog("Test: FlyBack-Dis... ");
         //_M2.dcnt100ms=20;
         _M2.m2ErrorCntLimit=10;
+        _M2.m2ErrorCnt=0;
         _M2.m2State++;
         break;
-    case 4:  // check FlyBack Dis...
-        //sprintf(_str,"S6  INAmp:%.3fA ",myTempVal.InCurrent);
-        std::cout << "\rFlyBack-Dis... " << std::fixed << std::setprecision(3) << myTempVal.InCurrent << "A   " << std::endl;
-        myTestResult.VOut2=myTempVal.VOut;
+    case 4:
         myBoard.FlyBack_Off();
-        if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;
+        break;
+    case 5:  // check FlyBack Dis...
+        showLog((std::ostringstream{} << "FlyBack-Dis... current=" << std::fixed << std::setprecision(3)
+            << myTempVal.InCurrent << "A, limit=" << myBoard.constValue.Load_Current << "A").str());
+        myTestResult.VOut2=myTempVal.VOut;
+        if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++; else _M2.m2State--;
     break;
-    case 5: //FlyBack diss is Ok        
+    case 6: //FlyBack diss is Ok        
         //sprintf(_str,"T6 Ok.");
         showLog("Ok.\n");
         myInterActReg.TR.FlyBackDis=true;
         //_M2.dcnt100ms=20;
         _M2.m2State++;
         _M2.m2ErrorCntLimit=10;
+        _M2.m2ErrorCnt=0;
         break;        
-    case 6:  // check FlyBack reset
+    case 7:  // check FlyBack reset
         //sprintf(_str,"S2 INAmp:%.3fA",myTempVal.InCurrent);
         
         if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
         myBoard.GPIOResetAll();
         break;
-    case 7:  //trun off Aufruesten
+    case 8:  //trun off Aufruesten
         //_M2.dcnt100ms=20; 
         _M2.m2ErrorCntLimit=10;
+        _M2.m2ErrorCnt=0;
         _M2.m2State++;
         break;
-    case 8: //wait to Power Current less then 500mA
+    case 9: //wait to Power Current less then 500mA
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);            
         if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;
         break;
-    case 9: //Set FlyBack Enable
+    case 10: //Set FlyBack Enable
         //myInterActReg.TR.currentTestNo=7;
         showLog("FlyBack-En... ");
+        
         //_M2.dcnt100ms=20; 
         _M2.m2State++;
         _M2.m2ErrorCntLimit=10;
+        _M2.m2ErrorCnt=0;
         break; 
-    case 10: //wait to Power Current More then 500mA
+    case 11:
         myBoard.FlyBackEn();
-        if(myTempVal.InCurrent > myBoard.constValue.Load_Current)  _M2.m2State++; 
         break;
-    case 11: 
+    case 12: //wait to Power Current More then 500mA
+        showLog((std::ostringstream{} << "FlyBack-En... current=" << std::fixed << std::setprecision(3)
+            << myTempVal.InCurrent << "A, limit=" << myBoard.constValue.Load_Current << "A").str());
+        if(myTempVal.InCurrent > myBoard.constValue.Load_Current)  _M2.m2State++; else _M2.m2State--; 
+        break;
+    case 13: 
         showLog("Ok.\n");
         myInterActReg.TR.FlayBackEn=true;            
         myBoard.GPIOResetAll();
@@ -1316,11 +1363,11 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         _M2.m2State++;
         break;
     break;
-    case 12: return FuncStatus::success;    
+    case 14: return FuncStatus::success;
     default: return FuncStatus::failed;
     }
     if(_M2.m2ErrorCntLimit!=0 && _M2.m2ErrorCnt>_M2.m2ErrorCntLimit){
-        if(_M2.m2State< 5 )
+        if(_M2.m2State< 6 )
             return showError(ERROR::FlyBackdis,_M2);
         else
             return showError(ERROR::FlyBackEn,_M2);
@@ -1356,6 +1403,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         myBoard.OutPUT_Off();
         //_M2.dcnt100ms=150;
         _M2.m2ErrorCntLimit=150;
+        _M2.m2ErrorCnt=0;
         myDurationTimer.testTimeStartSec();            
         _M2.m2State++;
         break;
@@ -1386,6 +1434,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         //myBoard.GPIOResetAll();  
         //_M2.dcnt100ms=150; 
         _M2.m2ErrorCntLimit=150;
+        _M2.m2ErrorCnt=0;
         _M2.m2State++;
     break;
     case 6:
@@ -1473,7 +1522,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         if (_M2.file.is_open()) { _M2.file.close(); }
         _M2.file.open("./tmp/disChargeCurve.csv", std::ios::out);
         _M2.file << "time,voltage"<< std::endl;
-        _M2.m2State++;	
+        _M2.m2State++;
+        __tempIC__error__cnt=0;
+        __tempBatBack__error__cnt=0;	
     }
     break;
     case 4:
@@ -1496,16 +1547,16 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         }else {_M2.__diffVcap__error__cnt=0;}
 
         if(myTestResult.tempIC>__Limit_MAX_IC_Temp || myTestResult.tempIC==-273) {
-            if(__tempIC__error__cnt++>5)
-                showError(ERROR::TempSensor_IC,_M2);//testr.ErrorNo=ERROR::TempSensor;
+            if(__tempIC__error__cnt++>10) showError(ERROR::TempSensor_IC,_M2);//testr.ErrorNo=ERROR::TempSensor;
         }else {
             //myTestResult.tempIC=__tempICtempVal;
-            __tempIC__error__cnt=0;}
+            __tempIC__error__cnt=0;
+        }
 
         //if(!myBoard.GetBatBankTemp(&myTestResult.tempBatBank,false) || (myTestResult.tempBatBank>__Limit_MAX_BatBank_Temp)) 
         if(myTestResult.tempBatBank>__Limit_MAX_BatBank_Temp) 
         {
-            if(__tempBatBack__error__cnt++>5) return showError(ERROR::TempSensor_CapBank,_M2);//testr.ErrorNo=ERROR::TempSensor;                
+            if(__tempBatBack__error__cnt++>10) return showError(ERROR::TempSensor_CapBank,_M2);//testr.ErrorNo=ERROR::TempSensor;                
         }
                 _M2.file << myTempVal.DisChargeTime<<","<< std::fixed
             <<std::setprecision(1)<<myTempVal.VCap << std::endl;
@@ -1846,6 +1897,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             case RSL_struct::RSL::Uart_EEPROM: __funcResualt = RSL_UART_EEPROM(__tr); break;            
             case RSL_struct::RSL::EEPROM_RTC_I2C: __funcResualt = RSL_EEPROM_RTC_I2C(__tr); break;
             case RSL_struct::RSL::ChargeTest: __funcResualt = RSL_ChargeTest(__tr); break;
+            case RSL_struct::RSL::InChargeWait: __funcResualt = RSL_InChargeWait(__tr); break;
             case RSL_struct::RSL::FlyBackTest: __funcResualt = RSL_FlyBackTest(__tr); break;
             case RSL_struct::RSL::WaitToOutSWOffTest: __funcResualt = RSL_WaitToOutSWOffTest(__tr) ; break;
             case RSL_struct::RSL::DisChargeTest: __funcResualt = RSL_DisChargeTest(__tr); break;
@@ -1860,6 +1912,15 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 showLog("\nEND Wait to press Key.\n");        
                 __tr.RSL_state=RSL_struct::RSL::Stop;
             break;
+        }
+        if(myTempVal.chargingTestProgress){
+            if(myTempVal.InCurrent > myBoard.constValue.Limit_MAX_ChargeCurrent){
+                showLog((std::ostringstream{} << "\nChatging.Error!!!  Current (" 
+                    << myTempVal.InCurrent << " > " << myBoard.constValue.Limit_MAX_ChargeCurrent 
+                    << ")\n").str());
+                showError(ERROR::ChargeMaxLimit,__tr);
+                __funcResualt = FuncStatus::failed;
+            }            
         }
         if(__tr.m2ErrorCntLimit!=0 && __tr.m2ErrorCnt>__tr.m2ErrorCntLimit){
             if(__tr.m2ErrorNo!=0)

@@ -27,6 +27,7 @@ struct RSL_struct{
     ,EEPROM_RTC_I2C
     ,uart_EEPROM_Save
     ,ChargeTest
+    ,InChargeWait
     ,FlyBackTest
     ,WaitToOutSWOffTest
     ,DisChargeTest  
@@ -48,6 +49,7 @@ struct RSL_struct{
             case EEPROM_RTC_I2C: return "EEPROM_RTC_I2C";
             case uart_EEPROM_Save: return "uart_EEPROM_Save";
             case ChargeTest: return "ChargeTest";
+            case InChargeWait: return "InChargeWait";
             case FlyBackTest: return "FlyBackTest";
             case WaitToOutSWOffTest: return "WaitToOutSWOffTest";
             case DisChargeTest: return "DisChargeTest";                
@@ -104,6 +106,8 @@ struct measurementPoint_struct{
         float VCC_minLimit=3.1;
         float VCC_maxLimit=3.6;
         float Load_Current=0;
+        float Limit_MAX_ChargeCurrent=0;
+        float V_maxFlyBack=0;
         float Limit_MIN_ChargeCurrent=0;
         float Limit_MIN_FullChargeCurrent=0;
         int Limit_MAX_Charge_time=0;
@@ -121,6 +125,8 @@ struct measurementPoint_struct{
             << "   VCC_minLimit: " << VCC_minLimit << " V, \n"
             << "   VCC_maxLimit: " << VCC_maxLimit << " V, \n"
             << "   Load_Current: " << Load_Current << " A, \n"
+            << "   V_maxFlyBack: " << V_maxFlyBack << " V, \n"
+            << "   Limit_MAX_ChargeCurrent: " << Limit_MAX_ChargeCurrent << " A, \n"
             << "   Limit_MIN_ChargeCurrent: " << Limit_MIN_ChargeCurrent << " A, \n"
             << "   Limit_MIN_FullChargeCurrent: " << Limit_MIN_FullChargeCurrent << " A, \n"
             << "   Limit_MAX_Charge_time: " << Limit_MAX_Charge_time << " sec, \n"

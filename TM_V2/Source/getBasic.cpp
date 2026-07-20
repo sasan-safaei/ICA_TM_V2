@@ -670,6 +670,8 @@ void CfgReader::parseMeasurementPointLine(const std::string& line, measurementPo
         else if (key == "VCC_minLimit")            info.VCC_minLimit            = std::stof(val);
         else if (key == "VCC_maxLimit")            info.VCC_maxLimit            = std::stof(val);
         else if (key == "Load_Current")            info.Load_Current            = std::stof(val);
+        else if (key == "V_maxFlyBack")            info.V_maxFlyBack            = std::stof(val);
+        else if (key == "Limit_MAX_ChargeCurrent") info.Limit_MAX_ChargeCurrent = std::stof(val);
         else if (key == "Limit_MIN_ChargeCurrent") info.Limit_MIN_ChargeCurrent = std::stof(val);
         else if (key == "Limit_MIN_FullChargeCurrent") info.Limit_MIN_FullChargeCurrent = std::stof(val);
         else if (key == "Limit_MAX_Charge_time")   info.Limit_MAX_Charge_time   = std::stoi(val);
@@ -714,6 +716,7 @@ bool CfgReader::parseRslStep(const std::string& token, RSL_struct::RSL& outStep)
     if (s == "EEPROM_RTC_I2C") { outStep = RSL_struct::RSL::EEPROM_RTC_I2C; return true; }
     if (s == "uart_EEPROM_Save") { outStep = RSL_struct::RSL::uart_EEPROM_Save; return true; }
     if (s == "ChargeTest") { outStep = RSL_struct::RSL::ChargeTest; return true; }
+    if (s == "InChargeWait") { outStep = RSL_struct::RSL::InChargeWait; return true; }
     if (s == "FlyBackTest") { outStep = RSL_struct::RSL::FlyBackTest; return true; }
     if (s == "WaitToOutSWOffTest") { outStep = RSL_struct::RSL::WaitToOutSWOffTest; return true; }
     if (s == "DisChargeTest") { outStep = RSL_struct::RSL::DisChargeTest; return true; }

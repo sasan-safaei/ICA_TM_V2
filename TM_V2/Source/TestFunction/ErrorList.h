@@ -12,6 +12,8 @@
             , BoardConnection3
             //, TestDeviceConnection
             , ChargeDuration
+            , ChargeMaxLimit
+            , InChargeOverVoltage
             //, DisChargeDuration //5
             //, GPIO 
             , FlyBackEn
@@ -49,6 +51,8 @@
                 case BoardConnection2: return "BoardConnection2";
                 case BoardConnection3: return "BoardConnection3";
                 case ChargeDuration: return "ChargeDuration";
+                case ChargeMaxLimit: return "ChargeMaxLimit";
+                case InChargeOverVoltage: return "InChargeOverVoltage";
                 case FlyBackEn: return "FlyBackEn";
                 case FlyBackdis: return "FlyBackdis";
                 case OutSwOff: return "OutSwOff";
