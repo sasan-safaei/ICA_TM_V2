@@ -268,7 +268,17 @@ bool CfgReader::load(const std::string& filePath)
 
         if ((currentSection == Section::DUT_SECTION || currentSection == Section::DUT_VERSION || currentSection == Section::DUT_DEFAULT) &&
             s.rfind("BOARD_INFO={", 0) == 0) {
-            currentBoardInfo = boardInfo_struct{};
+            if (currentSection == Section::DUT_DEFAULT) {
+                currentBoardInfo = boardInfo_struct{};
+            } else {
+                currentBoardInfo = boardInfo_struct{};
+                for (const auto& dut : m_cfg.dutList) {
+                    if (dut.name == currentDutName) {
+                        currentBoardInfo = dut.boardInfo;
+                        break;
+                    }
+                }
+            }
             boardInfoHasData = true;
             boardInfoOwner = currentSection;
             currentSection = Section::BOARD_INFO;
@@ -283,7 +293,17 @@ bool CfgReader::load(const std::string& filePath)
 
         if ((currentSection == Section::DUT_SECTION || currentSection == Section::DUT_VERSION || currentSection == Section::DUT_DEFAULT) &&
             s.rfind("MEASUREMENT_POINT={", 0) == 0) {
-            currentMeasurementPoint = measurementPoint_struct{};
+            if (currentSection == Section::DUT_DEFAULT) {
+                currentMeasurementPoint = measurementPoint_struct{};
+            } else {
+                currentMeasurementPoint = measurementPoint_struct{};
+                for (const auto& dut : m_cfg.dutList) {
+                    if (dut.name == currentDutName) {
+                        currentMeasurementPoint = dut.measurementPoint;
+                        break;
+                    }
+                }
+            }
             measurementPointOwner = currentSection;
             currentSection = Section::MEASUREMENT_POINT;
             std::string rest = trim(s.substr(std::string("MEASUREMENT_POINT={").size()));

@@ -428,7 +428,7 @@ void USV_TEST_UTIL_V2::preLoopGetCaps(__temp__register & _M2){
         myInterActReg.TR.Vcap4=myBoard.GetVCap(4);    
     }   
 }
-
+ 
 void USV_TEST_UTIL_V2::postLoopFunc(){
     myInterActReg.TR.InCurrent=myTempVal.InCurrent;
     myInterActReg.TR.LoadCurrent=myTempVal.LoadCurrent;
@@ -439,7 +439,7 @@ void USV_TEST_UTIL_V2::postLoopFunc(){
     myInterActReg.TR.CapChargeTime=myTempVal.chargeTime;
     myInterActReg.TR.CapDisChargeTime=myTempVal.DisChargeTime;
     myInterActReg.TR.OutSWOffTime=myTempVal.OutSWOffTime;  
-    myInterActReg.TR.TempScapsBank= myTempVal.VIn_LTC3350;// JUST FOR TEST myTestResult.tempBatBank;
+    myInterActReg.TR.TempScapsBank= myTestResult.tempBatBank;
     myInterActReg.TR.TempIC=myTestResult.tempIC;
 }
 bool USV_TEST_UTIL_V2::CheckCapsVoltageDiff(void){
@@ -1235,6 +1235,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_InChargeWait(__temp__register & _M2){
     switch (_M2.m2State){    
     case 0:
     {        
+        myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+        if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
         myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);     
         myDurationTimer.testTimeStartSec();//ChargeTime Start           
@@ -1245,7 +1247,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_InChargeWait(__temp__register & _M2){
     case 1: 
         if (_M2.dcnt100ms<=0) _M2.m2State++;
         if(myTempVal.VIn_LTC3350 > myBoard.constValue.V_maxFlyBack) {
-            showLog((std::ostringstream{} << "VFlyBack=" << std::fixed << std::setprecision(3)
+            showLog((std::ostringstream{} << "V-FlyBack-Output=" << std::fixed << std::setprecision(1)
             << myTempVal.VIn_LTC3350 << "V, > " << myBoard.constValue.V_maxFlyBack << "V").str());
             return showError(ERROR::InChargeOverVoltage,_M2);
         }
@@ -1690,6 +1692,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_JUST_OFF(__temp__register & _M2){
             case 0: //set Power On *********************************************
             {   
                 myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+                if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
+            
                 //myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
                 //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
@@ -1827,6 +1831,8 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     showLog("******************************");
     myInterActReg.resualtStatus='A';
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);       
+    if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
+            
 
     SelectBoard(myInterActReg.DongleID,myInterActReg.board_version);
     //myInterActReg.Dongle= DongleNameStr();
@@ -1973,6 +1979,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
     //myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+    if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);            
     myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
     myTestDevice.setRelay(USV_Test_Interface::Relays::VCCLoad,true);    
     if(__tr.__isSupperCapsOnBoard){
