@@ -1,7 +1,7 @@
 #include "main_pi.h"
 
 //****************************************************
-std::string AppVersion="V2.0.6 - 21.07.2026";
+std::string AppVersion="V2.0.7 - 22.07.2026";
 //**************************************************** */
 
 _interact_registers myInterActReg;
