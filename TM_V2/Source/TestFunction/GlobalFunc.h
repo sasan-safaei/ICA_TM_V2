@@ -140,6 +140,7 @@ class durationTimerClass{
 struct testResult{
 	uint8_t ErrorNo=0;
 	uint8_t EEPROM_Status=0;
+    bool KnownIC=false;
     std::string error_No_str;
     std::string error_step_str;    
 	char Logstr='0';
@@ -166,6 +167,7 @@ struct testResult{
 		Vout_SaveResult=0;Vin_SaveResult=0;
 		ErrorNo=0;
 		EEPROM_Status=0;
+        KnownIC=false;
         error_step_str="";
         error_No_str="";
 

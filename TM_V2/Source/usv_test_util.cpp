@@ -881,6 +881,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
                 //showLog(" Known IC.");
                 myInterActReg.TR.EUI_str=myBoard.myEEPROM.myData.getEUI_Str();
                 showLog(myInterActReg.TR.EUI_str);
+                myTestResult.KnownIC=true;
                 _M2.m2State++;	                
             }
             else {                        
@@ -1089,7 +1090,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_UART_EEPROM(__temp__register & _M2){
                 myBoard.myEEPROM.EEPROMDataBuffShow();                           
                 myBoard.myEEPROM.myData.show(); 
                 _M2.m2State++;	
-                _M2.dcnt100ms=5;				
+                _M2.dcnt100ms=5;	
+                myTestResult.KnownIC=true;			
             }	
             else {
                     std::cout << "unKnown IC !!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
@@ -1159,7 +1161,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_EEPROM_RTC_I2C(__temp__register & _M2){
 
             for(int i=0;i<8;i++)
                 myBoard.myEEPROM.myData.EUI[i]=myICA2308.EUI_Buffer[i];
-            myBoard.myEEPROM.isKnownIC();
+            if (myBoard.myEEPROM.isKnownIC()) myTestResult.KnownIC=true;;
             myBoard.myEEPROM.ShowEUI(); //just for test  
             myInterActReg.TR.EUI_str=myBoard.myEEPROM.myData.getEUI_Str();
             showLog(myInterActReg.TR.EUI_str+"\n");
@@ -1863,7 +1865,8 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     uint8_t lState=0xFF;
     uint8_t lRSLStatePre=RSL_struct::RSL::Stop;
     
-    while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) ){
+    while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) )
+    {
         
         if(__tr.RSL_state!=RSL_struct::RSL::Stop){
             myInterActReg.TR.currentTestNoStr = x1.getRSLStr(__tr.RSL_state)+":" + std::to_string(__tr.m2State);
@@ -1884,13 +1887,10 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         __tr.m2ErrorCnt++;
         if (__tr.dcnt100ms>0) __tr.dcnt100ms--;     
         preLoopFunc(__tr);
-        preLoopGetCaps(__tr);
-        
+        preLoopGetCaps(__tr);        
         __funcResualt=-1;    
         std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(__tr.RSL_state) + "("+ std::to_string(__tr.RSL_state) +")"); 
-
-        if (current_RSL_Name != __tmp_str){ 
-            
+        if (current_RSL_Name != __tmp_str){             
             current_RSL_Name = __tmp_str;
             showLog("\n"+current_RSL_Name);
             std::cout << "\n" << current_RSL_Name << std::endl;
@@ -1960,6 +1960,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         myTempVal.result=__tr.RSL_state; 
         postLoopFunc();        
     }
+
     if(!xrunning){
         showLog("Test stopped by operator. Reinitializing UART/MCU interface...");
         std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
@@ -1974,7 +1975,8 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
 
     std::cout<<"SAVE DATA...\n";
     showLog("SAVE DATA...");
-    SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
+    if(myTestResult.KnownIC)
+        SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
     SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);
     //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
     //myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
