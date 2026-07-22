@@ -300,8 +300,8 @@ class GuiManager(Node):
         msg.dongle_sel = self.w_main.ui.cBoxDongle.currentIndex()
         msg.msgbox_press=0
         msg.board_version = self._get_selected_version_float()
-        #self.myPublish.publish(msg)
-        #self.get_logger().info(f"Published qt_pub {msg} ")
+        self.myPublish.publish(msg)
+        self.get_logger().info(f"Published qt_pub {msg} ")
     
     def on_cbox_ver_changed(self, text):
         """Handle cBoxVer selection and convert to float for msg.board_ver"""

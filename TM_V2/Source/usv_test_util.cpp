@@ -387,7 +387,6 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
 }
 */
 void USV_TEST_UTIL_V2::DongleCheck(){
-    std::cout<<"!!!sasan!!! B-Ver" << myInterActReg.board_version << "DongleID " << myInterActReg.DongleID << std::endl;
     if(myBoard.boardVerDec!=myInterActReg.board_version ||
         myBoard.boardType!=myInterActReg.DongleID){
         if (SelectBoard(myInterActReg.DongleID,myInterActReg.board_version)) {
@@ -1981,11 +1980,12 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     if(!xrunning){
         showLog("Test stopped by operator. Reinitializing UART/MCU interface...");
         std::system(std::string(STM32Path+ "/STM32ProgFunc --reset").c_str());
+        showError(ERROR::StopByUser,__tr);
         if(myBoard.init(myArg.ttyName)){
             myBoard.GPIOResetAll();
         }
     }
-    if (myTestResult.ErrorNo == 0) myInterActReg.resualtStatus='O'; else myInterActReg.resualtStatus='F';
+    if (myTestResult.ErrorNo == 0 ) myInterActReg.resualtStatus='O'; else myInterActReg.resualtStatus='F';
     
     myTestResult.error_No_str = myError.toString(static_cast<ERROR::N>(myTestResult.ErrorNo));
     myTestResult.error_step_str = myInterActReg.TR.currentTestNoStr;
@@ -2010,6 +2010,10 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             if(myTempVal.VCC< 1.0) myInterActReg.msgBox.stop();
         }
     } 
+    else{
+        myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
+        sleep(1);
+    }
       
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
 }

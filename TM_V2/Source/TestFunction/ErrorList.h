@@ -38,6 +38,7 @@
             ,ucUartFailed
             ,TM_Failed
             ,timeLimit
+            ,StopByUser
             ,unKnown
         };
         std::string toString(N error) { 
@@ -70,6 +71,7 @@
                 case ucUartFailed: return "ucUartFailed";
                 case TM_Failed: return "TM_Failed";
                 case timeLimit: return "timeLimit";
+                case StopByUser: return "StopByUser";
                 default: return "UnknownError!!!";
             }
         }
