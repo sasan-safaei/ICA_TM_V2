@@ -387,14 +387,15 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
 }
 */
 void USV_TEST_UTIL_V2::DongleCheck(){
+    std::cout<<"!!!sasan!!! B-Ver" << myInterActReg.board_version << "DongleID " << myInterActReg.DongleID << std::endl;
     if(myBoard.boardVerDec!=myInterActReg.board_version ||
         myBoard.boardType!=myInterActReg.DongleID){
         if (SelectBoard(myInterActReg.DongleID,myInterActReg.board_version)) {
             showSelectedBoardInfo();
-            myInterActReg.Dongle= DongleNameStr();
+            //myInterActReg.Dongle= DongleNameStr();
         }
     }
-    
+    myInterActReg.Dongle= DongleNameStr();
 }
 void USV_TEST_UTIL_V2::forceStop(void){
     std::cout<<"Force Stop! (setRelayAllOff)"<<std::endl;

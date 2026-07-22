@@ -4,7 +4,7 @@ import glob
 import threading
 import time
 #**********************************************************
-GUI_version = "1.0.0"
+GUI_version = "1.0.1"
 # module-level TM version placeholder (filled by sts_callback)
 global TM_Version
 TM_Version = ""
@@ -343,7 +343,15 @@ class GuiManager(Node):
             self.get_logger().warning("Failed to emit showMsgRequested; dialog not shown.")
         return None
     def show_about_dialog(self):
-        self.show_msgbox("ICA test machine \n About App....","Ok","")
+        global TM_Version
+        tmv = TM_Version if TM_Version else "unknown"
+        # remove all whitespace from TM_Version (spaces, newlines, tabs)
+        try:
+            tmv = ''.join(tmv.split())
+        except Exception:
+            tmv = tmv.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
+        msg = f"ICA test machine<br><br> GUI:{GUI_version} <br> TM:{tmv}"
+        self.show_msgbox(msg, "Ok", "")
         #QMessageBox.about(None, "About This App", "This is a sample Qt5 application.\nVersion 1.0")
         #msgbox = QMessageBox()
         #msgbox.setWindowTitle("Test")
@@ -584,6 +592,11 @@ class WMain(QtWidgets.QMainWindow):
         msgbox = QMessageBox()
         self._active_msgbox = msgbox
         msgbox.setWindowTitle("ROS2 Message")
+        # allow rich-text so callers can control wrapping (e.g. non-breaking span)
+        try:
+            msgbox.setTextFormat(Qt.RichText)
+        except Exception:
+            pass
         msgbox.setText(message)
 
         msgbox.setWindowFlags(msgbox.windowFlags() | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)

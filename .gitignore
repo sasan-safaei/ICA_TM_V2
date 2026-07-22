@@ -4,6 +4,7 @@ rosWS/build/*
 rosWS/install/*
 rosWS/tmp/*
 TM_V2/build/*
+TM_V2/Source/STM32ProgFunc/Firmware_Folder/tmp/*
 _tmp/*
 /TM_WorkSpace/tmp/*
 TM_WorkSpace/TestMachine001_old/*
