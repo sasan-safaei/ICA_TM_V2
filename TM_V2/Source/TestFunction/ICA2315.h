@@ -50,7 +50,7 @@ struct __MessureValue{
                 << "   VCC_maxLimit: " << VCC_maxLimit << " V, \n"
                 << "   Load_Current: " << Load_Current << " A, \n"
                 << "   V_maxFlyBack: " << V_maxFlyBack << " V, \n"
-                << "  Limit_MAX_ChargeCurrent: " << Limit_MAX_ChargeCurrent << " A, \n"
+                << "   Limit_MAX_ChargeCurrent: " << Limit_MAX_ChargeCurrent << " A, \n"
                 << "   Limit_MIN_ChargeCurrent: " << Limit_MIN_ChargeCurrent << " A, \n"
                 << "   Limit_MIN_FullChargeCurrent: " << Limit_MIN_FullChargeCurrent << " A, \n"
                 << "   Limit_MAX_Charge_time: " << Limit_MAX_Charge_time << " sec, \n"

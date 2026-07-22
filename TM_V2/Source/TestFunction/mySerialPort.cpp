@@ -66,7 +66,8 @@ bool SerialPort::sp_write(unsigned char* data, int dataSize) {
     usleep(5000);
     tcflush(hSerial, TCIOFLUSH);    
     if (n_written < 0) {
-        std::cerr << "Error writing to serial port." << std::endl;
+        //std::cerr << "Error writing to serial port." << std::endl;
+        std::cerr << "." ;
         return false;
     }
     return true;

@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <sstream>
 
 #define __uart_ErrorCnt 3
 #define __uCProgram_ErrorCnt 5
@@ -80,7 +81,8 @@ int encodeBoardVersion(const std::string& versionText)
 
 int runCommandExitCode(const std::string& cmd, int* rawStatusOut)
 {
-    std::cout << "*** !!! *** Running command: " << cmd << std::endl;
+    //std::cout << "*** !!! *** Running command: " << cmd << std::endl;
+    std::cout <<"CMD: "<< cmd << std::endl;
     const int rawStatus = std::system(cmd.c_str());
     if (rawStatusOut) {
         *rawStatusOut = rawStatus;
@@ -161,20 +163,25 @@ bool USV_TEST_UTIL_V2::Init(){
     return true;     
 }
 void USV_TEST_UTIL_V2::showSelectedBoardInfo(){
-    std::cout << "\n\n----------------------------------------\n";
-    std::cout << "Selected Board: " << myBoard.boardName_str << "\n";
-    std::cout << "  Type: " << myBoard.boardKind_str << "\n";
-    std::cout << "  Version: " <<std::hex << myBoard.boardVer / 16 << "." << (myBoard.boardVer % 16) << "\n";
-    std::cout << "LabelPrintNum: " <<  myBoard.LabelPrintNumber << std::endl;        
-    std::cout << "  Info: \n" << myBoard.myBoardInfo.toString();
-    std::cout << myBoard.constValue.toString() << "\n";
-    std::cout << "ToDo:\n";
+    std::ostringstream oss;
+    oss << "\n\n.----------------------------------------\n";
+    oss << "| Selected Board:     " << myBoard.boardName_str << "\n";
+    oss << "| Type:               " << myBoard.boardKind_str << "\n";
+    int ver_major = myBoard.boardVer / 16;
+    int ver_minor = myBoard.boardVer % 16;
+    oss << "| Version:            " << ver_major << "." << ver_minor << "\n";
+    oss << "| LabelPrintNum:      " <<  myBoard.LabelPrintNumber << "\n";
+    oss << "| ToDo:\n";
     for (const auto& step : toDoList) {
-             std::cout <<"   "<< RSL_struct().getRSLStr(step) << "\n";
-        }
-    std::cout << "\n";
-    std::cout << "----------------------------------------\n";
-
+        oss << "|         " << RSL_struct().getRSLStr(step) << "\n";
+    }
+    oss << ".----------------------------------------\n";
+    oss << "Info: \n";
+    oss << myBoard.myBoardInfo.toString()<< "\n";
+    oss << myBoard.constValue.toString() << "\n";
+    oss << ".----------------------------------------\n";
+    //showLog(oss.str());
+    std::cout << oss.str() << std::flush;
  
 }
 bool USV_TEST_UTIL_V2::SelectBoard(uint8_t _dongle, float _version){
@@ -1310,6 +1317,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         break;
     case 4:
         myBoard.FlyBack_Off();
+        _M2.m2State++;
         break;
     case 5:  // check FlyBack Dis...
         showLog((std::ostringstream{} << "FlyBack-Dis... current=" << std::fixed << std::setprecision(3)
@@ -1353,6 +1361,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
         break; 
     case 11:
         myBoard.FlyBackEn();
+        _M2.m2State++;
         break;
     case 12: //wait to Power Current More then 500mA
         showLog((std::ostringstream{} << "FlyBack-En... current=" << std::fixed << std::setprecision(3)
@@ -1864,7 +1873,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     std::string lCurrentTestNoStr="";
     uint8_t lState=0xFF;
     uint8_t lRSLStatePre=RSL_struct::RSL::Stop;
-    
+    std::ostringstream _oss;
     while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) )
     {
         
@@ -1872,6 +1881,12 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             myInterActReg.TR.currentTestNoStr = x1.getRSLStr(__tr.RSL_state)+":" + std::to_string(__tr.m2State);
             myInterActReg.TR.currentTestNoX = __tr.RSL_state*1000+__tr.m2State;
             __tr.current_RSL_Num_Str = std::to_string(__tr.RSL_state) + "-" + std::to_string(__tr.m2State);
+        }
+        std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(__tr.RSL_state) + "("+ std::to_string(__tr.RSL_state) +")"); 
+        if (current_RSL_Name != __tmp_str){             
+            current_RSL_Name = __tmp_str;
+            showLog("\n"+current_RSL_Name);
+            std::cout << "\n" << current_RSL_Name << std::endl;            
         }
         if(myInterActReg.TR.currentTestNoStr  !=lCurrentTestNoStr || __tr.m2State!=lState){
             std::cout << "... SM: RSL-" << myInterActReg.TR.currentTestNoStr << std::endl;
@@ -1883,18 +1898,13 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 lRSLStatePre=__tr.RSL_state;
             }
         }   
-        usleep(100000);
+        usleep(100000);//100ms delay
         __tr.m2ErrorCnt++;
         if (__tr.dcnt100ms>0) __tr.dcnt100ms--;     
         preLoopFunc(__tr);
         preLoopGetCaps(__tr);        
         __funcResualt=-1;    
-        std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(__tr.RSL_state) + "("+ std::to_string(__tr.RSL_state) +")"); 
-        if (current_RSL_Name != __tmp_str){             
-            current_RSL_Name = __tmp_str;
-            showLog("\n"+current_RSL_Name);
-            std::cout << "\n" << current_RSL_Name << std::endl;
-        }
+        
         switch(__tr.RSL_state){
             case RSL_struct::RSL::Init: __funcResualt= RSL_Init(__tr); break;
             case RSL_struct::RSL::AR_Test: __funcResualt = RSL_AR_Test(__tr); break;
@@ -1949,8 +1959,14 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                     __tr.m2ErrorNo=0;
                 break;
                 case 2: 
-                    std::cout << "\n\n\n RSL Failed on Test " << myInterActReg.TR.currentTestNoStr << std::endl;
-                    showLog("failed!\n!!!!!! "+myInterActReg.TR.currentTestNoStr+" !!!!!!\n"); 
+                    _oss.clear();
+                    _oss << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+                    _oss << "!!! RSL Failed on Test " << myInterActReg.TR.currentTestNoStr << std::endl;
+                    _oss << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+                    std::cout << _oss.str() << std::flush;
+                    
+                    showLog("\n\nfailed!\n!!!!!! "+myInterActReg.TR.currentTestNoStr+" !!!!!!\n"); 
+
                     __tr.RSL_state=RSL_struct::RSL::EndFailed; 
                     if (myTestResult.ErrorNo==0 ) showError(ERROR::unKnown,__tr);
                 break;
@@ -1978,6 +1994,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     if(myTestResult.KnownIC)
         SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
     SaveResult(myArg.StoreFolderPath+myArg.FileName_Test);
+    std::cout<<"SAVE DATA DONE.\n"<<std::flush;
     //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);
     //myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,false);
     myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
