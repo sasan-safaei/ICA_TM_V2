@@ -1,7 +1,7 @@
 #include "main_pi.h"
 
 //****************************************************
-std::string AppVersion="V2.0.8 - 22.07.2026"; //Release Version
+std::string AppVersion="V2.0.9 - 04.08.2026"; //Release Version
 //**************************************************** */
 
 _interact_registers myInterActReg;
@@ -89,7 +89,7 @@ bool getConfig(){
 
 bool App_TM_V2::initialize(int argc, char* argv[]){
 
-    std::cout << "\n>>> TM_V2 Version: " << AppVersion <<" <<<\n" << std::endl;
+    //std::cout << "\n>>> TM_V2 Version: " << AppVersion <<" <<<\n" << std::endl;
     myUSVTestV2.showLog("TM_V2 Version: " + AppVersion);
     myInterActReg.tmVersion=AppVersion;
     if (create_folder("./tmp") != 0) {

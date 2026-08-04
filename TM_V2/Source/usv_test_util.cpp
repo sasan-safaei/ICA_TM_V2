@@ -103,8 +103,13 @@ int runCommandExitCode(const std::string& cmd, int* rawStatusOut)
 }
 
 void USV_TEST_UTIL_V2::showLog(std::string _str){
-            //printf("%s\n",_str.c_str());
             myInterActReg.csLogWrite(_str);
+            // Strip leading newlines so output doesn't start with '\n'
+            while (!_str.empty() && _str.front() == '\n') {
+                _str.erase(0, 1);
+            }
+            //printf("LCD: %s\n",_str.c_str());
+            std::cout << "[LCD]: " << _str << std::endl;
         }
 void USV_TEST_UTIL_V2::checkLabDevice(){
     myArg.LabDevice_PS=false;
@@ -1206,7 +1211,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
                 _M2.__error_cnt=0;
             }
             else{
-                std::cout << "\n failed !!!Current read Error!!! (Value:" << std::fixed << std::setprecision(2) << myTempVal.InCurrent << ")" << std::endl;
+                //show on LCD std::cout << "\n failed !!!Current read Error!!! (Value:" << std::fixed << std::setprecision(2) << myTempVal.InCurrent << ")" << std::endl;
                 showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
                 if (_M2.__error_cnt++>3) return showError(ERROR::ChargeDuration,_M2);
             }   
@@ -1886,7 +1891,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         if (current_RSL_Name != __tmp_str){             
             current_RSL_Name = __tmp_str;
             showLog("\n"+current_RSL_Name);
-            std::cout << "\n" << current_RSL_Name << std::endl;            
+            //show on LCD std::cout << "\n" << current_RSL_Name << std::endl;            
         }
         if(myInterActReg.TR.currentTestNoStr  !=lCurrentTestNoStr || __tr.m2State!=lState){
             std::cout << "... SM: RSL-" << myInterActReg.TR.currentTestNoStr << std::endl;
@@ -1990,7 +1995,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     myTestResult.error_No_str = myError.toString(static_cast<ERROR::N>(myTestResult.ErrorNo));
     myTestResult.error_step_str = myInterActReg.TR.currentTestNoStr;
 
-    std::cout<<"SAVE DATA...\n";
+    //std::cout<<"SAVE DATA...\n";
     showLog("SAVE DATA...");
     if(myTestResult.KnownIC)
         SaveEUI(myArg.StoreFolderPath+myArg.FileName_EUI,(myTestResult.ErrorNo == 0) ? true : false);
