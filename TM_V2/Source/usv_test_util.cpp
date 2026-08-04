@@ -415,8 +415,8 @@ void USV_TEST_UTIL_V2::preLoopFunc(__temp__register & _M2){
         myTempVal.LoadCurrent  = MyLabDevice.ReadLoadCurrent(); 
     }
     if(myTempVal.VOut> myTestResult.Vout_SaveResult) myTestResult.Vout_SaveResult=myTempVal.VOut;
-    myTempVal.VIn_LTC3350 =myBoard.getInputVoltage();
     if(_M2.__isSupperCapsOnBoard){
+        myTempVal.VIn_LTC3350 =myBoard.getInputVoltage();    
         myBoard.GetBatBankTemp(&myTestResult.tempBatBank,false);        
         float __tmpFloat=0;
         if(myBoard.GetICTemp(&__tmpFloat,false))
