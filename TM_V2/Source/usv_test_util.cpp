@@ -1565,7 +1565,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         }else {_M2.__diffVcap__error__cnt=0;}
 
         if(myTestResult.tempIC>__Limit_MAX_IC_Temp || myTestResult.tempIC==-273) {
-            if(__tempIC__error__cnt++>10) showError(ERROR::TempSensor_IC,_M2);//testr.ErrorNo=ERROR::TempSensor;
+            if(__tempIC__error__cnt++>10) return showError(ERROR::TempSensor_IC,_M2);//testr.ErrorNo=ERROR::TempSensor;
         }else {
             //myTestResult.tempIC=__tempICtempVal;
             __tempIC__error__cnt=0;
