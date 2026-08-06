@@ -33,10 +33,24 @@ std::string getColumnStr(char* sline, int cNum ){
 	free(line_copy);
 	return "NULL";
 }
+// Skip leading NUL (0x00) bytes in a fixed-size buffer and return pointer to first non-NUL
+static char* skip_leading_nuls(char* buf, size_t bufsize){
+	if (!buf) return buf;
+	for(size_t i=0;i<bufsize;i++){
+		if (buf[i] != '\0') return buf + i;
+	}
+	return buf;
+}
+
 bool CheckEUI(char* sline){
 	uint8_t read_EUI[8];
-	char *start = strstr(sline, ",");			
-	if (!start) { fprintf(stderr, "Invalid line format: %s", sline); return false; }			
+    
+	// skip any leading NUL bytes that may come from Excel or binary corruption
+	char *p = skip_leading_nuls(sline, 256);
+	if (!p) return false;
+
+	char *start = strstr(p, ",");			
+	if (!start) { fprintf(stderr, "Invalid line format: %s\n", p); return false; }			
 	char hex_string[17]; // 16 hex digits + null terminator
 	strncpy(hex_string, start + 1, 6);
 	strncpy(&hex_string[6], start + 8, 10);	
@@ -86,7 +100,7 @@ int check_repaired(std::string _fileName){
 	if (file_size > 0) {
 		rewind(file);
 		while (fgets(line, sizeof(line), file) != NULL) {
-			line[strcspn(line, "\n")] = '\0';			
+			//line[strcspn(line, "\n")] = '\0';			
 			if (CheckEUI(line)){
 				//printf("!!! Line%d: %s\n", line_cnt, line);
 				std::string __str = getColumnStr(line,7);				
