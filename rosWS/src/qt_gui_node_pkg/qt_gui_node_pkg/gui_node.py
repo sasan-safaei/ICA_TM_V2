@@ -374,12 +374,16 @@ class GuiManager(Node):
             self.w_testing.ui.TBrowser_msg.verticalScrollBar().maximum()
         )
     def msgbox_callback(self, msg, source):
-        self.get_logger().info(f"!!!!! new msgBox callback:{msg.tm_msg}({msg.tm_btn_yes}/{msg.tm_btn_no}) cnt: {msg.tm_msg_counter} time:{msg.tm_msg_show_time}")
-        #self.get_logger().info(f"!!!!! new msgBox callback:{msg.tm_msg}({msg.tm_btn_yes}/{msg.tm_btn_no}) cnt: {msg.tm_msg_counter} time:{msg.tm_msg_show_time}")
-        if msg.tm_msg_counter>=1000:
-            self.get_logger().info("!!! msgBox callback with counter -1, closing message box")
+        if(msg.tm_msg==""):
+            self.get_logger().info("!!! msgBox callback with empty message, closing message box")
             self.w_main.closeMsgRequested.emit()
             return
+        self.get_logger().info(f"!!!!! new msgBox callback:{msg.tm_msg}({msg.tm_btn_yes}/{msg.tm_btn_no}) cnt: {msg.tm_msg_counter} time:{msg.tm_msg_show_time}")
+        ##self.get_logger().info(f"!!!!! new msgBox callback:{msg.tm_msg}({msg.tm_btn_yes}/{msg.tm_btn_no}) cnt: {msg.tm_msg_counter} time:{msg.tm_msg_show_time}")
+        #if msg.tm_msg_counter>=1000:
+        #    self.get_logger().info("!!! msgBox callback with counter -1, closing message box")
+        #    self.w_main.closeMsgRequested.emit()
+        #    return
         self.show_msgbox(msg.tm_msg,msg.tm_btn_yes,msg.tm_btn_no,(int)(msg.tm_msg_show_time)*1000)            
     def run_callback(self, msg, source):
         def fmt(v):

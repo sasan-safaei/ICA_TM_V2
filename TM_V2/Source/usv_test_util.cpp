@@ -994,7 +994,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_uC_Program(__temp__register & _M2){
             }
             else{
                 showLog("Operator/timeOut: NO");
-                myInterActReg.msgBox.clear();
+                //myInterActReg.msgBox.clear();
                 //showLog("!!!!!!!!!!!!!!!!!!  Ovrwrite Disable  !!!!!!!!!!!!!!!!!!");
                 _M2.m2State+=3;
             }
@@ -1936,7 +1936,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
         }
         if(myTempVal.chargingTestProgress){
             if(myTempVal.InCurrent > myBoard.constValue.Limit_MAX_ChargeCurrent){
-                showLog((std::ostringstream{} << "\nChatging.Error!!!  Current (" 
+                showLog((std::ostringstream{} << "\nCharging.Error!!!  Current (" 
                     << myTempVal.InCurrent << " > " << myBoard.constValue.Limit_MAX_ChargeCurrent 
                     << ")\n").str());
                 showError(ERROR::ChargeMaxLimit,__tr);

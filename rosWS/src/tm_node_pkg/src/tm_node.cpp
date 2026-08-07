@@ -111,14 +111,15 @@ private:
         tm_res_msg.temp_scaps_bank=myLastInterActReg.TR.TempScapsBank;
         tm_res_msg.temp_ic=myLastInterActReg.TR.TempIC;
         tm_res_msg.resualt_status= myLastInterActReg.resualtStatus;
-        if(myInterActReg.msgBox.counter>0)
-            if(myInterActReg.msgBox.counter!=myLastInterActReg.msgBox.counter ){
-                tm_msg_box_msg.tm_msg_counter= myInterActReg.msgBox.counter;  
-                tm_msg_box_msg.tm_msg_show_time= myInterActReg.msgBox.timeOutCnt;  
-                tm_msg_box_msg.tm_msg= myInterActReg.msgBox.msg;  
-                tm_msg_box_msg.tm_btn_yes= myInterActReg.msgBox.btnYesTxt;  
-                tm_msg_box_msg.tm_btn_no= myInterActReg.msgBox.btnNoTxt;                                                      
-                tm_run_msgbox->publish(tm_msg_box_msg);
+        if(myInterActReg.msgBox.newMessage!=myLastInterActReg.msgBox.newMessage){
+            //if(myInterActReg.msgBox.counter!=myLastInterActReg.msgBox.counter ){
+            tm_msg_box_msg.tm_msg_counter++;//= myInterActReg.msgBox.newMessage;  
+            tm_msg_box_msg.tm_msg_show_time= myInterActReg.msgBox.timeOutCnt;  
+            tm_msg_box_msg.tm_msg= myInterActReg.msgBox.msg;  
+            tm_msg_box_msg.tm_btn_yes= myInterActReg.msgBox.btnYesTxt;  
+            tm_msg_box_msg.tm_btn_no= myInterActReg.msgBox.btnNoTxt;                                                                  
+            tm_run_msgbox->publish(tm_msg_box_msg);
+
             }
        
         

@@ -97,17 +97,19 @@ struct _testResualtValue{
 };
 const size_t MAX_SIZE_fifo_csLog = 20;
 struct _msg_box{
-    int32_t counter=0;
+    //int32_t counter=0;
+    bool newMessage=false;
     uint16_t timeOutCnt=0;        
     int32_t resualt=0;
     std::string msg;
     std::string btnYesTxt;
     std::string btnNoTxt;
     uint16_t ms100=0;
-    void clear(){
+    void _clear(){
         msg="";
         btnYesTxt="";
         btnNoTxt="";
+        newMessage=false;
         //counter=0;
     }
     void setResualt(int32_t _resualt){
@@ -122,30 +124,39 @@ struct _msg_box{
         resualt=0;
         if(_timeOutSec>0)
             timeOutCnt=_timeOutSec;
-        counter=1;        
-        while(resualt==0){// && timeOutCnt>0){
+        //counter++;        
+        newMessage=true;
+        while(resualt==0 && timeOutCnt>0){
             usleep(100000);
             if(++ms100>=10){
                 ms100=0;
                 timeOutCnt--;
             }
         }
-        clear();
-        counter=0;
+        
+        _clear();
+        //counter=0;
+        
+        if(timeOutCnt==0){
+            std::cout << "!!! waitForUser TIMEOUT !!!"<< std::endl;
+            return false;
+        } 
+
         if(resualt==1)
             return true;
         return false;
     }
     void waitForUser_JShow(std::string _msg,std::string _yesTxt,std::string _noTxt, uint16_t _timeOutSec){
         //uint16_t ms100=0;
-        timeOutCnt=60*60;        
+        timeOutCnt=60;        
         msg=_msg;
         btnYesTxt=_yesTxt;
         btnNoTxt=_noTxt;
         resualt=0;
         if(_timeOutSec>0) timeOutCnt=_timeOutSec;
         //ms100=0;
-        counter++;
+        //counter++;
+        newMessage=true;
     }
     bool waiting(void){
         usleep(100000);
@@ -153,7 +164,7 @@ struct _msg_box{
             ms100=0;
             if (timeOutCnt>0) timeOutCnt--;
         }
-        if(timeOutCnt==0 ||resualt!=0) {clear();counter=1000; return false;}
+        if(timeOutCnt==0 ||resualt!=0) {_clear(); return false;}
         return true;
     }
     void stop(void){ timeOutCnt=0; }
