@@ -14,6 +14,7 @@
             , ChargeDuration
             , ChargeMaxLimit
             , InChargeOverVoltage
+            , fullChargecurrent
             //, DisChargeDuration //5
             //, GPIO 
             , FlyBackEn

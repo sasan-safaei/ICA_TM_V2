@@ -57,8 +57,9 @@ struct __temp__register{
     uint16_t dcnt100ms=0;
     std::ostringstream oss;
     bool testingNoCap=false;    
-    uint8_t __rKey=0;
-    std::ofstream file;
+    uint8_t __rKey=0;    
+    uint32_t logFileLineCnt=0;
+    durationTimerClass logFileTimer;
     uint8_t LMState=0xFF;
     
     uint16_t __lastTimeValue=0;

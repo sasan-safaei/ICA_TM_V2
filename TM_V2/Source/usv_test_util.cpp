@@ -10,6 +10,10 @@
 #include <errno.h>
 #include <sstream>
 
+#include <stdio.h>
+#include <sys/stat.h>
+
+
 #define __uart_ErrorCnt 3
 #define __uCProgram_ErrorCnt 5
 extern LabDevice MyLabDevice;
@@ -295,6 +299,7 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     case ERROR::FlyBackEn:          _strError2="FlyBack En.!";_strDesc="flyBack not enable again with UART Command";break;
     case ERROR::waitToOutSwOff:     _strError2="Wait-Out-SW off!";_strDesc="output switch has not in time Disable";break;
     case ERROR::OutSwOff:           _strError2="Out-SW off!";_strDesc="output switch has not temporary Disable";break;
+    case ERROR::fullChargecurrent:  _strError2="Full Charge Current Err";_strDesc="Full Charge Current is Higher than Max Limit";break;
     case ERROR::EEPROMWrite:        _strError2="*EEPROMWrite";_strDesc="EEPROM ERROR";break;
     case ERROR::VCapsNotSame:        _strError2="VCaps not Same";_strDesc="Caps Vol Error";break;    
     case ERROR::VCapShutDownOutOfRange: _strError2="VCap Shutdown Err";_strDesc="VCap at Shutdown is out of range";break;
@@ -1200,9 +1205,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
             myTempVal.chargeTime=myDurationTimer.TestTimeSec();                
             if(myTempVal.chargeTime!=myTempVal.ltime_mess){
                 //myTempVal.VCap=myBoard.GetVCap(0);                
-                _M2.file << myTempVal.chargeTime<<","<< std::fixed
-                    <<std::setprecision(1)<<myTempVal.VCap <<","
-                    <<std::setprecision(3)<< myTempVal.InCurrent<< std::endl;
+                //_M2.file << myTempVal.chargeTime<<","<< std::fixed
+                //    <<std::setprecision(1)<<myTempVal.VCap <<","
+                //    <<std::setprecision(3)<< myTempVal.InCurrent<< std::endl;
                 myTempVal.ltime_mess=myTempVal.chargeTime;
             }
             if(myTempVal.InCurrent!=-1){    
@@ -1519,13 +1524,15 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,false);
         if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);
         if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(0);    
-        _M2.m2State++;            
+        _M2.m2State++; 
+        myDurationTimer.testTimeStartSec();           
     }       
     break;
     case 2:
     {
         //preLoopFunc if(myArg.LabDevice_PS) myTempVal.InCurrent = MyLabDevice.ReadPSCurrent();					
-        if (myTempVal.InCurrent!=0 && myTempVal.InCurrent<.2) _M2.m2State++;
+        if (myTempVal.InCurrent!=0 && myTempVal.InCurrent < myBoard.constValue.Limit_MIN_FullChargeCurrent) _M2.m2State++;
+        if(myDurationTimer.TestTimeSec()>5) return showError(ERROR::fullChargecurrent,_M2);
     }
     break;
     case 3:// TEST9 : Discharge *********************************************
@@ -1537,9 +1544,9 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);                                
         myDurationTimer.testTimeStartSec();
         myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);				            
-        if (_M2.file.is_open()) { _M2.file.close(); }
-        _M2.file.open("./tmp/disChargeCurve.csv", std::ios::out);
-        _M2.file << "time,voltage"<< std::endl;
+        //if (_M2.file.is_open()) { _M2.file.close(); }
+        //_M2.file.open("./tmp/disChargeCurve.csv", std::ios::out);
+        //_M2.file << "time,voltage"<< std::endl;
         _M2.m2State++;
         __tempIC__error__cnt=0;
         __tempBatBack__error__cnt=0;	
@@ -1576,8 +1583,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         {
             if(__tempBatBack__error__cnt++>10) return showError(ERROR::TempSensor_CapBank,_M2);//testr.ErrorNo=ERROR::TempSensor;                
         }
-                _M2.file << myTempVal.DisChargeTime<<","<< std::fixed
-            <<std::setprecision(1)<<myTempVal.VCap << std::endl;
+                //_M2.file << myTempVal.DisChargeTime<<","<< std::fixed
+                //<<std::setprecision(1)<<myTempVal.VCap << std::endl;
         //myTestResult.ErrorNo=0;
         usleep(100000);
         if(myTempVal.VCap>0) myTestResult.VCap_SWOff=myTempVal.VCap;
@@ -1879,6 +1886,16 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     uint8_t lState=0xFF;
     uint8_t lRSLStatePre=RSL_struct::RSL::Stop;
     std::ostringstream _oss;
+    FILE *logFile;
+    logFile = fopen((myArg.StoreFolderPath + std::string("/InstantaneousValues.csv")).c_str(), "w+");
+    if (!logFile) {
+        // handle fopen error
+        std::cout<< "Error opening log file: " << strerror(errno) << std::endl;
+    }
+    fprintf(logFile, "item,Time,Vin,Iin,Vout,Iout,Vcaps,IC_Temp\n");
+    __tr.logFileTimer.testTimeStartSec();
+    __tr.logFileLineCnt=0;
+    uint16_t lastLogSampleTime = __tr.logFileTimer.TestTimeSec();
     while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) )
     {
         
@@ -1934,6 +1951,8 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 __tr.RSL_state=RSL_struct::RSL::Stop;
             break;
         }
+
+
         if(myTempVal.chargingTestProgress){
             if(myTempVal.InCurrent > myBoard.constValue.Limit_MAX_ChargeCurrent){
                 showLog((std::ostringstream{} << "\nCharging.Error!!!  Current (" 
@@ -1979,8 +1998,51 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             }
         }
         myTempVal.result=__tr.RSL_state; 
-        postLoopFunc();        
+        postLoopFunc(); 
+        if(__tr.logFileTimer.TestTimeSec()> lastLogSampleTime){
+            lastLogSampleTime = __tr.logFileTimer.TestTimeSec();
+            //__tr.logFile << "item,Time,Vin,Iin,Vout,Iout,Vcaps,IC_Temp"<< std::endl;
+            fprintf(logFile, "%d,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.1f\n",
+                ++__tr.logFileLineCnt,
+                static_cast<int>(__tr.logFileTimer.TestTimeSec()),
+                myTempVal.VIn,
+                myTempVal.InCurrent,
+                myTempVal.VOut,
+                myTempVal.LoadCurrent,
+                myTempVal.VCap,
+                myTestResult.tempIC);
+            
+        }    
     }
+    if (logFile) { 
+            fclose(logFile);
+            std::string folderPath = myArg.StoreFolderPath + "IV";
+            //std::cout << "!!!!!!!!!!!!!!!! Checking if folder exists: " << folderPath << std::endl;
+            struct stat st;
+
+            if (stat(folderPath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+                printf("Folder exists: %s\n", folderPath.c_str());
+            } else {
+                printf("Folder does not exist: %s\n", folderPath.c_str());
+                if (mkdir(folderPath.c_str(), 0755) == 0) {
+                    printf("Folder created: (%s)\n", folderPath.c_str());
+                } else {
+                    perror("mkdir");
+                }
+            }
+
+
+            std::time_t Savetime_now = std::time(nullptr);
+            std::tm *SaveTime = std::localtime(&Savetime_now);
+            std::ostringstream cmd;
+            cmd << "cp" << " " << (myArg.StoreFolderPath + "InstantaneousValues.csv") << " " << 
+                myArg.StoreFolderPath << "IV/IV_" <<  myBoard.myEEPROM.myData.getEUI5Byte_Str() << "_" << std::put_time(SaveTime, "%d%m%Y_%H%M%S") << ".csv";
+
+            //std::cout << "Executing command: " << cmd.str() << std::endl;
+            
+            system(std::string(cmd.str()).c_str());
+    }
+    
 
     if(!xrunning){
         showLog("Test stopped by operator. Reinitializing UART/MCU interface...");
