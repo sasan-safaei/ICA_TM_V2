@@ -106,8 +106,8 @@ int check_repaired(std::string _fileName){
 				std::string __str = getColumnStr(line,7);				
 				 if(__str == "0") return __okID;
 				 else if(__str == __okStr) return __okID;
-				 else if(__str == __defectedStr) return __defectedID;
-				 else if(__str == __repairedStr) return __repairedID;				 
+				 else if(strstr(__str.c_str(), __defectedStr) != NULL) return __defectedID;
+				 else if(strstr(__str.c_str(), __repairedStr) != NULL) return __repairedID;
 				 else return -1;
 			}
 			line_cnt++;
