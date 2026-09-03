@@ -19,6 +19,7 @@ from PyQt5.QtCore import QObject
 from functools import partial
 
 from qt_gui_node_pkg.csv_viewer_dialog import CsvViewerDialog
+
 from PyQt5.QtCore import QMetaObject, Qt, pyqtSlot
 from qt_gui_node_pkg.ui.py.uiW_main import Ui_MainWindow as UiWMain
 from qt_gui_node_pkg.ui.py.uiW_testing import Ui_Testing as UiWTesting  # or whatever class name your .py file defines
