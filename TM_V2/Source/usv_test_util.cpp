@@ -333,69 +333,6 @@ uint8_t USV_TEST_UTIL_V2::showError(uint8_t _errorNo,__temp__register & _M2){
     _M2.m2State=0xFF;
     return FuncStatus::failed;//0xFF;
 }
-/*void USV_TEST_UTIL_V2::InformationMenu(){
-    char _str[32];
-    uint8_t _StepNo=0;
-    uint8_t _key=0;
-    myTestDevice.cleanLCD();
-    while(1){
-        switch (_StepNo)
-        {
-        case 0 : // First Page
-            sprintf(_str,"Information");myTestDevice.showOnLCD(1,_str);
-            sprintf(_str,"Menu.");myTestDevice.showOnLCD(2,_str); 
-            myTestDevice.showOnLCD(4,"               Next>");                     
-            sleep(.5);
-        break;
-        case 1:ShowMyName();break;
-        case 2: //Show Input Current Information
-            myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
-                        
-            if(myArg.LabDevice_PS || myArg.LabDevice_Load){
-                if(myArg.LabDevice_PS) myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,true);
-                MyLabDevice.SetPSEnable(true);
-                MyLabDevice.SetPSVoltage(__const_PSVoltage);
-                MyLabDevice.SetPSCurrent(__const_PSCurrent);    
-            }
-            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);	
-
-            myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);            
-            myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
-            myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
-
-            _StepNo++;            
-        break;
-        case 3: myTestDevice.ShowAnalogInfo(); break;
-        case 4: myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);_StepNo++; break;
-        case 5: checkLabDevice();_StepNo++; break;
-        case 6: break;
-        case 7: 
-            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);	
-            myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true); 
-            myTestDevice.setRelay(USV_Test_Interface::Relays::VCCLoad,true);
-            _StepNo++; break;
-        case 8: myTestDevice.ShowDischargeInfo(); break;
-        default:    
-            myTestDevice.cleanLCD();
-            _StepNo=0;
-        break;
-        }
-        _key=myTestDevice.readKeys();
-        switch (_key)
-        {
-            case USV_Test_Interface::_KEY::K1 : _StepNo++; myTestDevice.cleanLCD(); break;
-            case USV_Test_Interface::_KEY::K2 : _StepNo--; myTestDevice.cleanLCD(); break;
-            case USV_Test_Interface::_KEY::K3 : 
-                myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
-                myTestDevice.cleanLCD(); 
-                return; 
-        }
-        if(_key!=0)
-            while(myTestDevice.readKeys()!=0);
-    }
-    
-}
-*/
 void USV_TEST_UTIL_V2::DongleCheck(){
     if(myBoard.boardVerDec!=myInterActReg.board_version ||
         myBoard.boardType!=myInterActReg.DongleID){
@@ -412,8 +349,33 @@ void USV_TEST_UTIL_V2::forceStop(void){
     //myTestDevice.cleanLCD();
 }
 
+void USV_TEST_UTIL_V2::preLoopFunc_setData(__temp__register & _M2){
+    static RSL_struct x1;
+    
+    if(_M2.RSL_state!=RSL_struct::RSL::Stop){// 
+            myInterActReg.TR.currentTestNoStr = x1.getRSLStr(_M2.RSL_state)+":" + std::to_string(_M2.m2State);
+            myInterActReg.TR.currentTestNoX = _M2.RSL_state*1000+_M2.m2State;
+            _M2.current_RSL_Num_Str = std::to_string(_M2.RSL_state) + "-" + std::to_string(_M2.m2State);
+        }
 
-void USV_TEST_UTIL_V2::preLoopFunc(__temp__register & _M2){
+        std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(_M2.RSL_state) + "("+ std::to_string(_M2.RSL_state) +")"); 
+        
+        if (current_RSL_Name != __tmp_str){             
+            current_RSL_Name = __tmp_str;
+            showLog("\n"+current_RSL_Name);
+            //show on LCD std::cout << "\n" << current_RSL_Name << std::endl;            
+        }
+
+        if(myInterActReg.TR.currentTestNoStr  !=_M2.lCurrentTestNoStr || _M2.m2State!=_M2.m2lState){
+            std::cout << "... SM: RSL-" << myInterActReg.TR.currentTestNoStr << std::endl;
+            _M2.lCurrentTestNoStr=myInterActReg.TR.currentTestNoStr;
+            _M2.m2lState=_M2.m2State;
+            _M2.m2ErrorCnt=0;
+            if(_M2.RSL_state!=_M2.lRSLStatePre) _M2.lRSLStatePre=_M2.RSL_state;
+        }   
+    
+}
+void USV_TEST_UTIL_V2::preLoopFunc_getData(__temp__register & _M2){
     myTempVal.VIn= myTestDevice.getDUT_VIN();
     if(myTempVal.VIn> myTestResult.Vin_SaveResult) myTestResult.Vin_SaveResult=myTempVal.VIn;
     myTempVal.InCurrent = myTestDevice.getDUT_VINAmp();
@@ -553,18 +515,7 @@ bool USV_TEST_UTIL_V2::LabelPrint(){
     }
     showLog(" Ok.\n");
     return true;
-    /*
-    int __ret = QL700_Print();
-    if(__ret==0){  
-        //QL700_Print();
-        showLog(" Ok.\n");
-        return true;
-    }
-    else{        
-        showLog(" Error.\n");
-        return false;
-    }
-    */
+
 }
 
 
@@ -608,8 +559,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_Init(__temp__register & _M2){
             myTestResult.clear(myBoard.boardName);
             showLog(" Ok.");
             _M2.m2State++;
-        }
-        
+        }        
     }
     break;
     case 2: return FuncStatus::success;
@@ -699,7 +649,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_VCC_Test(__temp__register & _M2){
                 myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
                 myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);     
                 myDurationTimer.testTimeStartSec();//ChargeTime Start           
-                _M2.dcnt100ms=20;//500ms
+                _M2.dcnt100ms=20;//2000ms
                 _M2.m2State++;
             }     
             break; 
@@ -1194,33 +1144,28 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
     //myInterActReg.TR.currentTestNo=TestResult::T_ChargeTest;
     switch (_M2.m2State)
     {
-    case 0:{//Start Charge Test
+    case 0://Start Charge Test
+    {
         //showLog("\nDo RSL_ChargeTest TEST:"+ std::to_string(myInterActReg.TR.currentTestNo));
         _M2.__isSupperCapsOnBoard=true;
         _M2.m2State++;
     }
     break;
-    case 1:{//Check Charge Time and Current
+    case 1://Check Charge Time and Current
+    {
         //preLoopFunc if(myArg.LabDevice_PS) myTempVal.InCurrent= MyLabDevice.ReadPSCurrent();
             myTempVal.chargeTime=myDurationTimer.TestTimeSec();                
-            if(myTempVal.chargeTime!=myTempVal.ltime_mess){
-                //myTempVal.VCap=myBoard.GetVCap(0);                
-                //_M2.file << myTempVal.chargeTime<<","<< std::fixed
-                //    <<std::setprecision(1)<<myTempVal.VCap <<","
-                //    <<std::setprecision(3)<< myTempVal.InCurrent<< std::endl;
-                myTempVal.ltime_mess=myTempVal.chargeTime;
-            }
+            if(myTempVal.chargeTime!=myTempVal.ltime_mess) myTempVal.ltime_mess=myTempVal.chargeTime; 
             if(myTempVal.InCurrent!=-1){    
                 myTestResult.Vcap_Max=myTempVal.VCap;
-                //PreLoopFunc myBoard.CheckCapsVoltage(&myTestResult.Vcap_Max);
                 _M2.__error_cnt=0;
             }
             else{
-                //show on LCD std::cout << "\n failed !!!Current read Error!!! (Value:" << std::fixed << std::setprecision(2) << myTempVal.InCurrent << ")" << std::endl;
                 showLog((std::ostringstream{} <<" failed !!!Current read Error!!! (Value:"<< std::fixed << std::setprecision(2)<< myTempVal.InCurrent<<")").str());
                 if (_M2.__error_cnt++>3) return showError(ERROR::ChargeDuration,_M2);
             }   
-                
+            // it seems this condition is not necessary, because the charge time limit is already checked in the next condition. But I will keep it for now. 31.8.2026
+            //<<<<<<<<<<<<<<<<<<<<<<
             if ((myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time) & (myTempVal.InCurrent > myBoard.constValue.Limit_MIN_ChargeCurrent)) {
                 showLog((std::ostringstream{} << "\nTEST5.Error!!!  Time (" 
                     << myTempVal.chargeTime << " > " << myBoard.constValue.Limit_MAX_Charge_time 
@@ -1229,6 +1174,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
                     << ")\n").str());
                 return showError(ERROR::ChargeDuration,_M2);
             }
+            //>>>>>>>>>>>>>>>>>>>>
+            
             if (myTempVal.chargeTime > myBoard.constValue.Limit_MAX_Charge_time){//+__Limit_MAX_ExtendChargeTime){                    
                 showLog((std::ostringstream{}<< "\nTEST5.Error!!!  Time ("
                     << myTempVal.chargeTime << " > "
@@ -1236,6 +1183,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_ChargeTest(__temp__register & _M2){
                     << ")\n" ).str());
                 return showError(ERROR::ChargeDuration,_M2);
             }
+
             if(myTempVal.InCurrent < myBoard.constValue.Limit_MIN_FullChargeCurrent && myTempVal.InCurrent > 0){
                 myTestResult.time_charge=myTempVal.chargeTime;
                 _M2.m2State++;
@@ -1279,122 +1227,131 @@ uint8_t USV_TEST_UTIL_V2::RSL_InChargeWait(__temp__register & _M2){
 }
 
 uint8_t USV_TEST_UTIL_V2::RSL_FlyBackTest(__temp__register & _M2){
-    //myInterActReg.TR.currentTestNo=TestResult::T_FlyBackTest;
-    
     switch (_M2.m2State){    
-    case 0:
-    {        
-        //showLog("\nDo RSL_FlyBack Test:"+ std::to_string(myInterActReg.TR.currentTestNo));
-        myBoard.GPIOResetAll();
-        _M2.m2State++;
-        _M2.m2ErrorCntLimit=10;
-        _M2.m2ErrorCnt=0;
-        _M2.m2ErrorNo=0;
-    }
-    break;
-    case 1:
-    {
-        
-        myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,false);
-        myTestDevice.setRelay(USV_Test_Interface::Relays::VCCLoad,false);
-        myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
-        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
-        myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
-        if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);
-        if((myTestDevice.readRelay()&0x15)!=0x15){
-            std::cout << "start... " << myTestDevice.readRelay() << std::endl;             
-        }
-        else{
+        case 0: // Initialize FlyBack Test
+        {        
+            myBoard.GPIOResetAll();
             _M2.m2State++;
-            _M2.m2ErrorCntLimit=20;
+            _M2.m2ErrorCntLimit=10;
             _M2.m2ErrorCnt=0;
-            //_M2.dcnt100ms=5;             
-        }            
-    }
-    break;
-    case 2: //wait to Power Current More then 500mA
-        std::cout << "S2 INAmp:" << std::fixed << std::setprecision(3) << myTempVal.InCurrent << "A" << std::endl;
-        myTestResult.VOut1=myTempVal.VOut;
-        if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
+            _M2.m2ErrorNo=0;
+        }
         break;
-    case 3: //Set FlayBack Off.
-        //myInterActReg.TR.currentTestNo=6;
-        showLog("Test: FlyBack-Dis... ");
-        //_M2.dcnt100ms=20;
-        _M2.m2ErrorCntLimit=10;
-        _M2.m2ErrorCnt=0;
-        _M2.m2State++;
+        case 1: // Set up relays for FlyBack Test
+        {        
+            myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,false);
+            myTestDevice.setRelay(USV_Test_Interface::Relays::VCCLoad,false);
+            myTestDevice.setRelay(USV_Test_Interface::Relays::MPower,true);
+            myTestDevice.setRelay(USV_Test_Interface::Relays::AR,true);
+            myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
+            if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);
+            if((myTestDevice.readRelay()&0x15)!=0x15){
+                std::cout << "start... " << myTestDevice.readRelay() << std::endl;             
+            }
+            else{
+                _M2.m2State++;
+                _M2.m2ErrorCntLimit=20;
+                _M2.m2ErrorCnt=0;
+            }            
+        }
         break;
-    case 4:
-        myBoard.FlyBack_Off();
-        _M2.m2State++;
+        case 2: //wait to Power Current More then Load_Current
+        {
+            std::cout << "S2 INAmp:" << std::fixed << std::setprecision(3) << myTempVal.InCurrent << "A" << std::endl;
+            myTestResult.VOut1=myTempVal.VOut;
+            if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
+        }
         break;
-    case 5:  // check FlyBack Dis...
-        showLog((std::ostringstream{} << "FlyBack-Dis... current=" << std::fixed << std::setprecision(3)
-            << myTempVal.InCurrent << "A, limit=" << myBoard.constValue.Load_Current << "A").str());
-        myTestResult.VOut2=myTempVal.VOut;
-        if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++; else _M2.m2State--;
-    break;
-    case 6: //FlyBack diss is Ok        
-        //sprintf(_str,"T6 Ok.");
-        showLog("Ok.\n");
-        myInterActReg.TR.FlyBackDis=true;
-        //_M2.dcnt100ms=20;
-        _M2.m2State++;
-        _M2.m2ErrorCntLimit=10;
-        _M2.m2ErrorCnt=0;
+        case 3: //Start FlyBack Disable test
+        {   showLog("Test: FlyBack-Dis... ");
+            _M2.m2ErrorCntLimit=10;
+            _M2.m2ErrorCnt=0;
+            _M2.m2State++;
+        }
+        break;
+        case 4: // Turn off FlyBack
+        {
+            myBoard.FlyBack_Off();
+            _M2.m2State++;
+        }
+        break;
+        case 5: // check FlyBack Dis...
+        {
+            showLog((std::ostringstream{} << "FlyBack-Dis... current=" << std::fixed << std::setprecision(3)
+                << myTempVal.InCurrent << "A, limit=" << myBoard.constValue.Load_Current << "A").str());
+            myTestResult.VOut2=myTempVal.VOut;
+            if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++; else _M2.m2State--;
+        }
+        break;
+        case 6: //FlyBack dis is Ok        
+        {
+            showLog("Ok.\n");
+            myInterActReg.TR.FlyBackDis=true;
+            _M2.m2State++;
+            _M2.m2ErrorCntLimit=10;
+            _M2.m2ErrorCnt=0;
+        }
         break;        
-    case 7:  // check FlyBack reset
-        //sprintf(_str,"S2 INAmp:%.3fA",myTempVal.InCurrent);
-        
-        if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
-        myBoard.GPIOResetAll();
+        case 7: // Reset uC | Bridge GPIO
+        {
+            myBoard.GPIOResetAll();        
+            if(myTempVal.InCurrent > myBoard.constValue.Load_Current) _M2.m2State++;
+        }
         break;
-    case 8:  //trun off Aufruesten
-        //_M2.dcnt100ms=20; 
-        _M2.m2ErrorCntLimit=10;
-        _M2.m2ErrorCnt=0;
-        _M2.m2State++;
+        case 8:  // Start FlyBack Enable Test
+        {
+            _M2.m2ErrorCntLimit=10;
+            _M2.m2ErrorCnt=0;
+            _M2.m2State++;
+        }        
         break;
-    case 9: //wait to Power Current less then 500mA
-        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);            
-        if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;
+        case 9: //wait to Power Current less then 500mA
+        {
+            myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);            
+            if(myTempVal.InCurrent != -1 && myTempVal.InCurrent < myBoard.constValue.Load_Current) _M2.m2State++;    
+        }
         break;
-    case 10: //Set FlyBack Enable
-        //myInterActReg.TR.currentTestNo=7;
-        showLog("FlyBack-En... ");
-        
-        //_M2.dcnt100ms=20; 
-        _M2.m2State++;
-        _M2.m2ErrorCntLimit=10;
-        _M2.m2ErrorCnt=0;
+        case 10: // Set Limit and Error Value
+        {
+            showLog("FlyBack-En... ");
+            _M2.m2State++;
+            _M2.m2ErrorCntLimit=10;
+            _M2.m2ErrorCnt=0;
+        }
         break; 
-    case 11:
-        myBoard.FlyBackEn();
-        _M2.m2State++;
+        case 11: // set Enable FlyBack
+        {
+            myBoard.FlyBackEn();
+            _M2.m2State++;
+        }
         break;
-    case 12: //wait to Power Current More then 500mA
-        showLog((std::ostringstream{} << "FlyBack-En... current=" << std::fixed << std::setprecision(3)
-            << myTempVal.InCurrent << "A, limit=" << myBoard.constValue.Load_Current << "A").str());
-        if(myTempVal.InCurrent > myBoard.constValue.Load_Current)  _M2.m2State++; else _M2.m2State--; 
+        case 12: //wait to Power Current More than Load Current
+        {
+            showLog((std::ostringstream{} << "FlyBack-En... current=" << std::fixed << std::setprecision(3)
+                << myTempVal.InCurrent << "A, limit=" << myBoard.constValue.Load_Current << "A").str());
+            if(myTempVal.InCurrent > myBoard.constValue.Load_Current)  _M2.m2State++; else _M2.m2State--; 
+        }
         break;
-    case 13: 
-        showLog("Ok.\n");
-        myInterActReg.TR.FlayBackEn=true;            
-        myBoard.GPIOResetAll();
-        //_M2.dcnt100ms=20; 
-        _M2.m2State++;
+        case 13: // FlyBack Enable is Ok
+        {
+            showLog("Ok.\n");
+            myInterActReg.TR.FlayBackEn=true;            
+            myBoard.GPIOResetAll();
+            //_M2.dcnt100ms=20; 
+            _M2.m2State++;
+        }
         break;
-    break;
-    case 14: return FuncStatus::success;
-    default: return FuncStatus::failed;
+        case 14: return FuncStatus::success;
+        default: return FuncStatus::failed;
     }
+    /*
     if(_M2.m2ErrorCntLimit!=0 && _M2.m2ErrorCnt>_M2.m2ErrorCntLimit){
         if(_M2.m2State< 6 )
             return showError(ERROR::FlyBackdis,_M2);
         else
             return showError(ERROR::FlyBackEn,_M2);
     }   
+    */
     return FuncStatus::running;
 }
 uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
@@ -1880,11 +1837,9 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     uint8_t __funcResualt=0;
     __tr.RSL_Cnt=0;
     __tr.RSL_state=toDoList[__tr.RSL_Cnt];
-    RSL_struct x1;
     uint8_t __cnt1=0;
-    std::string lCurrentTestNoStr="";
     uint8_t lState=0xFF;
-    uint8_t lRSLStatePre=RSL_struct::RSL::Stop;
+    //uint8_t lRSLStatePre=RSL_struct::RSL::Stop;
     std::ostringstream _oss;
     FILE *logFile;
     logFile = fopen((myArg.StoreFolderPath + std::string("/InstantaneousValues.csv")).c_str(), "w+");
@@ -1896,37 +1851,18 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
     __tr.logFileTimer.testTimeStartSec();
     __tr.logFileLineCnt=0;
     uint16_t lastLogSampleTime = __tr.logFileTimer.TestTimeSec();
-    while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) )
-    {
-        
-        if(__tr.RSL_state!=RSL_struct::RSL::Stop){
-            myInterActReg.TR.currentTestNoStr = x1.getRSLStr(__tr.RSL_state)+":" + std::to_string(__tr.m2State);
-            myInterActReg.TR.currentTestNoX = __tr.RSL_state*1000+__tr.m2State;
-            __tr.current_RSL_Num_Str = std::to_string(__tr.RSL_state) + "-" + std::to_string(__tr.m2State);
-        }
-        std::string __tmp_str= ("Do RSL-" + RSL_struct().getRSLStr(__tr.RSL_state) + "("+ std::to_string(__tr.RSL_state) +")"); 
-        if (current_RSL_Name != __tmp_str){             
-            current_RSL_Name = __tmp_str;
-            showLog("\n"+current_RSL_Name);
-            //show on LCD std::cout << "\n" << current_RSL_Name << std::endl;            
-        }
-        if(myInterActReg.TR.currentTestNoStr  !=lCurrentTestNoStr || __tr.m2State!=lState){
-            std::cout << "... SM: RSL-" << myInterActReg.TR.currentTestNoStr << std::endl;
-            lCurrentTestNoStr=myInterActReg.TR.currentTestNoStr;
-            lState=__tr.m2State;
-            __tr.m2ErrorCnt=0;
-            if(__tr.RSL_state!=lRSLStatePre){
-                
-                lRSLStatePre=__tr.RSL_state;
-            }
-        }   
+
+    __tr.lRSLStatePre=RSL_struct::RSL::Stop;
+
+    //*** *** *** *** *** *** *** *** *** *** TEST LOOP *** *** *** *** *** *** *** *** *** ***    
+    
+    while((__tr.RSL_state!=RSL_struct::RSL::Stop) && (__tr.RSL_state!=RSL_struct::RSL::EndFailed) && (xrunning==true) ){
         usleep(100000);//100ms delay
-        __tr.m2ErrorCnt++;
         if (__tr.dcnt100ms>0) __tr.dcnt100ms--;     
-        preLoopFunc(__tr);
+        preLoopFunc_setData(__tr);
+        preLoopFunc_getData(__tr);
         preLoopGetCaps(__tr);        
         __funcResualt=-1;    
-        
         switch(__tr.RSL_state){
             case RSL_struct::RSL::Init: __funcResualt= RSL_Init(__tr); break;
             case RSL_struct::RSL::AR_Test: __funcResualt = RSL_AR_Test(__tr); break;
@@ -1952,7 +1888,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             break;
         }
 
-
+    //test on charhging time to input current does not exceed the maximum limit
         if(myTempVal.chargingTestProgress){
             if(myTempVal.InCurrent > myBoard.constValue.Limit_MAX_ChargeCurrent){
                 showLog((std::ostringstream{} << "\nCharging.Error!!!  Current (" 
@@ -1962,13 +1898,16 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 __funcResualt = FuncStatus::failed;
             }            
         }
-        if(__tr.m2ErrorCntLimit!=0 && __tr.m2ErrorCnt>__tr.m2ErrorCntLimit){
-            if(__tr.m2ErrorNo!=0)
-                showError(__tr.m2ErrorNo,__tr);                        
-            if(myTestResult.ErrorNo==0) showError(ERROR::timeLimit,__tr);
-            __funcResualt = FuncStatus::failed;
-                
-        }   
+    // Error Count Check
+        if(__tr.m2ErrorCntLimit!=0){
+            if(__tr.m2ErrorCnt++>__tr.m2ErrorCntLimit){
+                if(__tr.m2ErrorNo!=0)
+                    showError(__tr.m2ErrorNo,__tr);                        
+                if(myTestResult.ErrorNo==0) showError(ERROR::timeLimit,__tr);
+                __funcResualt = FuncStatus::failed;                
+            }
+        }
+    // RSL State Machine Handling
         if(__tr.RSL_state!=RSL_struct::RSL::Stop){
             switch(__funcResualt){
                 case 0: break;
@@ -1981,6 +1920,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                     __tr.m2State=0;//reset m2State for next function
                     __tr.m2ErrorCntLimit=0;
                     __tr.m2ErrorNo=0;
+                    __tr.m2ErrorCnt=0;
                 break;
                 case 2: 
                     _oss.clear();
@@ -1998,7 +1938,9 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             }
         }
         myTempVal.result=__tr.RSL_state; 
+    // Save the current test results to myInterActReg.TR
         postLoopFunc(); 
+    //Recored log of the current test loop iteration
         if(__tr.logFileTimer.TestTimeSec()> lastLogSampleTime){
             lastLogSampleTime = __tr.logFileTimer.TestTimeSec();
             //__tr.logFile << "item,Time,Vin,Iin,Vout,Iout,Vcaps,IC_Temp"<< std::endl;
@@ -2014,6 +1956,9 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             
         }    
     }
+    
+    //*** *** *** *** *** *** *** *** *** *** TEST LOOP *** *** *** *** *** *** *** *** *** ***
+
     if (logFile) { 
             fclose(logFile);
             std::string folderPath = myArg.StoreFolderPath + "IV";
@@ -2036,7 +1981,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
             std::tm *SaveTime = std::localtime(&Savetime_now);
             std::ostringstream cmd;
             cmd << "cp" << " " << (myArg.StoreFolderPath + "InstantaneousValues.csv") << " " << 
-                myArg.StoreFolderPath << "IV/IV_" <<  myBoard.myEEPROM.myData.getEUI5Byte_Str() << "_" << std::put_time(SaveTime, "%d%m%Y_%H%M%S") << ".csv";
+                myArg.StoreFolderPath << "IV/IV_"<< myBoard.boardName_str << "_" <<  myBoard.myEEPROM.myData.getEUI5Byte_Str() << "_" << std::put_time(SaveTime, "%d%m%Y_%H%M%S") << ".csv";
 
             //std::cout << "Executing command: " << cmd.str() << std::endl;
             

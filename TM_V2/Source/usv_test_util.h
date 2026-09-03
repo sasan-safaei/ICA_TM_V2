@@ -46,10 +46,13 @@ void testrReset();
 
 struct __temp__register{
     std::string current_RSL_Num_Str;
+    std::string lCurrentTestNoStr;
     uint8_t RSL_state=0;
+    uint8_t lRSLStatePre=0;
     uint8_t RSL_Cnt=0;    
     uint8_t mState = 0;
     uint8_t m2State = 0;
+    uint8_t m2lState=0;
     uint8_t m2ErrorCnt=0;
     uint8_t m2ErrorCntLimit=0;
     uint8_t m2ErrorNo=0;
@@ -247,7 +250,8 @@ class USV_TEST_UTIL_V2{
         } constValue;
         */
         void run_Test_Func();
-        void preLoopFunc(__temp__register & _M2);
+        void preLoopFunc_setData(__temp__register & _M2);
+        void preLoopFunc_getData(__temp__register & _M2);
         void postLoopFunc(void);
         void preLoopGetCaps(__temp__register & _M2);        
         bool CheckCapsVoltageDiff(void);

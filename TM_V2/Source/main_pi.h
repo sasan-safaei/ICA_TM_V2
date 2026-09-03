@@ -46,7 +46,7 @@ struct _testResualtValue{
     std::string errorStr1="";
     std::string errorStr2="";
     
-    void DataClear(){        
+    void DataClear(){       
         currentTestNoX=0;
         AR_On=-1; AR_Off=-1;
         UART_Con=-1; eeprom_status=-1;

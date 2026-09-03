@@ -4,3 +4,4 @@
 pyuic5 W_main.ui -o ./py/uiW_main.py
 pyuic5 W_testing.ui -o ./py/uiW_testing.py
 pyuic5 W_ica2308.ui -o ./py/uiW_ica2308.py
+pyuic5 W_IV_Show.ui -o ./py/uiW_iv_show.py
