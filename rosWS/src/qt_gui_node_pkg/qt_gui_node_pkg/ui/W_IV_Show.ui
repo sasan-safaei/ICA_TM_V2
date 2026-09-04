@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,8 +11,116 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>Dialog</string>
   </property>
+  <widget class="QCheckBox" name="cBox_L6">
+   <property name="geometry">
+    <rect>
+     <x>450</x>
+     <y>40</y>
+     <width>115</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>16</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>L6</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="cBox_L5">
+   <property name="geometry">
+    <rect>
+     <x>450</x>
+     <y>5</y>
+     <width>115</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>16</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>L5</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="cBox_L3">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>5</y>
+     <width>115</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>16</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>L3</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="cBox_L4">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>40</y>
+     <width>115</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>16</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>L4</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
   <widget class="QGraphicsView" name="graphicsView">
    <property name="geometry">
     <rect>
@@ -23,17 +131,41 @@
     </rect>
    </property>
   </widget>
-  <widget class="QCheckBox" name="cBox_L1">
+  <widget class="QPushButton" name="Btn_Back">
    <property name="geometry">
     <rect>
-     <x>140</x>
+     <x>640</x>
      <y>10</y>
-     <width>92</width>
-     <height>23</height>
+     <width>150</width>
+     <height>50</height>
     </rect>
    </property>
    <property name="text">
+    <string>Back</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="cBox_L1">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>5</y>
+     <width>115</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>16</pointsize>
+    </font>
+   </property>
+   <property name="text">
     <string>L1</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
    </property>
    <property name="checked">
     <bool>true</bool>
@@ -42,107 +174,69 @@
   <widget class="QCheckBox" name="cBox_L2">
    <property name="geometry">
     <rect>
-     <x>140</x>
-     <y>30</y>
-     <width>92</width>
-     <height>23</height>
+     <x>210</x>
+     <y>40</y>
+     <width>115</width>
+     <height>30</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>16</pointsize>
+    </font>
    </property>
    <property name="text">
     <string>L2</string>
    </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="cBox_L3">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>10</y>
-     <width>92</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>L3</string>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
    </property>
    <property name="checked">
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QCheckBox" name="cBox_L4">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>30</y>
-     <width>92</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>L4</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="cBox_L5">
-   <property name="geometry">
-    <rect>
-     <x>380</x>
-     <y>10</y>
-     <width>92</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>L5</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="cBox_L6">
-   <property name="geometry">
-    <rect>
-     <x>380</x>
-     <y>30</y>
-     <width>92</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>L6</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="Btn_Back">
-   <property name="geometry">
-    <rect>
-     <x>700</x>
-     <y>10</y>
-     <width>90</width>
-     <height>50</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Back</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="btnLoad">
+  <widget class="QPushButton" name="Btn_Load">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>90</width>
+     <width>70</width>
      <height>50</height>
     </rect>
    </property>
    <property name="text">
     <string>Load</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="BtnAllShow">
+   <property name="geometry">
+    <rect>
+     <x>90</x>
+     <y>10</y>
+     <width>50</width>
+     <height>50</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>All
+Show</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="BtnAllHide">
+   <property name="geometry">
+    <rect>
+     <x>150</x>
+     <y>10</y>
+     <width>50</width>
+     <height>50</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>All
+Hide</string>
    </property>
   </widget>
  </widget>

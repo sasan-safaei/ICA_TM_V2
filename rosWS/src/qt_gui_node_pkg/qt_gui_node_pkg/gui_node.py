@@ -10,6 +10,7 @@ global TM_Version
 TM_Version = ""
 #**********************************************************
 tm_workspace = os.environ.get("TM_WORKSPACE")
+tm_storFolder = os.environ.get("STORE_FOLDER")
 CONFIG_CFG_PATH = os.path.join(tm_workspace, "config.cfg")
 
 from PyQt5 import QtWidgets
@@ -19,6 +20,7 @@ from PyQt5.QtCore import QObject
 from functools import partial
 
 from qt_gui_node_pkg.csv_viewer_dialog import CsvViewerDialog
+from qt_gui_node_pkg.iv_show import open_iv_show
 
 from PyQt5.QtCore import QMetaObject, Qt, pyqtSlot
 from qt_gui_node_pkg.ui.py.uiW_main import Ui_MainWindow as UiWMain
@@ -82,6 +84,16 @@ class GuiManager(Node):
         self.w_main.ui.cBoxDongle.currentIndexChanged.connect(self.on_cbox_dongle_changed)
         self.w_main.ui.cBoxVer.currentTextChanged.connect(self.on_cbox_ver_changed)
         self.w_main.ui.actionAbout.triggered.connect(self.show_about_dialog)
+        # connect IV button to open IV show window with default CSV from STORE_FOLDER env
+        try:
+            # prefer configured store_folder from config, fall back to STORE_FOLDER env
+            sf = self.store_folder or tm_storFolder or ""
+            if sf and not os.path.isabs(sf):
+                sf = os.path.join(tm_workspace or "", sf)
+            default_iv = os.path.join(sf or "", "InstantaneousValues.csv")
+            self.w_main.ui.BtnIV.clicked.connect(lambda: open_iv_show(parent=self.w_main, default_csv=default_iv))
+        except Exception:
+            pass
         #self.w_main.ui.actionNewGitPass.triggered.connect(self.show_newGitPass)
         self.w_main.ui.actionPrint_EUI_s.triggered.connect(self.show_prinEUI)
         self.set_image(tm_workspace+"uiBuild/No_Device.jpg")

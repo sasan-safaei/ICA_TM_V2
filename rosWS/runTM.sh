@@ -62,7 +62,7 @@ export ROS_DOMAIN_ID=1
 #export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
 
 # Set StoreFolder in config based on ROS_DOMAIN_ID
-STORE_FOLDER="./TestMachine$(printf '%03d' $ROS_DOMAIN_ID)"
+export STORE_FOLDER="./TestMachine$(printf '%03d' $ROS_DOMAIN_ID)"
 sed -i "s|StoreFolder = .*|StoreFolder = $STORE_FOLDER|" "$TM_WORKSPACE/config.cfg"
 #QT_QPA_PLATFORM=linuxfb ros2 run qt_gui_node_pkg gui_node tm_node_pkg tm_node
 
