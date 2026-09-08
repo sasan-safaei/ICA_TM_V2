@@ -57,9 +57,18 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 
 #***************************************
-export ROS_DOMAIN_ID=1
+# Determine ROS_DOMAIN_ID:
+# 1) honor existing environment variable
+# 2) try to source machine-specific file at $TM_WORKSPACE/set_domain.sh
+# 3) fall back to default 1
+: "${ROS_DOMAIN_ID:=${ROS_DOMAIN_ID}}"
+if [[ -n "$TM_WORKSPACE" && -f "$TM_WORKSPACE/set_domain.sh" ]]; then
+	# shellcheck disable=SC1090
+	source "$TM_WORKSPACE/set_domain.sh"
+fi
+: "${ROS_DOMAIN_ID:=1}"
+export ROS_DOMAIN_ID
 #***************************************
-#export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
 
 # Set StoreFolder in config based on ROS_DOMAIN_ID
 export STORE_FOLDER="./TestMachine$(printf '%03d' $ROS_DOMAIN_ID)"
