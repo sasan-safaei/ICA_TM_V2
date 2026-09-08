@@ -4,7 +4,7 @@ import glob
 import threading
 import time
 #**********************************************************
-GUI_version = "1.0.2"
+GUI_version = "1.0.3"
 # module-level TM version placeholder (filled by sts_callback)
 global TM_Version
 TM_Version = ""
