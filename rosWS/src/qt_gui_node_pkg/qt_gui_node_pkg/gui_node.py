@@ -363,7 +363,15 @@ class GuiManager(Node):
             tmv = ''.join(tmv.split())
         except Exception:
             tmv = tmv.replace('\n', '').replace('\r', '').replace('\t', '').replace(' ', '')
-        msg = f"ICA test machine<br><br> GUI:{GUI_version} <br> TM:{tmv}"
+        # prefer explicit store folder from config, fall back to env var
+        machine_id = self.store_folder or tm_storFolder or "unknown"
+        # strip leading './' if present
+        try:
+            if isinstance(machine_id, str) and machine_id.startswith("./"):
+                machine_id = machine_id[2:]
+        except Exception:
+            pass
+        msg = f"ICA-{machine_id}<br><br> GUI:{GUI_version} <br> TM:{tmv}"
         self.show_msgbox(msg, "Ok", "")
         #QMessageBox.about(None, "About This App", "This is a sample Qt5 application.\nVersion 1.0")
         #msgbox = QMessageBox()
@@ -658,17 +666,23 @@ class WMain(QtWidgets.QMainWindow):
 
         result = msgbox.exec_()
         clear_active_msgbox()
-        manager.get_logger().info(f"msgbox.exec_ ..... {QMessageBox.Rejected}")
+        #manager.get_logger().info(f"msgbox.exec_ ..... {QMessageBox.Rejected}")
 
         msg = MyMsgQtPub()
         msg.btn_press = 0
         msg.dongle_sel = manager.w_main.ui.cBoxDongle.currentIndex()
         msg.board_version = manager._get_selected_version_float()
         if msgbox.clickedButton() == yes_button:
-            manager.get_logger().info(f"User pressed {yes_text} ")
+            if(yes_text!=""):
+                manager.get_logger().info(f"User pressed {yes_text}.")
+            else:
+                manager.get_logger().info(f"msgBox.Auto_Yes.")
             msg.msgbox_press=1
         else:
-            manager.get_logger().info(f"User pressed {no_text}")
+            if(no_text!=""):
+                manager.get_logger().info(f"User pressed {no_text}.")
+            else:
+                manager.get_logger().info(f"msgBox.Auto_No.")
             msg.msgbox_press=2
         manager.myPublish.publish(msg)
 
