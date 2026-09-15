@@ -1361,6 +1361,8 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         //showLog("\nDo RSL_WaitToOutSWOffTest:"+ std::to_string(myInterActReg.TR.currentTestNo));
         myBoard.GPIOResetAll();
         _M2.m2State++;
+        _M2.m2ErrorCntLimit=10;
+        _M2.m2ErrorCnt=0;
     break;
     case 1:
         myTestDevice.setRelay(USV_Test_Interface::Relays::LabPowerSel,false);
@@ -1370,13 +1372,16 @@ uint8_t USV_TEST_UTIL_V2::RSL_WaitToOutSWOffTest(__temp__register & _M2){
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
         if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);
         if((myTestDevice.readRelay()&0x15)!=0x15)
-            std::cout << "start... " << myTestDevice.readRelay() << std::endl;                
-        else{
+            std::cout << "Relay does not set correctly to 0x15 !!! " << myTestDevice.readRelay() << std::endl;                
+        else
             _M2.m2State++;            
-        }
+        
     break;
     case 2: 
-        if (myTempVal.LoadCurrent > myBoard.constValue.Load_Current * .70f) _M2.m2State++;
+        if (myTempVal.LoadCurrent > myBoard.constValue.Load_Current * .70f) 
+            _M2.m2State++;
+        else
+            _M2.m2State--;
     break;
     case 3: 
         showLog("Output-SW ... ");
@@ -1492,24 +1497,30 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         if(myDurationTimer.TestTimeSec()>5) return showError(ERROR::fullChargecurrent,_M2);
     }
     break;
-    case 3:// TEST9 : Discharge *********************************************
+    case 3:// TEST : Discharge *********************************************
     {
-        showLog("Test9: wait to disCharge SCap");
+        showLog("Test DisCharge: wait to disCharge SCap");
         //myInterActReg.TR.currentTestNo=9;
+        myTestDevice.setRelay(USV_Test_Interface::Relays::All,false);
         myTestDevice.setRelay(USV_Test_Interface::Relays::Load,true);
         if(myArg.LabDevice_PS) MyLabDevice.SetPSCurrent(__const_PSCurrent);
         if(myArg.LabDevice_Load) MyLabDevice.SetLoadCurrent(myBoard.constValue.Load_Current);                                
         myDurationTimer.testTimeStartSec();
-        myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);				            
+        //myTestDevice.setRelay(USV_Test_Interface::Relays::AR,false);				            
+        
         //if (_M2.file.is_open()) { _M2.file.close(); }
         //_M2.file.open("./tmp/disChargeCurve.csv", std::ios::out);
         //_M2.file << "time,voltage"<< std::endl;
         _M2.m2State++;
         __tempIC__error__cnt=0;
-        __tempBatBack__error__cnt=0;	
+        __tempBatBack__error__cnt=0;	        
     }
     break;
     case 4:
+    case 5:
+        _M2.m2State++;
+        break;
+    case 6:
     {            
         //preLoopFunc myTempVal.LoadCurrent = myTestDevice.getDUT_VOUTAmp();
         //preLoopFunc myTempVal.VOut= myTestDevice.getDUT_VOUT();
@@ -1543,7 +1554,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
                 //_M2.file << myTempVal.DisChargeTime<<","<< std::fixed
                 //<<std::setprecision(1)<<myTempVal.VCap << std::endl;
         //myTestResult.ErrorNo=0;
-        usleep(100000);
+        //usleep(100000);
         if(myTempVal.VCap>0) myTestResult.VCap_SWOff=myTempVal.VCap;
         if( myTempVal.LoadCurrent > myTestResult.Load_Current) myTestResult.Load_Current = myTempVal.LoadCurrent;
         if ( myTempVal.LoadCurrent>-1 && myTempVal.LoadCurrent<0.05 ) {
@@ -1561,7 +1572,7 @@ uint8_t USV_TEST_UTIL_V2::RSL_DisChargeTest(__temp__register & _M2){
         }	
     }                              
     break;
-    case 5: return FuncStatus::success;    
+    case 7: return FuncStatus::success;    
     default: return FuncStatus::failed;
     }
 
