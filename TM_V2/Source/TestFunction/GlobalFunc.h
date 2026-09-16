@@ -153,6 +153,7 @@ struct testResult{
 	float Vout_SaveResult=0;
 	float Vin_SaveResult=0;
 	float tempIC=0,tempBatBank=0;
+    float tempIC_realTime=0;
 	//float Limit_MIN_ChargeCurrent=0;
 	//float Limit_MIN_FullChargeCurrent=0;
 	//int Limit_MAX_Charge_time=0;
@@ -180,6 +181,7 @@ struct testResult{
 		Load_Current=0;
 		VOut1=0;VOut2=0;
 		tempIC=0;
+        tempIC_realTime=0;
 		tempBatBank=0;//was Not in testrReset()
 		//Limit_MIN_ChargeCurrent=0;
 		//Limit_MIN_FullChargeCurrent=0;

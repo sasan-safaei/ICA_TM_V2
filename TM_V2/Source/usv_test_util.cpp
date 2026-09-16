@@ -376,6 +376,7 @@ void USV_TEST_UTIL_V2::preLoopFunc_setData(__temp__register & _M2){
     
 }
 void USV_TEST_UTIL_V2::preLoopFunc_getData(__temp__register & _M2){
+    static uint8_t __icTmpOverCnt=0;
     myTempVal.VIn= myTestDevice.getDUT_VIN();
     if(myTempVal.VIn> myTestResult.Vin_SaveResult) myTestResult.Vin_SaveResult=myTempVal.VIn;
     myTempVal.InCurrent = myTestDevice.getDUT_VINAmp();
@@ -391,8 +392,18 @@ void USV_TEST_UTIL_V2::preLoopFunc_getData(__temp__register & _M2){
         myTempVal.VIn_LTC3350 =myBoard.getInputVoltage();    
         myBoard.GetBatBankTemp(&myTestResult.tempBatBank,false);        
         float __tmpFloat=0;
-        if(myBoard.GetICTemp(&__tmpFloat,false))
-            if(__tmpFloat> myTestResult.tempIC) myTestResult.tempIC=__tmpFloat;
+        myTestResult.tempIC_realTime=0;
+        if(myBoard.GetICTemp(&__tmpFloat,false)){
+            myTestResult.tempIC_realTime = __tmpFloat;
+            if(__tmpFloat> myTestResult.tempIC) 
+                if(__tmpFloat> __Limit_MAX_IC_Temp) {
+                    if (__icTmpOverCnt++ > 3)
+                        myTestResult.tempIC=__tmpFloat;
+                } else{
+                    __icTmpOverCnt=0;
+                    myTestResult.tempIC=__tmpFloat;
+                } 
+            }            
     }
     
 }
@@ -1963,7 +1974,7 @@ void USV_TEST_UTIL_V2::run_Test_Func(){
                 myTempVal.VOut,
                 myTempVal.LoadCurrent,
                 myTempVal.VCap,
-                myTestResult.tempIC);
+                myTestResult.tempIC_realTime);
             
         }    
     }
